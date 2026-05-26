@@ -1,0 +1,67 @@
+from datetime import datetime
+from typing import Optional
+from pydantic import BaseModel, field_validator
+
+VALID_ROLES = ("root", "admin", "user")
+
+
+class LoginRequest(BaseModel):
+    username: str
+    password: str
+
+
+class TokenOut(BaseModel):
+    access_token: str
+    token_type: str = "bearer"
+    role: str
+    username: str
+    user_id: int
+
+
+class UserCreate(BaseModel):
+    username: str
+    password: str
+    role: str
+    full_name: Optional[str] = None
+
+    @field_validator("role")
+    @classmethod
+    def validate_role(cls, v: str) -> str:
+        if v not in VALID_ROLES:
+            raise ValueError(f"role must be one of {VALID_ROLES}")
+        return v
+
+
+class UserUpdate(BaseModel):
+    full_name: Optional[str] = None
+    role: Optional[str] = None
+    is_active: Optional[bool] = None
+
+    @field_validator("role")
+    @classmethod
+    def validate_role(cls, v: Optional[str]) -> Optional[str]:
+        if v is not None and v not in VALID_ROLES:
+            raise ValueError(f"role must be one of {VALID_ROLES}")
+        return v
+
+
+class PasswordReset(BaseModel):
+    new_password: str
+
+
+class RegisterRequest(BaseModel):
+    username: str
+    password: str
+    full_name: Optional[str] = None
+
+
+class UserOut(BaseModel):
+    id: int
+    username: str
+    full_name: Optional[str] = None
+    role: str
+    is_active: bool
+    status: str
+    created_at: datetime
+
+    model_config = {"from_attributes": True}

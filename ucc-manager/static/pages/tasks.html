@@ -1,0 +1,186 @@
+<h3 class="page-header"><i class="bi bi-check2-square me-2"></i>Tasks</h3>
+
+<!-- Filter bar -->
+<div class="card mb-3 no-print">
+  <div class="card-body">
+    <div class="row g-2 align-items-end">
+      <div class="col">
+        <input type="search" id="filter-search" class="form-control form-control-sm" placeholder="Search by title…" />
+      </div>
+      <div class="col-auto">
+        <select id="filter-status" class="form-select form-select-sm">
+          <option value="">All Statuses</option>
+          <option value="todo">To Do</option>
+          <option value="in_progress">In Progress</option>
+          <option value="done">Done</option>
+        </select>
+      </div>
+      <div class="col-auto">
+        <select id="filter-priority" class="form-select form-select-sm">
+          <option value="">All Priorities</option>
+          <option value="high">High</option>
+          <option value="medium">Medium</option>
+          <option value="low">Low</option>
+        </select>
+      </div>
+      <div class="col-auto">
+        <select id="filter-member" class="form-select form-select-sm">
+          <option value="">All Members</option>
+        </select>
+      </div>
+      <div class="col-auto ms-auto d-flex gap-2">
+        <button class="btn btn-outline-secondary btn-sm" id="btn-bulk-assign">
+          <i class="bi bi-people me-1"></i>Bulk Assign
+        </button>
+        <button class="btn btn-success btn-sm" id="btn-add-task">
+          <i class="bi bi-plus-lg me-1"></i>Add Task
+        </button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- Task table -->
+<div class="card">
+  <div class="card-body p-0">
+    <div class="table-responsive">
+      <table class="table table-hover mb-0">
+        <thead class="table-light">
+          <tr>
+            <th>#</th>
+            <th>Title</th>
+            <th>Assigned To</th>
+            <th>Priority</th>
+            <th>Status</th>
+            <th>Due Date</th>
+            <th>Event</th>
+            <th class="no-print"></th>
+          </tr>
+        </thead>
+        <tbody id="tasks-tbody">
+          <tr><td colspan="8" class="text-center py-4 text-muted">Loading…</td></tr>
+        </tbody>
+      </table>
+    </div>
+  </div>
+</div>
+
+<!-- Add / Edit Modal -->
+<div class="modal fade" id="taskModal" tabindex="-1">
+  <div class="modal-dialog modal-lg">
+    <div class="modal-content">
+      <div class="modal-header">
+        <h5 class="modal-title" id="taskModalTitle">Add Task</h5>
+        <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+      </div>
+      <form id="task-form">
+        <div class="modal-body">
+          <div class="row g-3">
+            <div class="col-12">
+              <label class="form-label">Title <span class="text-danger">*</span></label>
+              <input type="text" class="form-control" name="title" required />
+            </div>
+            <div class="col-12">
+              <label class="form-label">Description</label>
+              <textarea class="form-control" name="description" rows="2"></textarea>
+            </div>
+            <div class="col-md-6">
+              <label class="form-label">Assign To</label>
+              <select class="form-select" name="assigned_to_id" id="task-member-select">
+                <option value="">— unassigned —</option>
+              </select>
+            </div>
+            <div class="col-md-6">
+              <label class="form-label">Linked Event</label>
+              <select class="form-select" name="event_id" id="task-event-select">
+                <option value="">— none —</option>
+              </select>
+            </div>
+            <div class="col-md-4">
+              <label class="form-label">Priority</label>
+              <select class="form-select" name="priority">
+                <option value="low">Low</option>
+                <option value="medium" selected>Medium</option>
+                <option value="high">High</option>
+              </select>
+            </div>
+            <div class="col-md-4">
+              <label class="form-label">Status</label>
+              <select class="form-select" name="status">
+                <option value="todo" selected>To Do</option>
+                <option value="in_progress">In Progress</option>
+                <option value="done">Done</option>
+              </select>
+            </div>
+            <div class="col-md-4">
+              <label class="form-label">Due Date</label>
+              <input type="date" class="form-control" name="due_date" />
+            </div>
+          </div>
+        </div>
+        <div class="modal-footer">
+          <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+          <button type="submit" class="btn btn-success">Save</button>
+        </div>
+      </form>
+    </div>
+  </div>
+</div>
+
+<!-- Bulk Assign Modal -->
+<div class="modal fade" id="bulkModal" tabindex="-1">
+  <div class="modal-dialog modal-lg">
+    <div class="modal-content">
+      <div class="modal-header">
+        <h5 class="modal-title">Bulk Assign Task</h5>
+        <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+      </div>
+      <form id="bulk-form">
+        <div class="modal-body">
+          <div class="row g-3">
+            <div class="col-12">
+              <label class="form-label">Title <span class="text-danger">*</span></label>
+              <input type="text" class="form-control" name="title" required />
+            </div>
+            <div class="col-12">
+              <label class="form-label">Description</label>
+              <textarea class="form-control" name="description" rows="2"></textarea>
+            </div>
+            <div class="col-md-4">
+              <label class="form-label">Priority</label>
+              <select class="form-select" name="priority">
+                <option value="low">Low</option>
+                <option value="medium" selected>Medium</option>
+                <option value="high">High</option>
+              </select>
+            </div>
+            <div class="col-md-4">
+              <label class="form-label">Due Date</label>
+              <input type="date" class="form-control" name="due_date" />
+            </div>
+            <div class="col-md-4">
+              <label class="form-label">Linked Event</label>
+              <select class="form-select" name="event_id" id="bulk-event-select">
+                <option value="">— none —</option>
+              </select>
+            </div>
+            <div class="col-12">
+              <label class="form-label">Assign To <span class="text-danger">*</span></label>
+              <div class="d-flex gap-2 mb-2">
+                <button type="button" class="btn btn-sm btn-outline-secondary" id="bulk-select-all">Select all active</button>
+                <button type="button" class="btn btn-sm btn-outline-secondary" id="bulk-clear-all">Clear</button>
+              </div>
+              <div id="bulk-member-list" class="border rounded p-2" style="max-height:200px;overflow-y:auto">
+                <!-- checkboxes injected by JS -->
+              </div>
+            </div>
+          </div>
+        </div>
+        <div class="modal-footer">
+          <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+          <button type="submit" class="btn btn-success">Assign</button>
+        </div>
+      </form>
+    </div>
+  </div>
+</div>

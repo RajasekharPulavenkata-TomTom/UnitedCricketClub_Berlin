@@ -1,0 +1,38 @@
+<h3 class="page-header"><i class="bi bi-tags me-2"></i>Categories</h3>
+
+<div class="row g-4">
+  <div class="col-md-6">
+    <div class="card h-100">
+      <div class="card-header bg-success text-white">
+        <i class="bi bi-arrow-up-circle me-2"></i>Income Categories
+      </div>
+      <div class="card-body p-0">
+        <ul class="list-group list-group-flush" id="income-list"></ul>
+      </div>
+      <div class="card-footer bg-white">
+        <form id="income-cat-form" class="d-flex gap-2">
+          <input type="hidden" name="type" value="income" />
+          <input type="text" class="form-control form-control-sm" name="name" placeholder="New category name" required />
+          <button type="submit" class="btn btn-success btn-sm text-nowrap"><i class="bi bi-plus"></i> Add</button>
+        </form>
+      </div>
+    </div>
+  </div>
+  <div class="col-md-6">
+    <div class="card h-100">
+      <div class="card-header bg-danger text-white">
+        <i class="bi bi-arrow-down-circle me-2"></i>Expense Categories
+      </div>
+      <div class="card-body p-0">
+        <ul class="list-group list-group-flush" id="expense-list"></ul>
+      </div>
+      <div class="card-footer bg-white">
+        <form id="expense-cat-form" class="d-flex gap-2">
+          <input type="hidden" name="type" value="expense" />
+          <input type="text" class="form-control form-control-sm" name="name" placeholder="New category name" required />
+          <button type="submit" class="btn btn-danger btn-sm text-nowrap"><i class="bi bi-plus"></i> Add</button>
+        </form>
+      </div>
+    </div>
+  </div>
+</div>

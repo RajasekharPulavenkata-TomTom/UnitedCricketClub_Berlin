@@ -1,0 +1,91 @@
+:root {
+  --ucc-blue:       #1a3a8b;
+  --ucc-blue-mid:   #1e4db7;
+  --ucc-blue-light: #2a5fd4;
+  --ucc-orange:     #f47920;
+  --ucc-orange-dark:#d4661a;
+  --ucc-light:      #f8f9fa;
+}
+
+/* ── Navbar ─────────────────────────────────────────────────────────────────── */
+.ucc-navbar {
+  background: linear-gradient(135deg, #112270 0%, var(--ucc-blue) 60%, var(--ucc-blue-mid) 100%);
+  box-shadow: 0 2px 8px rgba(0,0,0,0.25);
+}
+.ucc-navbar .navbar-brand { color: var(--ucc-orange) !important; font-size: 1.3rem; }
+.ucc-navbar .nav-link:hover { color: var(--ucc-orange) !important; }
+
+/* ── Override Bootstrap success → UCC blue ──────────────────────────────────── */
+.btn-success {
+  --bs-btn-bg:               var(--ucc-blue);
+  --bs-btn-border-color:     var(--ucc-blue);
+  --bs-btn-hover-bg:         var(--ucc-blue-mid);
+  --bs-btn-hover-border-color: var(--ucc-blue-mid);
+  --bs-btn-active-bg:        #112270;
+  --bs-btn-active-border-color: #112270;
+  --bs-btn-focus-shadow-rgb: 26, 58, 139;
+}
+.btn-outline-success {
+  --bs-btn-color:            var(--ucc-blue);
+  --bs-btn-border-color:     var(--ucc-blue);
+  --bs-btn-hover-bg:         var(--ucc-blue);
+  --bs-btn-hover-border-color: var(--ucc-blue);
+  --bs-btn-active-bg:        var(--ucc-blue);
+  --bs-btn-active-border-color: var(--ucc-blue);
+}
+
+/* Orange accent button used for approvals / highlights */
+.btn-ucc-orange, .btn-ucc-orange:focus {
+  background-color: var(--ucc-orange);
+  border-color:     var(--ucc-orange);
+  color: #fff;
+}
+.btn-ucc-orange:hover { background-color: var(--ucc-orange-dark); border-color: var(--ucc-orange-dark); color: #fff; }
+
+/* ── Cards & layout ──────────────────────────────────────────────────────────── */
+.card { border: none; box-shadow: 0 1px 6px rgba(0,0,0,0.08); border-radius: 10px; }
+.card-header { border-radius: 10px 10px 0 0 !important; font-weight: 600; }
+
+/* ── Dashboard stat cards ────────────────────────────────────────────────────── */
+.stat-card { border-left: 4px solid; transition: transform 0.15s; }
+.stat-card:hover { transform: translateY(-2px); }
+.stat-income  { border-color: #198754; }
+.stat-expense { border-color: #dc3545; }
+.stat-balance { border-color: var(--ucc-blue); }
+.stat-count   { border-color: var(--ucc-orange); }
+
+/* ── Equipment condition badges ──────────────────────────────────────────────── */
+.badge-Good { background-color: #198754; color: #fff; }
+.badge-Fair { background-color: #ffc107; color: #000; }
+.badge-Poor { background-color: #dc3545; color: #fff; }
+
+/* ── Table hover ─────────────────────────────────────────────────────────────── */
+.table-hover tbody tr:hover { background-color: rgba(26,58,139,0.06); }
+
+.overdue-row       { background-color: #fff3cd !important; }
+.task-row-done td     { background-color: #d1e7dd !important; }
+.task-row-progress td { background-color: #cfe2ff !important; }
+.task-row-todo td     { background-color: #ffe5d0 !important; }
+
+/* ── Page header ─────────────────────────────────────────────────────────────── */
+.page-header {
+  border-bottom: 2px solid var(--ucc-blue);
+  padding-bottom: 0.5rem;
+  margin-bottom: 1.5rem;
+  color: var(--ucc-blue);
+}
+
+/* ── Status & role badges ────────────────────────────────────────────────────── */
+.badge-pending  { background-color: var(--ucc-orange)  !important; color: #fff; }
+.badge-approved { background-color: var(--ucc-blue)    !important; color: #fff; }
+.badge-rejected { background-color: #6c757d            !important; color: #fff; }
+
+.role-badge-root  { background-color: #6610f2; color: #fff; }
+.role-badge-admin { background-color: var(--ucc-blue); color: #fff; }
+.role-badge-user  { background-color: #6c757d; color: #fff; }
+
+/* ── Print ───────────────────────────────────────────────────────────────────── */
+@media print {
+  .no-print, .navbar, nav, .btn, button { display: none !important; }
+  .card { box-shadow: none; border: 1px solid #ddd; }
+}

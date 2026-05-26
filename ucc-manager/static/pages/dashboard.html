@@ -1,0 +1,48 @@
+<div class="row g-3 mb-4">
+  <div class="col-12">
+    <h3 class="page-header"><i class="bi bi-speedometer2 me-2"></i>Financial Dashboard</h3>
+  </div>
+  <div class="col-sm-6 col-xl-3">
+    <div class="card stat-card stat-income p-3">
+      <div class="text-muted small">Total Income</div>
+      <div class="fs-3 fw-bold text-success" id="stat-income">—</div>
+    </div>
+  </div>
+  <div class="col-sm-6 col-xl-3">
+    <div class="card stat-card stat-expense p-3">
+      <div class="text-muted small">Total Expenses</div>
+      <div class="fs-3 fw-bold text-danger" id="stat-expense">—</div>
+    </div>
+  </div>
+  <div class="col-sm-6 col-xl-3">
+    <div class="card stat-card stat-balance p-3">
+      <div class="text-muted small">Balance</div>
+      <div class="fs-3 fw-bold text-primary" id="stat-balance">—</div>
+    </div>
+  </div>
+  <div class="col-sm-6 col-xl-3">
+    <div class="card stat-card stat-count p-3">
+      <div class="text-muted small">Transactions</div>
+      <div class="fs-3 fw-bold text-secondary" id="stat-count">—</div>
+    </div>
+  </div>
+</div>
+
+<div class="card">
+  <div class="card-header d-flex justify-content-between align-items-center bg-white">
+    <span><i class="bi bi-clock-history me-2"></i>Recent Transactions</span>
+    <a href="#transactions" class="btn btn-sm btn-outline-success no-print">View All</a>
+  </div>
+  <div class="card-body p-0">
+    <div class="table-responsive">
+      <table class="table table-hover mb-0">
+        <thead class="table-light">
+          <tr><th>Date</th><th>Type</th><th>Category</th><th>Description</th><th class="text-end">Amount</th></tr>
+        </thead>
+        <tbody id="recent-tbody">
+          <tr><td colspan="5" class="text-center py-3 text-muted">Loading…</td></tr>
+        </tbody>
+      </table>
+    </div>
+  </div>
+</div>

@@ -1,0 +1,48 @@
+<h3 class="page-header"><i class="bi bi-bar-chart-line me-2"></i>Financial Reports</h3>
+
+<div class="row mb-3 align-items-center no-print">
+  <div class="col-auto">
+    <label class="form-label mb-0 me-2 fw-semibold">Year:</label>
+    <select id="year-select" class="form-select form-select-sm d-inline-block w-auto"></select>
+  </div>
+  <div class="col-auto ms-auto">
+    <button class="btn btn-outline-secondary btn-sm" onclick="window.print()">
+      <i class="bi bi-printer me-1"></i>Print
+    </button>
+  </div>
+</div>
+
+<div class="card mb-4">
+  <div class="card-header bg-white">Monthly Income vs Expenses</div>
+  <div class="card-body">
+    <canvas id="monthly-chart" height="80"></canvas>
+  </div>
+</div>
+
+<div class="card mb-4">
+  <div class="card-header bg-white">Monthly Summary</div>
+  <div class="card-body p-0">
+    <div class="table-responsive">
+      <table class="table table-hover mb-0">
+        <thead class="table-light">
+          <tr><th>Month</th><th class="text-end text-success">Income</th><th class="text-end text-danger">Expense</th><th class="text-end">Net</th><th class="text-end text-primary">Running Balance</th></tr>
+        </thead>
+        <tbody id="monthly-tbody"></tbody>
+      </table>
+    </div>
+  </div>
+</div>
+
+<div class="card">
+  <div class="card-header bg-white">Category Breakdown (full year)</div>
+  <div class="card-body p-0">
+    <div class="table-responsive">
+      <table class="table mb-0">
+        <thead class="table-light">
+          <tr><th>Category</th><th>Type</th><th class="text-end">Total</th><th class="text-end"># Transactions</th></tr>
+        </thead>
+        <tbody id="cat-tbody"></tbody>
+      </table>
+    </div>
+  </div>
+</div>

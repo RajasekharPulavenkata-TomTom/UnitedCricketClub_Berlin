@@ -1,0 +1,261 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>UCC – My Availability</title>
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" />
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.min.css" />
+  <link rel="stylesheet" href="/css/ucc.css" />
+  <style>
+    body { background: #f4f6f8; }
+    .event-card { transition: box-shadow .15s; }
+    .event-card:hover { box-shadow: 0 2px 10px rgba(0,0,0,.1); }
+    .type-badge-match    { background:#cfe2ff; color:#084298; }
+    .type-badge-training { background:#d1e7dd; color:#0a3622; }
+    .type-badge-other    { background:#e2d9f3; color:#432874; }
+    .avail-btn { min-width: 110px; }
+    .avail-btn.active-available   { background:#198754; color:#fff; border-color:#198754; }
+    .avail-btn.active-maybe       { background:#ffc107; color:#000; border-color:#ffc107; }
+    .avail-btn.active-unavailable { background:#dc3545; color:#fff; border-color:#dc3545; }
+  </style>
+</head>
+<body>
+
+<nav class="navbar navbar-dark ucc-navbar mb-0">
+  <div class="container">
+    <a class="navbar-brand fw-bold d-flex align-items-center gap-2" href="/">
+      <img src="/img/ucc-logo.png" alt="UCC" style="height:34px;width:34px;object-fit:contain" />
+      United Cricket Club
+    </a>
+  </div>
+</nav>
+
+<div class="container py-4" style="max-width:640px">
+
+  <!-- Who are you? -->
+  <div class="card mb-4 shadow-sm" id="player-picker">
+    <div class="card-body">
+      <h5 class="card-title mb-3"><i class="bi bi-person-circle me-2 text-success"></i>Who are you?</h5>
+      <select id="member-select" class="form-select form-select-lg mb-3">
+        <option value="">— Select your name —</option>
+      </select>
+      <button class="btn btn-success w-100" id="btn-confirm-player" disabled>
+        <i class="bi bi-check-lg me-1"></i>Confirm
+      </button>
+    </div>
+  </div>
+
+  <!-- Greeting + events -->
+  <div id="events-section" style="display:none">
+    <div class="d-flex align-items-center justify-content-between mb-3">
+      <h5 class="mb-0 fw-semibold" id="greeting"></h5>
+      <button class="btn btn-sm btn-outline-secondary" id="btn-change-player">
+        <i class="bi bi-arrow-left me-1"></i>Change
+      </button>
+    </div>
+    <div id="events-list"></div>
+  </div>
+
+</div>
+
+<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
+<script>
+const BASE = "/api";
+
+async function apiFetch(path, opts = {}) {
+    const res = await fetch(BASE + path, {
+        headers: { "Content-Type": "application/json" },
+        ...opts,
+    });
+    if (res.status === 204) return null;
+    const data = await res.json();
+    if (!res.ok) throw new Error(data.detail || "Error");
+    return data;
+}
+
+function showToast(msg, type = "success") {
+    const id = "t" + Date.now();
+    const bg = type === "success" ? "bg-success" : "bg-danger";
+    document.body.insertAdjacentHTML("beforeend", `
+        <div id="${id}" class="toast align-items-center text-white ${bg} border-0 position-fixed bottom-0 end-0 m-3" style="z-index:9999">
+          <div class="d-flex">
+            <div class="toast-body">${msg}</div>
+            <button type="button" class="btn-close btn-close-white me-2 m-auto" data-bs-dismiss="toast"></button>
+          </div>
+        </div>`);
+    const el = document.getElementById(id);
+    new bootstrap.Toast(el, { delay: 2500 }).show();
+    el.addEventListener("hidden.bs.toast", () => el.remove());
+}
+
+function fmtDate(d) {
+    return new Date(d + "T00:00:00").toLocaleDateString("en-GB", { weekday: "short", day: "numeric", month: "short", year: "numeric" });
+}
+
+let memberId = null;
+let memberName = "";
+
+async function init() {
+    const members = await apiFetch("/members?active_only=true");
+    const sel = document.getElementById("member-select");
+    members.forEach(m => {
+        const opt = document.createElement("option");
+        opt.value = m.id;
+        opt.textContent = m.jersey_name || m.name;
+        sel.appendChild(opt);
+    });
+
+    // Restore saved player
+    const saved = localStorage.getItem("ucc_member_id");
+    if (saved) {
+        const match = members.find(m => String(m.id) === saved);
+        if (match) {
+            sel.value = match.id;
+            document.getElementById("btn-confirm-player").disabled = false;
+            confirmPlayer(match.id, match.jersey_name || match.name);
+            return;
+        }
+    }
+
+    sel.addEventListener("change", () => {
+        document.getElementById("btn-confirm-player").disabled = !sel.value;
+    });
+    document.getElementById("btn-confirm-player").addEventListener("click", () => {
+        const opt = sel.options[sel.selectedIndex];
+        confirmPlayer(parseInt(sel.value), opt.textContent);
+    });
+}
+
+function confirmPlayer(id, name) {
+    memberId = id;
+    memberName = name;
+    localStorage.setItem("ucc_member_id", id);
+    document.getElementById("player-picker").style.display = "none";
+    document.getElementById("events-section").style.display = "";
+    document.getElementById("greeting").textContent = "Hi, " + name + " 👋";
+    document.getElementById("btn-change-player").addEventListener("click", changePicker);
+
+    // Re-add confirm listener for fresh renders
+    document.getElementById("member-select").addEventListener("change", () => {
+        document.getElementById("btn-confirm-player").disabled = !document.getElementById("member-select").value;
+    });
+    document.getElementById("btn-confirm-player").addEventListener("click", () => {
+        const sel = document.getElementById("member-select");
+        const opt = sel.options[sel.selectedIndex];
+        confirmPlayer(parseInt(sel.value), opt.textContent);
+    });
+
+    loadEvents();
+}
+
+function changePicker() {
+    memberId = null;
+    localStorage.removeItem("ucc_member_id");
+    document.getElementById("player-picker").style.display = "";
+    document.getElementById("events-section").style.display = "none";
+}
+
+async function loadEvents() {
+    const list = document.getElementById("events-list");
+    list.innerHTML = `<div class="text-center py-4"><div class="spinner-border text-success"></div></div>`;
+
+    try {
+        // Fetch next 3 months of events
+        const today = new Date();
+        const months = [0, 1, 2].map(delta => {
+            const d = new Date(today.getFullYear(), today.getMonth() + delta, 1);
+            return { year: d.getFullYear(), month: d.getMonth() + 1 };
+        });
+        const fetches = months.map(m => apiFetch(`/events?year=${m.year}&month=${m.month}`));
+        const results = await Promise.all(fetches);
+        const allEvents = results.flat();
+
+        const todayStr = today.toISOString().split("T")[0];
+        const upcoming = allEvents.filter(e => e.date >= todayStr).sort((a, b) => a.date.localeCompare(b.date));
+
+        if (!upcoming.length) {
+            list.innerHTML = `<div class="text-center text-muted py-5"><i class="bi bi-calendar-x fs-1 d-block mb-2"></i>No upcoming events</div>`;
+            return;
+        }
+
+        // Fetch this player's availability for each event
+        const availMap = {};
+        await Promise.all(upcoming.map(async ev => {
+            const avail = await apiFetch(`/events/${ev.id}/availability`);
+            const mine = avail.find(a => a.member_id === memberId);
+            availMap[ev.id] = mine ? mine.status : "unknown";
+        }));
+
+        renderEvents(upcoming, availMap);
+    } catch (e) {
+        list.innerHTML = `<div class="alert alert-danger">${e.message}</div>`;
+    }
+}
+
+function renderEvents(events, availMap) {
+    const list = document.getElementById("events-list");
+    list.innerHTML = events.map(ev => {
+        const status = availMap[ev.id] || "unknown";
+        const typeClass = `type-badge-${ev.type}`;
+        return `
+        <div class="card event-card mb-3 shadow-sm">
+          <div class="card-body">
+            <div class="d-flex justify-content-between align-items-start mb-2">
+              <div>
+                <h6 class="fw-bold mb-1">${ev.title}</h6>
+                <div class="text-muted small">
+                  <i class="bi bi-calendar me-1"></i>${fmtDate(ev.date)}
+                  ${ev.location ? `<span class="ms-2"><i class="bi bi-geo-alt me-1"></i>${ev.location}</span>` : ""}
+                </div>
+              </div>
+              <span class="badge ${typeClass} ms-2">${ev.type}</span>
+            </div>
+            <div class="d-flex gap-2 flex-wrap mt-3">
+              <button class="btn btn-sm avail-btn btn-outline-success ${status === "available" ? "active-available" : ""}"
+                onclick="setAvail(${ev.id}, 'available', this)">
+                <i class="bi bi-check-circle me-1"></i>Available
+              </button>
+              <button class="btn btn-sm avail-btn btn-outline-warning ${status === "maybe" ? "active-maybe" : ""}"
+                onclick="setAvail(${ev.id}, 'maybe', this)">
+                <i class="bi bi-question-circle me-1"></i>Maybe
+              </button>
+              <button class="btn btn-sm avail-btn btn-outline-danger ${status === "unavailable" ? "active-unavailable" : ""}"
+                onclick="setAvail(${ev.id}, 'unavailable', this)">
+                <i class="bi bi-x-circle me-1"></i>Unavailable
+              </button>
+            </div>
+          </div>
+        </div>`;
+    }).join("");
+}
+
+window.setAvail = async (eventId, status, btn) => {
+    const card = btn.closest(".card-body");
+    const allBtns = card.querySelectorAll(".avail-btn");
+    allBtns.forEach(b => b.disabled = true);
+
+    try {
+        await apiFetch(`/events/${eventId}/availability/${memberId}`, {
+            method: "PUT",
+            body: JSON.stringify({ status }),
+        });
+
+        // Update button states
+        allBtns.forEach(b => {
+            b.classList.remove("active-available", "active-maybe", "active-unavailable");
+            b.disabled = false;
+        });
+        const classMap = { available: "active-available", maybe: "active-maybe", unavailable: "active-unavailable" };
+        btn.classList.add(classMap[status]);
+        showToast("Saved!");
+    } catch (e) {
+        allBtns.forEach(b => b.disabled = false);
+        showToast(e.message, "error");
+    }
+};
+
+init().catch(console.error);
+</script>
+</body>
+</html>

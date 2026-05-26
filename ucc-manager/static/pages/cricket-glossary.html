@@ -1,0 +1,86 @@
+<h3 class="page-header"><i class="bi bi-book-half me-2"></i>Cricket Glossary</h3>
+<p class="text-muted mb-4">Key cricket terms explained.</p>
+
+<div class="row g-3" id="glossary-container">
+
+  <div class="col-12 mb-1">
+    <input type="text" class="form-control" id="glossary-search" placeholder="Search terms…" oninput="filterGlossary(this.value)">
+  </div>
+
+  <!-- Batting -->
+  <div class="col-12 glossary-section">
+    <div class="card">
+      <div class="card-header bg-primary text-white fw-semibold"><i class="bi bi-person me-2"></i>Batting</div>
+      <div class="card-body p-0">
+        <dl class="mb-0" id="batting-terms">
+          <div class="glossary-item px-3 py-2 border-bottom"><dt class="d-inline fw-semibold">Duck</dt> — <dd class="d-inline text-muted">A score of 0 runs. A "golden duck" is dismissed on the first ball.</dd></div>
+          <div class="glossary-item px-3 py-2 border-bottom"><dt class="d-inline fw-semibold">Century / Ton</dt> — <dd class="d-inline text-muted">100 or more runs in a single innings.</dd></div>
+          <div class="glossary-item px-3 py-2 border-bottom"><dt class="d-inline fw-semibold">Half-century / Fifty</dt> — <dd class="d-inline text-muted">50 or more runs in a single innings.</dd></div>
+          <div class="glossary-item px-3 py-2 border-bottom"><dt class="d-inline fw-semibold">Strike Rate</dt> — <dd class="d-inline text-muted">Runs scored per 100 balls faced. Higher = more aggressive batting.</dd></div>
+          <div class="glossary-item px-3 py-2 border-bottom"><dt class="d-inline fw-semibold">Batting Average</dt> — <dd class="d-inline text-muted">Total runs ÷ number of dismissals. Measures consistency.</dd></div>
+          <div class="glossary-item px-3 py-2 border-bottom"><dt class="d-inline fw-semibold">Crease</dt> — <dd class="d-inline text-muted">The lines in front of and around the stumps. Batters must ground bat or body behind it to be safe.</dd></div>
+          <div class="glossary-item px-3 py-2 border-bottom"><dt class="d-inline fw-semibold">Pull Shot</dt> — <dd class="d-inline text-muted">A horizontal bat shot played to a short delivery on the leg side.</dd></div>
+          <div class="glossary-item px-3 py-2 border-bottom"><dt class="d-inline fw-semibold">Sweep</dt> — <dd class="d-inline text-muted">A low, horizontal bat shot played to spin bowling on the leg side.</dd></div>
+          <div class="glossary-item px-3 py-2 border-bottom"><dt class="d-inline fw-semibold">Drive</dt> — <dd class="d-inline text-muted">An upright, full-bat shot played to fuller-length deliveries. Off drive, on drive, straight drive, cover drive.</dd></div>
+          <div class="glossary-item px-3 py-2"><dt class="d-inline fw-semibold">Reverse Sweep</dt> — <dd class="d-inline text-muted">A sweep shot played in the opposite direction, catching fielders off guard.</dd></div>
+        </dl>
+      </div>
+    </div>
+  </div>
+
+  <!-- Bowling -->
+  <div class="col-12 glossary-section">
+    <div class="card">
+      <div class="card-header bg-success text-white fw-semibold"><i class="bi bi-arrow-right-circle me-2"></i>Bowling</div>
+      <div class="card-body p-0">
+        <dl class="mb-0">
+          <div class="glossary-item px-3 py-2 border-bottom"><dt class="d-inline fw-semibold">Economy Rate</dt> — <dd class="d-inline text-muted">Runs conceded per over. Lower = more economical bowling.</dd></div>
+          <div class="glossary-item px-3 py-2 border-bottom"><dt class="d-inline fw-semibold">Bowling Average</dt> — <dd class="d-inline text-muted">Runs conceded per wicket taken. Lower = more effective bowling.</dd></div>
+          <div class="glossary-item px-3 py-2 border-bottom"><dt class="d-inline fw-semibold">Hat-trick</dt> — <dd class="d-inline text-muted">Taking three wickets on three consecutive deliveries.</dd></div>
+          <div class="glossary-item px-3 py-2 border-bottom"><dt class="d-inline fw-semibold">Maiden Over</dt> — <dd class="d-inline text-muted">An over in which no runs are scored (excluding extras).</dd></div>
+          <div class="glossary-item px-3 py-2 border-bottom"><dt class="d-inline fw-semibold">Yorker</dt> — <dd class="d-inline text-muted">A delivery aimed at the batsman's feet / base of the stumps. Very difficult to hit.</dd></div>
+          <div class="glossary-item px-3 py-2 border-bottom"><dt class="d-inline fw-semibold">Bouncer</dt> — <dd class="d-inline text-muted">A short-pitched delivery that rears up towards the batsman's head or chest.</dd></div>
+          <div class="glossary-item px-3 py-2 border-bottom"><dt class="d-inline fw-semibold">Full Toss</dt> — <dd class="d-inline text-muted">A delivery that reaches the batsman without bouncing.</dd></div>
+          <div class="glossary-item px-3 py-2 border-bottom"><dt class="d-inline fw-semibold">Swing</dt> — <dd class="d-inline text-muted">Lateral movement of the ball in the air. Inswing moves into the batsman; outswing moves away.</dd></div>
+          <div class="glossary-item px-3 py-2 border-bottom"><dt class="d-inline fw-semibold">Seam</dt> — <dd class="d-inline text-muted">Movement off the pitch using the ball's seam. Can deviate either way after bouncing.</dd></div>
+          <div class="glossary-item px-3 py-2 border-bottom"><dt class="d-inline fw-semibold">Off-spin</dt> — <dd class="d-inline text-muted">Spin bowling that turns from off to leg (for a right-hander facing a right-arm off-spinner).</dd></div>
+          <div class="glossary-item px-3 py-2 border-bottom"><dt class="d-inline fw-semibold">Leg-spin</dt> — <dd class="d-inline text-muted">Spin bowling that turns from leg to off — typically harder to bowl but more dangerous.</dd></div>
+          <div class="glossary-item px-3 py-2 border-bottom"><dt class="d-inline fw-semibold">Googly</dt> — <dd class="d-inline text-muted">A leg-spinner's delivery that turns the opposite way (off to leg) as a disguised surprise.</dd></div>
+          <div class="glossary-item px-3 py-2"><dt class="d-inline fw-semibold">Doosra</dt> — <dd class="d-inline text-muted">An off-spinner's delivery that turns the opposite way, similar to a googly for off-spin.</dd></div>
+        </dl>
+      </div>
+    </div>
+  </div>
+
+  <!-- Match terms -->
+  <div class="col-12 glossary-section">
+    <div class="card">
+      <div class="card-header bg-warning text-dark fw-semibold"><i class="bi bi-flag me-2"></i>Match Terms</div>
+      <div class="card-body p-0">
+        <dl class="mb-0">
+          <div class="glossary-item px-3 py-2 border-bottom"><dt class="d-inline fw-semibold">Innings</dt> — <dd class="d-inline text-muted">The batting turn of a team or individual. Each team has one innings per limited-overs game; two in Tests.</dd></div>
+          <div class="glossary-item px-3 py-2 border-bottom"><dt class="d-inline fw-semibold">Over</dt> — <dd class="d-inline text-muted">6 legal deliveries from one end. The bowler must change after each over.</dd></div>
+          <div class="glossary-item px-3 py-2 border-bottom"><dt class="d-inline fw-semibold">Run Rate</dt> — <dd class="d-inline text-muted">Runs scored per over. Used to compare team performance and calculate D/L targets.</dd></div>
+          <div class="glossary-item px-3 py-2 border-bottom"><dt class="d-inline fw-semibold">Powerplay</dt> — <dd class="d-inline text-muted">Fielding restrictions phase — only 2 (T20) or 4 (ODI) fielders outside the 30-yard circle.</dd></div>
+          <div class="glossary-item px-3 py-2 border-bottom"><dt class="d-inline fw-semibold">D/L Method</dt> — <dd class="d-inline text-muted">Duckworth-Lewis-Stern method. Recalculates target scores when a match is interrupted by rain.</dd></div>
+          <div class="glossary-item px-3 py-2 border-bottom"><dt class="d-inline fw-semibold">Super Over</dt> — <dd class="d-inline text-muted">A tie-breaking single over per team played after a tied limited-overs match.</dd></div>
+          <div class="glossary-item px-3 py-2 border-bottom"><dt class="d-inline fw-semibold">Toss</dt> — <dd class="d-inline text-muted">A coin flip before the match. The winning captain chooses to bat or field first.</dd></div>
+          <div class="glossary-item px-3 py-2 border-bottom"><dt class="d-inline fw-semibold">Follow-on</dt> — <dd class="d-inline text-muted">In Tests, forcing the opposition to bat again immediately if they trail by 200+ runs.</dd></div>
+          <div class="glossary-item px-3 py-2 border-bottom"><dt class="d-inline fw-semibold">Declaration</dt> — <dd class="d-inline text-muted">When the batting captain voluntarily closes their innings in Test cricket.</dd></div>
+          <div class="glossary-item px-3 py-2 border-bottom"><dt class="d-inline fw-semibold">LBW</dt> — <dd class="d-inline text-muted">Leg Before Wicket. Out if the ball would have hit the stumps but struck the leg instead of the bat.</dd></div>
+          <div class="glossary-item px-3 py-2"><dt class="d-inline fw-semibold">Review (DRS)</dt> — <dd class="d-inline text-muted">A team's challenge to an umpire's decision using technology. Each team gets 2 per innings.</dd></div>
+        </dl>
+      </div>
+    </div>
+  </div>
+
+</div>
+
+<script>
+function filterGlossary(q) {
+    const term = q.toLowerCase();
+    document.querySelectorAll(".glossary-item").forEach(el => {
+        el.style.display = el.textContent.toLowerCase().includes(term) ? "" : "none";
+    });
+}
+</script>

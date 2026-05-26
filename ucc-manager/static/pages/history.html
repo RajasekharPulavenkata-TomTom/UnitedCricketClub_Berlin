@@ -1,0 +1,23 @@
+<h3 class="page-header"><i class="bi bi-clock-history me-2"></i>Activity History</h3>
+
+<div class="d-flex gap-2 mb-4 flex-wrap no-print" id="history-filters">
+  <button class="btn btn-sm btn-success active" data-filter="">All</button>
+  <button class="btn btn-sm btn-outline-secondary" data-filter="member"><i class="bi bi-people me-1"></i>Members</button>
+  <button class="btn btn-sm btn-outline-secondary" data-filter="event"><i class="bi bi-calendar3 me-1"></i>Events</button>
+  <button class="btn btn-sm btn-outline-secondary" data-filter="transaction"><i class="bi bi-cash-coin me-1"></i>Transactions</button>
+  <button class="btn btn-sm btn-outline-secondary" data-filter="equipment"><i class="bi bi-bag me-1"></i>Equipment</button>
+  <button class="btn btn-sm btn-outline-secondary" data-filter="assignment"><i class="bi bi-person-check me-1"></i>Assignments</button>
+</div>
+
+<div class="card">
+  <div class="card-body p-0" id="history-list">
+    <div class="text-center py-4"><div class="spinner-border spinner-border-sm text-success"></div></div>
+  </div>
+</div>
+
+<style>
+.history-item { display: flex; align-items: flex-start; gap: 14px; padding: 12px 16px; border-bottom: 1px solid #f0f0f0; }
+.history-item:last-child { border-bottom: none; }
+.history-icon { width: 34px; height: 34px; border-radius: 50%; display: flex; align-items: center; justify-content: center; flex-shrink: 0; font-size: .85rem; }
+.history-meta { font-size: .75rem; color: #6c757d; }
+</style>

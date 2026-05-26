@@ -1,0 +1,216 @@
+<h3 class="page-header"><i class="bi bi-calendar3 me-2"></i>Calendar</h3>
+
+<div class="d-flex align-items-center justify-content-between mb-3 no-print">
+  <div class="d-flex align-items-center gap-2">
+    <button class="btn btn-outline-secondary btn-sm" id="cal-prev"><i class="bi bi-chevron-left"></i></button>
+    <h5 class="mb-0 fw-semibold" id="cal-title" style="min-width:180px;text-align:center"></h5>
+    <button class="btn btn-outline-secondary btn-sm" id="cal-next"><i class="bi bi-chevron-right"></i></button>
+    <button class="btn btn-outline-secondary btn-sm ms-2" id="cal-today">Today</button>
+  </div>
+  <div class="d-flex gap-2">
+    <a href="/docs/DCB-Spielberichtsbogen_Eng.pdf" download class="btn btn-outline-danger btn-sm" title="Download DCB Match Report Sheet">
+      <i class="bi bi-file-earmark-pdf me-1"></i>Match Sheet
+    </a>
+    <button class="btn btn-outline-secondary btn-sm" id="btn-share-avail" title="Copy player availability link">
+      <i class="bi bi-share me-1"></i>Player Link
+    </button>
+    <button class="btn btn-success btn-sm" id="btn-add-event">
+      <i class="bi bi-plus-lg me-1"></i>Add Event
+    </button>
+  </div>
+</div>
+
+<div class="d-flex gap-3 mb-3 small text-muted">
+  <span><span style="display:inline-block;width:10px;height:10px;border-radius:50%;background:#198754;margin-right:4px"></span>Available</span>
+  <span><span style="display:inline-block;width:10px;height:10px;border-radius:50%;background:#dc3545;margin-right:4px"></span>Unavailable</span>
+  <span class="ms-2 fst-italic">Click any date to mark availability</span>
+</div>
+
+<!-- Calendar Grid -->
+<div class="card mb-4">
+  <div class="card-body p-2">
+    <div id="cal-grid"></div>
+  </div>
+</div>
+
+<!-- Add/Edit Event Modal -->
+<div class="modal fade" id="eventModal" tabindex="-1">
+  <div class="modal-dialog">
+    <div class="modal-content">
+      <div class="modal-header">
+        <h5 class="modal-title" id="eventModalTitle">Add Event</h5>
+        <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+      </div>
+      <form id="event-form">
+        <div class="modal-body">
+          <div class="row g-3">
+            <div class="col-12">
+              <label class="form-label">Title</label>
+              <input type="text" class="form-control" name="title" required />
+            </div>
+            <div class="col-md-6">
+              <label class="form-label">Date</label>
+              <input type="date" class="form-control" name="date" required />
+            </div>
+            <div class="col-md-6">
+              <label class="form-label">Type</label>
+              <select class="form-select" name="type">
+                <option value="match">Match</option>
+                <option value="training">Training</option>
+                <option value="other" selected>Other</option>
+              </select>
+            </div>
+            <div class="col-12">
+              <label class="form-label">Location</label>
+              <input type="text" class="form-control" name="location" />
+            </div>
+            <div class="col-12">
+              <label class="form-label">Notes</label>
+              <textarea class="form-control" name="notes" rows="2"></textarea>
+            </div>
+          </div>
+        </div>
+        <div class="modal-footer">
+          <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+          <button type="submit" class="btn btn-success">Save</button>
+        </div>
+      </form>
+    </div>
+  </div>
+</div>
+
+<!-- Event Detail / Availability Modal -->
+<div class="modal fade" id="eventDetailModal" tabindex="-1">
+  <div class="modal-dialog modal-lg">
+    <div class="modal-content">
+      <div class="modal-header">
+        <div>
+          <h5 class="modal-title mb-0" id="det-title"></h5>
+          <small class="text-muted" id="det-meta"></small>
+        </div>
+        <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+      </div>
+      <div class="modal-body">
+        <div class="d-flex gap-2 mb-3 no-print">
+          <button class="btn btn-sm btn-outline-secondary" id="det-edit-btn"><i class="bi bi-pencil me-1"></i>Edit</button>
+          <button class="btn btn-sm btn-outline-danger" id="det-delete-btn"><i class="bi bi-trash me-1"></i>Delete</button>
+        </div>
+        <div id="det-weather"></div>
+        <div class="row g-2 mb-3" id="det-counts"></div>
+        <div class="d-flex align-items-center justify-content-between mb-2">
+          <h6 class="fw-semibold mb-0">Player Availability</h6>
+          <div class="d-flex gap-2 no-print">
+            <button class="btn btn-sm btn-outline-success" onclick="window._bulkSetAvail('available')">
+              <i class="bi bi-check-circle me-1"></i>All Available
+            </button>
+            <button class="btn btn-sm btn-outline-secondary" onclick="window._bulkResetAvail()">
+              <i class="bi bi-dash-circle me-1"></i>Reset All
+            </button>
+          </div>
+        </div>
+        <div id="det-avail-list"></div>
+
+        <!-- Squad section -->
+        <div class="mt-3 pt-3" style="border-top:1px solid #e9ecef">
+          <div class="d-flex align-items-center justify-content-between mb-2">
+            <h6 class="fw-semibold mb-0">
+              <i class="bi bi-people-fill me-1"></i>Squad
+              <span id="det-squad-count" class="badge bg-secondary ms-1 fw-normal"></span>
+            </h6>
+            <div class="d-flex gap-2 no-print">
+              <button class="btn btn-sm btn-outline-danger d-none" id="det-squad-clear-btn">
+                <i class="bi bi-trash me-1"></i>Clear
+              </button>
+              <button class="btn btn-sm btn-outline-primary" id="det-squad-edit-btn">
+                <i class="bi bi-pencil-square me-1"></i>Select Squad
+              </button>
+            </div>
+          </div>
+          <div id="det-squad-display"></div>
+          <div id="det-squad-picker" style="display:none">
+            <p class="small text-muted mb-2"><i class="bi bi-info-circle me-1"></i>Players marked <span class="badge bg-success fw-normal">Available</span> are highlighted. Toggle to select.</p>
+            <div class="d-flex flex-wrap gap-1 mb-3" id="det-squad-picker-grid"></div>
+            <div class="d-flex gap-2">
+              <button class="btn btn-success btn-sm" id="det-squad-save-btn"><i class="bi bi-check-lg me-1"></i>Save Squad</button>
+              <button class="btn btn-outline-secondary btn-sm" id="det-squad-cancel-btn">Cancel</button>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- Player Availability Dialog (native dialog, no Bootstrap) -->
+<dialog id="av-dialog" style="border:none;border-radius:12px;padding:0;max-width:480px;width:95%;box-shadow:0 8px 32px rgba(0,0,0,0.18)">
+  <div style="background:var(--ucc-blue);color:#fff;padding:14px 20px;border-radius:12px 12px 0 0;display:flex;align-items:center;justify-content:space-between">
+    <h5 class="mb-0 fw-semibold" id="av-dialog-title"></h5>
+    <button id="av-dialog-close" style="background:none;border:none;color:#fff;font-size:1.3rem;cursor:pointer;line-height:1">&times;</button>
+  </div>
+  <div style="padding:0">
+    <div id="av-entry-list"></div>
+    <div style="padding:14px 16px;border-top:1px solid #e9ecef">
+      <div class="row g-2 align-items-end">
+        <div class="col">
+          <label class="form-label small fw-semibold mb-1">Player</label>
+          <select class="form-select form-select-sm" id="av-player-select"></select>
+        </div>
+        <div class="col-auto">
+          <label class="form-label small fw-semibold mb-1 d-block">Mark as</label>
+          <div class="d-flex gap-2">
+            <button class="btn btn-success btn-sm" id="av-btn-available">
+              <i class="bi bi-check-circle me-1"></i>Available
+            </button>
+            <button class="btn btn-danger btn-sm" id="av-btn-unavailable">
+              <i class="bi bi-x-circle me-1"></i>Unavailable
+            </button>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+  <div style="padding:10px 16px;border-top:1px solid #e9ecef;text-align:right">
+    <button class="btn btn-secondary btn-sm" id="av-dialog-done">Done</button>
+  </div>
+</dialog>
+
+<style>
+dialog::backdrop { background: rgba(0,0,0,0.45); }
+.cal-grid { display: grid; grid-template-columns: repeat(7, 1fr); gap: 2px; }
+.cal-day-header { text-align: center; font-size: .75rem; font-weight: 600; color: #6c757d; padding: 4px 0; }
+.cal-cell {
+  min-height: 105px; border: 1px solid #dee2e6; border-radius: 4px; padding: 6px;
+  background: #fff; vertical-align: top; width: 100%; display: block; text-align: left;
+  cursor: pointer; transition: box-shadow .12s, background .12s;
+}
+button.cal-cell { appearance: none; -webkit-appearance: none; outline: none; }
+.cal-cell:hover { box-shadow: 0 0 0 2px var(--ucc-blue); background: #f0f4ff; }
+.cal-cell.other-month { background: #f8f9fa; opacity: .45; cursor: default; pointer-events: none; }
+.cal-cell.today { border-color: var(--ucc-blue); border-width: 2px; background: #f0faf5; }
+.cal-date { font-size: .8rem; font-weight: 600; color: #495057; margin-bottom: 1px; }
+.cal-weather { font-size: .78rem; color: #444; margin-bottom: 3px; line-height: 1.3; }
+.cal-weather i { font-size: 1rem; vertical-align: middle; }
+.cal-weather .wx-temp { font-weight: 600; }
+.cal-cell.today .cal-date { color: var(--ucc-blue); }
+.event-badge { display: block; font-size: .7rem; padding: 2px 5px; border-radius: 3px; margin-top: 2px; cursor: pointer; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.event-badge.match { background: #cfe2ff; color: #084298; }
+.event-badge.training { background: #d1e7dd; color: #0a3622; }
+.event-badge.other { background: #e2d9f3; color: #432874; }
+.av-name { font-size: .65rem; border-radius: 4px; padding: 1px 5px; margin: 1px 0;
+           display: block; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; color: #fff; }
+.av-name.available { background: #198754; }
+.av-name.unavailable { background: #dc3545; }
+.av-entry-row { display: flex; align-items: center; justify-content: space-between;
+                padding: 8px 16px; border-bottom: 1px solid #f0f0f0; }
+.av-empty { padding: 12px 16px; color: #6c757d; font-size: .875rem; }
+.avail-row { display: flex; align-items: center; justify-content: space-between; padding: 6px 0; border-bottom: 1px solid #f0f0f0; }
+.avail-row:last-child { border-bottom: none; }
+.squad-list { display: flex; flex-wrap: wrap; gap: 6px; }
+.squad-pill { display: inline-flex; align-items: center; gap: 5px; background: #e8f5e9; border: 1px solid #a5d6a7; border-radius: 20px; padding: 3px 10px; font-size: .82rem; font-weight: 500; }
+.squad-pill .squad-num { font-weight: 700; color: #198754; font-size: .75rem; }
+.squad-toggle { border-radius: 20px; font-size: .78rem; padding: 3px 10px; cursor: pointer; border: 1.5px solid; transition: all .1s; }
+.squad-toggle.selected-avail   { background: #198754; border-color: #198754; color: #fff; }
+.squad-toggle.selected-other   { background: #6c757d; border-color: #6c757d; color: #fff; }
+.squad-toggle.unselected-avail { background: #fff; border-color: #198754; color: #198754; }
+.squad-toggle.unselected-other { background: #fff; border-color: #ced4da; color: #6c757d; }
+</style>

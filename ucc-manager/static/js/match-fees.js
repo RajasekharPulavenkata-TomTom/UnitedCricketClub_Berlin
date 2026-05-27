@@ -129,6 +129,12 @@ async function openPayments(eventId) {
 
 function renderPayments(eventId, payments) {
     const body = document.getElementById(`mf-payments-body-${eventId}`);
+    if (!payments.length) {
+        body.innerHTML = `<p class="text-muted small mb-0">
+            <i class="bi bi-info-circle me-1"></i>No Playing XI set for this match.
+            Select a Playing XI from the Calendar first.</p>`;
+        return;
+    }
     const paidCount = payments.filter(p => p.paid).length;
     body.innerHTML = `
         <div class="d-flex flex-wrap gap-2 mb-2">

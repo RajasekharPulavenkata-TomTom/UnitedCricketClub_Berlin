@@ -7,12 +7,19 @@ from database import get_db
 from models.event import Event
 from models.member import Member
 from models.match_fee import MatchFeePayment
+from models.squad import EventSquad
 
 router = APIRouter(prefix="/api/match-fees", tags=["match-fees"])
 
 
 class FeeSet(BaseModel):
     amount: float
+
+
+def _squad_ids(event_id: int, db: Session) -> list[int]:
+    return [r.member_id for r in
+            db.query(EventSquad).filter(EventSquad.event_id == event_id)
+            .order_by(EventSquad.batting_order).all()]
 
 
 @router.get("")
@@ -22,15 +29,15 @@ def list_events(year: Optional[int] = None, db: Session = Depends(get_db)):
         query = query.filter(Event.date.between(f"{year}-01-01", f"{year}-12-31"))
     events = query.order_by(Event.date.desc()).all()
 
-    total_active = db.query(Member).filter(Member.is_active == True).count()
-
     result = []
     for ev in events:
+        squad = set(_squad_ids(ev.id, db))
+        total = len(squad)
         payments = db.query(MatchFeePayment).filter(MatchFeePayment.event_id == ev.id).all()
-        paid_count = sum(1 for p in payments if p.paid)
+        paid_count = sum(1 for p in payments if p.paid and p.member_id in squad)
         fee = float(ev.match_fee) if ev.match_fee is not None else None
         collected = round(paid_count * fee, 2) if fee is not None else 0.0
-        outstanding = round((total_active - paid_count) * fee, 2) if fee is not None else 0.0
+        outstanding = round((total - paid_count) * fee, 2) if fee is not None else 0.0
         result.append({
             "id": ev.id,
             "date": ev.date.isoformat(),
@@ -38,7 +45,7 @@ def list_events(year: Optional[int] = None, db: Session = Depends(get_db)):
             "location": ev.location,
             "fee": fee,
             "paid_count": paid_count,
-            "total_members": total_active,
+            "total_members": total,
             "collected": collected,
             "outstanding": outstanding,
         })
@@ -57,15 +64,19 @@ def set_fee(event_id: int, data: FeeSet, db: Session = Depends(get_db)):
 
 @router.get("/{event_id}/payments")
 def get_payments(event_id: int, db: Session = Depends(get_db)):
-    active_members = db.query(Member).filter(Member.is_active == True).order_by(Member.name).all()
-    payments = {p.member_id: p for p in db.query(MatchFeePayment).filter(MatchFeePayment.event_id == event_id).all()}
+    ids = _squad_ids(event_id, db)
+    if not ids:
+        return []
+    members = {m.id: m for m in db.query(Member).filter(Member.id.in_(ids)).all()}
+    payments = {p.member_id: p for p in
+                db.query(MatchFeePayment).filter(MatchFeePayment.event_id == event_id).all()}
     return [
         {
-            "member_id": m.id,
-            "name": m.jersey_name or m.name,
-            "paid": payments[m.id].paid if m.id in payments else False,
+            "member_id": mid,
+            "name": (members[mid].jersey_name or members[mid].name) if mid in members else f"Member {mid}",
+            "paid": payments[mid].paid if mid in payments else False,
         }
-        for m in active_members
+        for mid in ids if mid in members
     ]
 
 

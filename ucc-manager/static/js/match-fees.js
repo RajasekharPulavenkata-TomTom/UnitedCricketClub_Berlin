@@ -83,6 +83,9 @@ function renderCards() {
                   <span class="badge bg-secondary">${dateStr}</span>
                   <span class="fw-semibold">${ev.title}</span>
                   ${ev.location ? `<span class="text-muted small">${ev.location}</span>` : ""}
+                  ${ev.total_members > 0
+                    ? `<span class="badge bg-success"><i class="bi bi-people-fill me-1"></i>XI set (${ev.total_members})</span>`
+                    : `<span class="badge bg-warning text-dark"><i class="bi bi-exclamation-triangle me-1"></i>No XI set</span>`}
                 </div>
                 ${feeStr ? `
                 <div class="d-flex align-items-center flex-wrap gap-3 mt-1">

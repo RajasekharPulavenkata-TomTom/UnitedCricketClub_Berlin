@@ -4,7 +4,7 @@ from fastapi.staticfiles import StaticFiles
 from sqlalchemy import text, inspect
 from database import engine, Base
 import models  # registers all models before create_all
-from routers import accounting, inventory, members, events, audit, finance_pin, player_availability, tasks
+from routers import accounting, inventory, members, events, audit, finance_pin, player_availability, tasks, tournament
 
 
 def _run_migrations():
@@ -74,5 +74,6 @@ app.include_router(audit.router)
 app.include_router(finance_pin.router)
 app.include_router(player_availability.router)
 app.include_router(tasks.router)
+app.include_router(tournament.router)
 
 app.mount("/", StaticFiles(directory="static", html=True), name="static")

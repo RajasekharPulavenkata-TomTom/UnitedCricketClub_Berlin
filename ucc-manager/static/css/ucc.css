@@ -84,6 +84,27 @@
 .role-badge-admin { background-color: var(--ucc-blue); color: #fff; }
 .role-badge-user  { background-color: #6c757d; color: #fff; }
 
+/* ── Ticker ──────────────────────────────────────────────────────────────────── */
+.ticker-wrap {
+  background: var(--ucc-blue);
+  color: #fff;
+  font-size: .8rem;
+  font-weight: 500;
+  letter-spacing: .02em;
+  overflow: hidden;
+  white-space: nowrap;
+  padding: 6px 0;
+}
+.ticker-text {
+  display: inline-block;
+  animation: ticker-scroll 30s linear infinite;
+}
+.ticker-text:hover { animation-play-state: paused; }
+@keyframes ticker-scroll {
+  0%   { transform: translateX(100vw); }
+  100% { transform: translateX(-100%); }
+}
+
 /* ── Print ───────────────────────────────────────────────────────────────────── */
 @media print {
   .no-print, .navbar, nav, .btn, button { display: none !important; }

@@ -1,0 +1,140 @@
+<h3 class="page-header"><i class="bi bi-calculator me-2"></i>Duckworth-Lewis Calculator</h3>
+
+<div class="row g-4">
+  <!-- Input panel -->
+  <div class="col-lg-5">
+    <div class="card">
+      <div class="card-header bg-white fw-semibold">
+        <i class="bi bi-sliders me-2"></i>Match Details
+      </div>
+      <div class="card-body">
+
+        <div class="mb-3">
+          <label class="form-label">Match Format</label>
+          <select id="dl-format" class="form-select" onchange="dlFormatChange()">
+            <option value="20">T20 (20 overs)</option>
+            <option value="40">40 Overs</option>
+            <option value="50">ODI (50 overs)</option>
+            <option value="custom">Custom</option>
+          </select>
+        </div>
+        <div class="mb-3" id="dl-custom-overs-wrap" style="display:none">
+          <label class="form-label">Overs per side</label>
+          <input type="number" id="dl-overs-per-side" class="form-control" min="1" max="50" value="20" />
+        </div>
+
+        <hr />
+        <h6 class="text-muted mb-3">Team 1 (Batting First)</h6>
+        <div class="row g-2 mb-3">
+          <div class="col-7">
+            <label class="form-label">Total Score</label>
+            <input type="number" id="dl-t1-score" class="form-control" min="0" placeholder="e.g. 165" />
+          </div>
+          <div class="col-5">
+            <label class="form-label">Overs Batted</label>
+            <input type="number" id="dl-t1-overs" class="form-control" min="0" step="0.1" placeholder="e.g. 20" />
+          </div>
+        </div>
+
+        <hr />
+        <h6 class="text-muted mb-3">Team 2 — Interruption Details</h6>
+
+        <div class="row g-2 mb-3">
+          <div class="col-6">
+            <label class="form-label">Overs Bowled <span class="text-muted small">(at rain)</span></label>
+            <input type="number" id="dl-t2-overs-bowled" class="form-control" min="0" step="0.1" placeholder="e.g. 8" />
+          </div>
+          <div class="col-6">
+            <label class="form-label">Wickets Lost <span class="text-muted small">(at rain)</span></label>
+            <input type="number" id="dl-t2-wickets" class="form-control" min="0" max="9" placeholder="e.g. 2" />
+          </div>
+        </div>
+        <div class="mb-3">
+          <label class="form-label">Overs Available <span class="text-muted small">(after rain)</span></label>
+          <input type="number" id="dl-t2-overs-available" class="form-control" min="0" step="0.1" placeholder="e.g. 15" />
+        </div>
+
+        <button class="btn btn-success w-100" onclick="dlCalculate()">
+          <i class="bi bi-calculator me-1"></i>Calculate
+        </button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Result panel -->
+  <div class="col-lg-7">
+    <div id="dl-result" style="display:none">
+
+      <!-- Revised Target -->
+      <div class="card mb-3 border-0" id="dl-target-card">
+        <div class="card-body text-center py-4">
+          <div class="text-muted small mb-1">Revised Target for Team 2</div>
+          <div class="display-4 fw-bold" id="dl-target-runs"></div>
+          <div class="text-muted small mt-1" id="dl-target-sub"></div>
+        </div>
+      </div>
+
+      <!-- Resource breakdown -->
+      <div class="card mb-3">
+        <div class="card-header bg-white fw-semibold"><i class="bi bi-bar-chart me-2"></i>Resources</div>
+        <div class="card-body">
+          <div class="row text-center g-3">
+            <div class="col-6">
+              <div class="text-muted small">Team 1 Resources</div>
+              <div class="fs-3 fw-bold text-primary" id="dl-r1"></div>
+              <div class="progress mt-1" style="height:6px">
+                <div class="progress-bar bg-primary" id="dl-r1-bar"></div>
+              </div>
+            </div>
+            <div class="col-6">
+              <div class="text-muted small">Team 2 Resources</div>
+              <div class="fs-3 fw-bold" id="dl-r2"></div>
+              <div class="progress mt-1" style="height:6px">
+                <div class="progress-bar" id="dl-r2-bar"></div>
+              </div>
+            </div>
+          </div>
+          <div class="text-muted small text-center mt-3" id="dl-resource-note"></div>
+        </div>
+      </div>
+
+      <!-- Par score table -->
+      <div class="card">
+        <div class="card-header bg-white fw-semibold"><i class="bi bi-table me-2"></i>Par Score Progression</div>
+        <div class="card-body p-0">
+          <div class="table-responsive" style="max-height:280px;overflow-y:auto">
+            <table class="table table-sm mb-0">
+              <thead class="table-light sticky-top">
+                <tr>
+                  <th>Over</th>
+                  <th class="text-end">Par (0 wkts)</th>
+                  <th class="text-end">Par (2 wkts)</th>
+                  <th class="text-end">Par (5 wkts)</th>
+                </tr>
+              </thead>
+              <tbody id="dl-par-tbody"></tbody>
+            </table>
+          </div>
+        </div>
+      </div>
+
+    </div>
+
+    <!-- Empty state -->
+    <div id="dl-empty" class="card border-0 text-center py-5 text-muted">
+      <i class="bi bi-cloud-rain fs-1 mb-3 d-block"></i>
+      Fill in the match details and press <strong>Calculate</strong> to get the revised target.
+    </div>
+  </div>
+</div>
+
+<!-- Info card -->
+<div class="card mt-4 border-0 bg-light">
+  <div class="card-body small text-muted">
+    <strong>How it works:</strong> Uses the Duckworth-Lewis Standard Edition formula.
+    Resources are calculated as <em>R(u, w) = Z₀(w) × (1 − e<sup>−b(w)·u</sup>)</em> where
+    <em>u</em> = overs remaining and <em>w</em> = wickets lost.
+    If Team 2 has <em>fewer</em> resources, the target is scaled down proportionally.
+    If Team 2 has <em>more</em> resources (rare), a bonus is added using the match's average score.
+  </div>
+</div>

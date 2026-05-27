@@ -23,6 +23,7 @@ const PAGES = {
     "cricket-formats":  { html: "/pages/cricket-formats.html",     js: "/js/cricket-formats.js"    },
     "cricket-positions":{ html: "/pages/cricket-positions.html",   js: "/js/cricket-positions.js"  },
     "cricket-glossary": { html: "/pages/cricket-glossary.html",    js: "/js/cricket-glossary.js"   },
+    "dl-calculator":    { html: "/pages/dl-calculator.html",       js: "/js/dl-calculator.js"      },
 };
 
 document.getElementById("main-nav").style.display = "";

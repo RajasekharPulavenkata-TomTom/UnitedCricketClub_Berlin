@@ -111,6 +111,11 @@ function showDetail(t) {
             onfocus="this.style.borderColor='#dee2e6'"
             onblur="this.style.borderColor='transparent'; window._inlineEditMatches(${p.id}, this)"
             onkeydown="if(event.key==='Enter'){this.blur()}" />
+          <button class="btn btn-link btn-sm p-0 ms-1 text-muted"
+            onclick="this.closest('tr').querySelector('.matches-inline').focus()"
+            title="Edit matches">
+            <i class="bi bi-pencil" style="font-size:.75rem"></i>
+          </button>
         </td>
         <td class="text-end fw-semibold">${fmt.currency(p.fee_share ?? 0)}</td>
         <td class="text-center">

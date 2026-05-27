@@ -9,5 +9,6 @@ from .player_availability import PlayerAvailability
 from .squad import EventSquad
 from .task import Task
 from .tournament import Tournament, TournamentParticipant
+from .match_fee import MatchFeePayment
 
-__all__ = ["User", "Category", "Transaction", "EquipmentItem", "Assignment", "MaintenanceNote", "Member", "Event", "EventAvailability", "AuditLog", "ClubSetting", "PlayerAvailability", "EventSquad", "Task", "Tournament", "TournamentParticipant"]
+__all__ = ["User", "Category", "Transaction", "EquipmentItem", "Assignment", "MaintenanceNote", "Member", "Event", "EventAvailability", "AuditLog", "ClubSetting", "PlayerAvailability", "EventSquad", "Task", "Tournament", "TournamentParticipant", "MatchFeePayment"]

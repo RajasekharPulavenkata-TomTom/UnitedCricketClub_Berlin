@@ -16,6 +16,7 @@ const PAGES = {
     members:            { html: "/pages/members.html",             js: "/js/members.js"            },
     tasks:              { html: "/pages/tasks.html",               js: "/js/tasks.js"              },
     "tournament-fees":  { html: "/pages/tournament-fees.html",    js: "/js/tournament-fees.js"    },
+    "match-fees":       { html: "/pages/match-fees.html",         js: "/js/match-fees.js"         },
     calendar:           { html: "/pages/calendar.html",            js: "/js/calendar.js"           },
     rules:              { html: "/pages/rules.html",               js: "/js/rules.js"              },
     history:            { html: "/pages/history.html",             js: "/js/history.js"            },

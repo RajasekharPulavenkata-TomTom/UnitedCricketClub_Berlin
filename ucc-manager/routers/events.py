@@ -137,26 +137,36 @@ def clear_availability(id: int, member_id: int, db: Session = Depends(get_db)):
 
 # ── Squad ────────────────────────────────────────────────────────────────────
 
+class SquadPlayer(BaseModel):
+    member_id: int
+    batting_order: int
+
 class SquadSet(BaseModel):
-    member_ids: List[int]
+    squad: List[SquadPlayer]
 
 
 @router.get("/events/{id}/squad")
 def get_squad(id: int, db: Session = Depends(get_db)):
-    rows = db.query(EventSquad).filter(EventSquad.event_id == id).all()
+    rows = db.query(EventSquad).filter(EventSquad.event_id == id).order_by(EventSquad.batting_order).all()
     result = []
     for r in rows:
         m = db.query(Member).filter(Member.id == r.member_id).first()
         if m:
-            result.append({"member_id": m.id, "name": m.jersey_name or m.name})
+            result.append({
+                "member_id": m.id,
+                "name": m.jersey_name or m.name,
+                "role": m.role,
+                "jersey_number": m.jersey_number,
+                "batting_order": r.batting_order,
+            })
     return result
 
 
 @router.put("/events/{id}/squad", status_code=200)
 def set_squad(id: int, data: SquadSet, db: Session = Depends(get_db)):
     db.query(EventSquad).filter(EventSquad.event_id == id).delete()
-    for mid in data.member_ids:
-        db.add(EventSquad(event_id=id, member_id=mid))
+    for p in data.squad:
+        db.add(EventSquad(event_id=id, member_id=p.member_id, batting_order=p.batting_order))
     db.commit()
     return {"ok": True}
 

@@ -10,9 +10,11 @@ let avail = {};
 let members = [];
 let selectedAvailDate;
 let weatherByDate = {};
-let currentSquad = new Set();
-let pendingSquad = new Set();
+let currentSquad = [];   // [{member_id, name, role, jersey_number, batting_order}]
+let pendingSquad = [];   // same, mutable during editing
+let currentEvent = null;
 let currentEventAvail = {};
+let xiDragSrcIdx = null;
 
 const DAY_NAMES = ["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"];
 const MONTH_NAMES = ["January", "February", "March", "April", "May", "June",
@@ -41,6 +43,7 @@ export async function init() {
     document.getElementById("det-squad-cancel-btn").addEventListener("click", closeSquadPicker);
     document.getElementById("det-squad-save-btn").addEventListener("click", saveSquad);
     document.getElementById("det-squad-clear-btn").addEventListener("click", clearSquad);
+    document.getElementById("det-squad-copy-btn").addEventListener("click", copySquadXI);
 
     // Grid click delegation: event badge → view event; cell background → availability dialog
     document.getElementById("cal-grid").addEventListener("click", (e) => {
@@ -255,38 +258,39 @@ async function removeAvailEntry(memberId) {
     }
 }
 
-// ── Squad selector ───────────────────────────────────────────────────────────
+// ── Playing XI selector ──────────────────────────────────────────────────────
+
+const ROLE_COLORS = {
+    "Bat": "primary", "Ball": "danger", "All Rounder": "success",
+    "Bat/WK": "info", "Bowler": "warning",
+};
 
 function renderSquadDisplay() {
-    const count = currentSquad.size;
-    const countEl = document.getElementById("det-squad-count");
-    const clearBtn = document.getElementById("det-squad-clear-btn");
+    const n = currentSquad.length;
+    document.getElementById("det-squad-count").textContent = n ? `${n}/11` : "";
+    document.getElementById("det-squad-clear-btn").classList.toggle("d-none", n === 0);
+    document.getElementById("det-squad-copy-btn").classList.toggle("d-none", n === 0);
     const editBtn = document.getElementById("det-squad-edit-btn");
+    editBtn.innerHTML = `<i class="bi bi-pencil-square me-1"></i>${n ? "Edit XI" : "Select XI"}`;
+
     const display = document.getElementById("det-squad-display");
-
-    countEl.textContent = count ? `${count} selected` : "";
-    clearBtn.classList.toggle("d-none", count === 0);
-    editBtn.textContent = "";
-    editBtn.innerHTML = `<i class="bi bi-pencil-square me-1"></i>${count ? "Edit Squad" : "Select Squad"}`;
-
-    if (count === 0) {
-        display.innerHTML = `<p class="text-muted small mb-0">No squad selected yet.</p>`;
+    if (n === 0) {
+        display.innerHTML = `<p class="text-muted small mb-0">No Playing XI selected yet.</p>`;
         return;
     }
-
-    const squadMembers = members.filter(m => currentSquad.has(m.id));
-    display.innerHTML = `<div class="squad-list">${
-        squadMembers.map((m, i) =>
-            `<span class="squad-pill"><span class="squad-num">${i + 1}</span>${m.jersey_name || m.name}</span>`
-        ).join("")
-    }</div>`;
+    display.innerHTML = `<ol class="mb-0 ps-3">${currentSquad.map(p => {
+        const badge = p.role ? `<span class="badge bg-${ROLE_COLORS[p.role] || "secondary"} ms-1" style="font-size:.65rem">${p.role}</span>` : "";
+        const num = p.jersey_number ? `<span class="text-muted small ms-1">#${p.jersey_number}</span>` : "";
+        return `<li class="py-1" style="border-bottom:1px solid #f0f0f0">${p.name}${num}${badge}</li>`;
+    }).join("")}</ol>`;
 }
 
 function openSquadPicker() {
-    pendingSquad = new Set(currentSquad);
+    pendingSquad = currentSquad.map(p => ({ ...p }));
     document.getElementById("det-squad-display").style.display = "none";
     document.getElementById("det-squad-picker").style.display = "";
-    renderSquadPicker();
+    renderSquadPool();
+    renderSquadXIList();
 }
 
 function closeSquadPicker() {
@@ -294,66 +298,125 @@ function closeSquadPicker() {
     document.getElementById("det-squad-picker").style.display = "none";
 }
 
-function renderSquadPicker() {
-    const grid = document.getElementById("det-squad-picker-grid");
-    grid.innerHTML = members.map(m => {
+function renderSquadPool() {
+    const selectedIds = new Set(pendingSquad.map(p => p.member_id));
+    const full = pendingSquad.length >= 11;
+    document.getElementById("det-squad-pool").innerHTML = members.map(m => {
+        const inXI = selectedIds.has(m.id);
         const isAvail = currentEventAvail[m.id] === "available";
-        const selected = pendingSquad.has(m.id);
-        const cls = selected
-            ? (isAvail ? "selected-avail" : "selected-other")
-            : (isAvail ? "unselected-avail" : "unselected-other");
-        const icon = selected ? "bi-check-circle-fill" : (isAvail ? "bi-check-circle" : "bi-circle");
-        return `<button type="button" class="squad-toggle ${cls}" data-mid="${m.id}">
+        const cls = inXI ? "btn-secondary opacity-50" : isAvail ? "btn-outline-success" : "btn-outline-secondary";
+        const icon = isAvail ? "bi-check-circle" : "bi-circle";
+        return `<button type="button" class="btn btn-sm w-100 text-start mb-1 ${cls}"
+            ${inXI || full ? "disabled" : `onclick="window._xiAdd(${m.id})"`}>
             <i class="bi ${icon} me-1"></i>${m.jersey_name || m.name}
         </button>`;
     }).join("");
-
-    grid.querySelectorAll(".squad-toggle").forEach(btn => {
-        btn.addEventListener("click", () => {
-            const mid = Number(btn.dataset.mid);
-            if (pendingSquad.has(mid)) pendingSquad.delete(mid);
-            else pendingSquad.add(mid);
-            renderSquadPicker();
-        });
-    });
-
-    updateSquadPickerCount();
 }
 
-function updateSquadPickerCount() {
+function renderSquadXIList() {
+    const n = pendingSquad.length;
+    document.getElementById("det-squad-xi-count").textContent = n ? `(${n}/11)` : "";
     const saveBtn = document.getElementById("det-squad-save-btn");
-    const n = pendingSquad.size;
-    saveBtn.textContent = "";
-    saveBtn.innerHTML = `<i class="bi bi-check-lg me-1"></i>Save Squad (${n})`;
-    saveBtn.className = `btn btn-sm ${n === 11 ? "btn-success" : n > 11 ? "btn-warning" : "btn-primary"}`;
+    saveBtn.innerHTML = `<i class="bi bi-check-lg me-1"></i>Save XI${n !== 11 ? ` (${n})` : ""}`;
+    saveBtn.className = `btn btn-sm ${n === 11 ? "btn-success" : "btn-primary"}`;
+
+    const list = document.getElementById("det-squad-xi");
+    if (n === 0) {
+        list.innerHTML = `<li class="text-muted small" style="list-style:none;padding:8px 0">Click a player to add</li>`;
+        return;
+    }
+    list.innerHTML = pendingSquad.map((p, i) => `
+        <li class="d-flex align-items-center gap-1 py-1 xi-row" draggable="true" data-idx="${i}"
+            style="border-bottom:1px solid #f0f0f0;cursor:grab">
+          <i class="bi bi-grip-vertical text-muted" style="font-size:.85rem;flex-shrink:0"></i>
+          <span class="flex-grow-1 small fw-medium">${p.name}</span>
+          <button type="button" class="btn btn-link btn-sm text-danger p-0 lh-1"
+              onclick="window._xiRemove(${i})" title="Remove">
+            <i class="bi bi-x-lg" style="font-size:.75rem"></i>
+          </button>
+        </li>`).join("");
+
+    list.querySelectorAll(".xi-row").forEach(row => {
+        row.addEventListener("dragstart", e => {
+            xiDragSrcIdx = Number(e.currentTarget.dataset.idx);
+            e.currentTarget.style.opacity = "0.4";
+            e.dataTransfer.effectAllowed = "move";
+        });
+        row.addEventListener("dragover", e => {
+            e.preventDefault();
+            e.currentTarget.style.background = "#e9ecef";
+        });
+        row.addEventListener("dragleave", e => { e.currentTarget.style.background = ""; });
+        row.addEventListener("drop", e => {
+            e.preventDefault();
+            e.currentTarget.style.background = "";
+            const targetIdx = Number(e.currentTarget.dataset.idx);
+            if (xiDragSrcIdx === null || xiDragSrcIdx === targetIdx) return;
+            const [moved] = pendingSquad.splice(xiDragSrcIdx, 1);
+            pendingSquad.splice(targetIdx, 0, moved);
+            renderSquadPool();
+            renderSquadXIList();
+        });
+        row.addEventListener("dragend", e => { e.currentTarget.style.opacity = ""; });
+    });
 }
+
+window._xiAdd = (memberId) => {
+    if (pendingSquad.length >= 11) return;
+    const m = members.find(m => m.id === memberId);
+    if (!m) return;
+    pendingSquad.push({ member_id: m.id, name: m.jersey_name || m.name, role: m.role, jersey_number: m.jersey_number });
+    renderSquadPool();
+    renderSquadXIList();
+};
+
+window._xiRemove = (idx) => {
+    pendingSquad.splice(idx, 1);
+    renderSquadPool();
+    renderSquadXIList();
+};
 
 async function saveSquad() {
     try {
         await apiFetch(`/events/${detailEventId}/squad`, {
             method: "PUT",
-            body: JSON.stringify({ member_ids: [...pendingSquad] }),
+            body: JSON.stringify({ squad: pendingSquad.map((p, i) => ({ member_id: p.member_id, batting_order: i + 1 })) }),
         });
-        currentSquad = new Set(pendingSquad);
+        currentSquad = pendingSquad.map((p, i) => ({ ...p, batting_order: i + 1 }));
         closeSquadPicker();
         renderSquadDisplay();
-        showToast("Squad saved");
+        showToast("Playing XI saved");
     } catch (e) {
         showToast(e.message, "error");
     }
 }
 
 async function clearSquad() {
-    if (!confirm("Clear the squad for this event?")) return;
+    if (!confirm("Clear the Playing XI for this event?")) return;
     try {
         await apiFetch(`/events/${detailEventId}/squad`, { method: "DELETE" });
-        currentSquad = new Set();
+        currentSquad = [];
         closeSquadPicker();
         renderSquadDisplay();
-        showToast("Squad cleared");
+        showToast("Playing XI cleared");
     } catch (e) {
         showToast(e.message, "error");
     }
+}
+
+function copySquadXI() {
+    if (!currentSquad.length) return;
+    const ev = currentEvent;
+    const dateStr = ev ? (() => {
+        const [y, m, d] = ev.date.split("-").map(Number);
+        return new Date(y, m - 1, d).toLocaleDateString("en-GB", { weekday: "long", day: "numeric", month: "long", year: "numeric" });
+    })() : "";
+    const header = ev ? `Playing XI – ${ev.title}\n${dateStr}\n\n` : "Playing XI\n\n";
+    const list = currentSquad.map((p, i) => `${i + 1}. ${p.name}${p.role ? ` (${p.role})` : ""}`).join("\n");
+    const text = `🏏 ${header}${list}\n\nUnited Cricket Club`;
+    navigator.clipboard.writeText(text)
+        .then(() => showToast("XI copied to clipboard"))
+        .catch(() => showToast(text));
 }
 
 // ── Event modal ──────────────────────────────────────────────────────────────
@@ -421,6 +484,7 @@ window._viewEvent = async (id) => {
         apiFetch(`/events/${id}/squad`).catch(() => []),
     ]);
     if (!ev) return;
+    currentEvent = ev;
 
     document.getElementById("det-title").textContent = ev.title;
     const typeBadge = `<span class="badge ${ev.type === "match" ? "bg-primary" : ev.type === "training" ? "bg-success" : "bg-secondary"} me-2">${ev.type}</span>`;
@@ -463,7 +527,7 @@ window._viewEvent = async (id) => {
     `).join("");
 
     currentEventAvail = Object.fromEntries(eventAvail.map(a => [a.member_id, a.status]));
-    currentSquad = new Set(squadData.map(s => s.member_id));
+    currentSquad = (squadData || []).sort((a, b) => (a.batting_order ?? 99) - (b.batting_order ?? 99));
     closeSquadPicker();
     renderSquadDisplay();
 

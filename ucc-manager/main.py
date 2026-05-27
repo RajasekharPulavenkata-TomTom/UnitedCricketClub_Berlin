@@ -61,6 +61,10 @@ def _run_migrations():
                 conn.execute(text("ALTER TABLE members ADD COLUMN cricheroes BOOLEAN NOT NULL DEFAULT FALSE"))
             if "cricclubs" not in cols:
                 conn.execute(text("ALTER TABLE members ADD COLUMN cricclubs BOOLEAN NOT NULL DEFAULT FALSE"))
+        if "event_squads" in existing_tables:
+            cols = [c["name"] for c in inspector.get_columns("event_squads")]
+            if "batting_order" not in cols:
+                conn.execute(text("ALTER TABLE event_squads ADD COLUMN batting_order INTEGER"))
 
 
 @asynccontextmanager

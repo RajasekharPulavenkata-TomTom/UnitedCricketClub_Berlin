@@ -37,6 +37,14 @@ def _run_migrations():
             cols = [c["name"] for c in inspector.get_columns("users")]
             if "status" not in cols:
                 conn.execute(text("ALTER TABLE users ADD COLUMN status TEXT NOT NULL DEFAULT 'active'"))
+        if "tournaments" in existing_tables:
+            cols = [c["name"] for c in inspector.get_columns("tournaments")]
+            if "date" not in cols:
+                conn.execute(text("ALTER TABLE tournaments ADD COLUMN date DATE"))
+        if "tournament_participants" in existing_tables:
+            cols = [c["name"] for c in inspector.get_columns("tournament_participants")]
+            if "paid" not in cols:
+                conn.execute(text("ALTER TABLE tournament_participants ADD COLUMN paid BOOLEAN NOT NULL DEFAULT FALSE"))
         if "members" in existing_tables:
             cols = [c["name"] for c in inspector.get_columns("members")]
             if "jersey_name" not in cols:

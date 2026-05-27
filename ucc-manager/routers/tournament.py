@@ -33,7 +33,7 @@ def list_tournaments(db: Session = Depends(get_db)):
 
 @router.post("", response_model=TournamentOut, status_code=201)
 def create_tournament(body: TournamentCreate, db: Session = Depends(get_db)):
-    t = Tournament(name=body.name, total_fee=body.total_fee)
+    t = Tournament(name=body.name, total_fee=body.total_fee, date=body.date)
     db.add(t)
     db.commit()
     db.refresh(t)
@@ -52,6 +52,8 @@ def update_tournament(id: int, body: TournamentUpdate, db: Session = Depends(get
         t.name = body.name
     if body.total_fee is not None:
         t.total_fee = body.total_fee
+    if body.date is not None:
+        t.date = body.date
     db.commit()
     db.refresh(t)
     return _enrich(t)
@@ -86,6 +88,20 @@ def update_participant(id: int, pid: int, body: ParticipantUpdate, db: Session =
         raise HTTPException(status_code=404, detail="Participant not found")
     if body.matches_played is not None:
         p.matches_played = body.matches_played
+    if body.paid is not None:
+        p.paid = body.paid
+    db.commit()
+    db.refresh(t)
+    return _enrich(t)
+
+
+@router.patch("/{id}/participants/{pid}/paid", response_model=TournamentOut)
+def toggle_paid(id: int, pid: int, db: Session = Depends(get_db)):
+    t = _get_or_404(db, id)
+    p = next((p for p in t.participants if p.id == pid), None)
+    if not p:
+        raise HTTPException(status_code=404, detail="Participant not found")
+    p.paid = not p.paid
     db.commit()
     db.refresh(t)
     return _enrich(t)

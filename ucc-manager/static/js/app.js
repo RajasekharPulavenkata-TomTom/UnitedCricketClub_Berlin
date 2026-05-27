@@ -26,6 +26,9 @@ const PAGES = {
 };
 
 document.getElementById("main-nav").style.display = "";
+document.getElementById("navbar-date").textContent = new Date().toLocaleDateString("en-GB", {
+    weekday: "long", year: "numeric", month: "long", day: "numeric",
+});
 
 window.addEventListener("hashchange", router);
 router();

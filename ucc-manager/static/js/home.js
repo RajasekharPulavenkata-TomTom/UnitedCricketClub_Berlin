@@ -2,10 +2,6 @@ import { apiFetch, fmt } from "/js/api.js";
 import { fetchWeather, wmoInfo, swingInfo } from "/js/weather.js";
 
 export async function init() {
-    document.getElementById("home-date").textContent = new Date().toLocaleDateString("en-GB", {
-        weekday: "long", year: "numeric", month: "long", day: "numeric",
-    });
-
     const now = new Date();
     const months = [0, 1, 2].map((d) => {
         const m = new Date(now.getFullYear(), now.getMonth() + d, 1);

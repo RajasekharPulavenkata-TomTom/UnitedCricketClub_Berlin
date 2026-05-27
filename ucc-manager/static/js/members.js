@@ -97,6 +97,7 @@ function openModal(member = null) {
         form.dcb_id.value = member.dcb_id ?? "";
         form.cricheroes.checked = member.cricheroes ?? false;
         form.cricclubs.checked = member.cricclubs ?? false;
+        form.email.value = member.email ?? "";
         form.notes.value = member.notes ?? "";
     }
     modal.show();
@@ -114,6 +115,7 @@ async function onSubmit(e) {
         dcb_id: form.dcb_id.value.trim() || null,
         cricheroes: form.cricheroes.checked,
         cricclubs: form.cricclubs.checked,
+        email: form.email.value.trim() || null,
         notes: form.notes.value.trim() || null,
     };
     try {

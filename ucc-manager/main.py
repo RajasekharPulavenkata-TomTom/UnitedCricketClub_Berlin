@@ -4,7 +4,9 @@ from fastapi.staticfiles import StaticFiles
 from sqlalchemy import text, inspect
 from database import engine, Base
 import models  # registers all models before create_all
-from routers import accounting, inventory, members, events, audit, finance_pin, player_availability, tasks, tournament
+from routers import accounting, inventory, members, events, audit, finance_pin, player_availability, tasks, tournament, notifications
+from apscheduler.schedulers.background import BackgroundScheduler
+from services.scheduler import send_scheduled_reminders
 
 
 def _run_migrations():
@@ -53,8 +55,8 @@ def _run_migrations():
                 conn.execute(text("ALTER TABLE members ADD COLUMN role VARCHAR(50)"))
             if "phone" in cols:
                 conn.execute(text("ALTER TABLE members DROP COLUMN phone"))
-            if "email" in cols:
-                conn.execute(text("ALTER TABLE members DROP COLUMN email"))
+            if "email" not in cols:
+                conn.execute(text("ALTER TABLE members ADD COLUMN email VARCHAR(200)"))
             if "ball_type" not in cols:
                 conn.execute(text("ALTER TABLE members ADD COLUMN ball_type VARCHAR(20)"))
             if "dcb_id" not in cols:
@@ -69,7 +71,11 @@ def _run_migrations():
 async def lifespan(app: FastAPI):
     _run_migrations()
     Base.metadata.create_all(bind=engine)
+    scheduler = BackgroundScheduler(timezone="UTC")
+    scheduler.add_job(send_scheduled_reminders, "interval", hours=1, id="reminders")
+    scheduler.start()
     yield
+    scheduler.shutdown(wait=False)
 
 
 app = FastAPI(title="UCC Manager", lifespan=lifespan)
@@ -83,5 +89,6 @@ app.include_router(finance_pin.router)
 app.include_router(player_availability.router)
 app.include_router(tasks.router)
 app.include_router(tournament.router)
+app.include_router(notifications.router)
 
 app.mount("/", StaticFiles(directory="static", html=True), name="static")

@@ -37,6 +37,7 @@ export async function init() {
     document.getElementById("event-form").addEventListener("submit", onEventSubmit);
     document.getElementById("det-edit-btn").addEventListener("click", onDetailEdit);
     document.getElementById("det-delete-btn").addEventListener("click", onDetailDelete);
+    document.getElementById("det-notify-btn").addEventListener("click", onSendAvailRequest);
     document.getElementById("det-squad-edit-btn").addEventListener("click", openSquadPicker);
     document.getElementById("det-squad-cancel-btn").addEventListener("click", closeSquadPicker);
     document.getElementById("det-squad-save-btn").addEventListener("click", saveSquad);
@@ -505,6 +506,21 @@ window._bulkResetAvail = async () => {
     await render();
     window._viewEvent(detailEventId);
 };
+
+async function onSendAvailRequest() {
+    const btn = document.getElementById("det-notify-btn");
+    btn.disabled = true;
+    btn.innerHTML = `<span class="spinner-border spinner-border-sm me-1"></span>Sending…`;
+    try {
+        const res = await apiFetch(`/notifications/availability/${detailEventId}`, { method: "POST" });
+        showToast(`Availability request sent to ${res.sent} member(s)`);
+    } catch (e) {
+        showToast(e.message || "Failed to send emails", "error");
+    } finally {
+        btn.disabled = false;
+        btn.innerHTML = `<i class="bi bi-envelope me-1"></i>Request Availability`;
+    }
+}
 
 async function onDetailEdit() {
     const events = await apiFetch(`/events?year=${currentYear}&month=${currentMonth}`);

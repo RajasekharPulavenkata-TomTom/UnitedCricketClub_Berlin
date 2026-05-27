@@ -4,10 +4,9 @@ let allEvents = [];
 let openEventId = null;
 
 export async function init() {
-    const now = new Date();
     const yearSel = document.getElementById("mf-year");
-    for (let y = now.getFullYear(); y >= now.getFullYear() - 3; y--) {
-        yearSel.innerHTML += `<option value="${y}">${y}</option>`;
+    for (let y = 2026; y <= 2030; y++) {
+        yearSel.innerHTML += `<option value="${y}" ${y === 2026 ? "selected" : ""}>${y}</option>`;
     }
     yearSel.addEventListener("change", load);
     await load();

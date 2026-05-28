@@ -116,7 +116,7 @@ body::before {
   height: 420px;
   background: url('/img/ucc-logo.png') no-repeat center center;
   background-size: contain;
-  opacity: 0.08;
+  opacity: 0.13;
   pointer-events: none;
   z-index: 0;
 }

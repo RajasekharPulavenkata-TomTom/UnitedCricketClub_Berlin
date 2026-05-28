@@ -105,6 +105,23 @@
   100% { transform: translateX(-100%); }
 }
 
+/* ── Watermark ───────────────────────────────────────────────────────────────── */
+body::before {
+  content: "";
+  position: fixed;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  width: 420px;
+  height: 420px;
+  background: url('/img/ucc-logo.png') no-repeat center center;
+  background-size: contain;
+  opacity: 0.04;
+  pointer-events: none;
+  z-index: 0;
+}
+#page-content { position: relative; z-index: 1; }
+
 /* ── Print ───────────────────────────────────────────────────────────────────── */
 @media print {
   .no-print, .navbar, nav, .btn, button { display: none !important; }

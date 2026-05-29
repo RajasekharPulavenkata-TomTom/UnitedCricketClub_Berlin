@@ -145,9 +145,20 @@ function statusBtn(eventId, memberId, current) {
 
 function renderPanel(eventId, players, scheduledTime) {
     const body = document.getElementById(`pr-panel-body-${eventId}`);
+    const ev = allEvents.find(e => e.id === eventId);
+    const remarksSection = `
+        <div class="mt-3 pt-3" style="border-top:1px solid #e9ecef">
+          <label class="form-label small fw-semibold mb-1"><i class="bi bi-journal-text me-1"></i>Session Remarks</label>
+          <textarea class="form-control form-control-sm" rows="2" placeholder="e.g. Focused on batting drills, great turnout..."
+              id="pr-remarks-${eventId}"
+              onblur="window._prSaveRemarks(${eventId}, this.value)">${ev?.remarks || ""}</textarea>
+          <div class="text-muted small mt-1" id="pr-remarks-status-${eventId}"></div>
+        </div>`;
+
     if (!players.length) {
-        body.innerHTML = `<p class="text-muted small mb-0">
-            <i class="bi bi-info-circle me-1"></i>No players have marked themselves available for this session yet.</p>`;
+        body.innerHTML = `<p class="text-muted small mb-2">
+            <i class="bi bi-info-circle me-1"></i>No players have marked themselves available for this session yet.</p>
+            ${remarksSection}`;
         return;
     }
     const attendedCount = players.filter(p => p.status === "reported").length;
@@ -169,7 +180,8 @@ function renderPanel(eventId, players, scheduledTime) {
                      onchange="window._prSetTime(${eventId}, ${p.member_id}, this.value)" />
               ${statusBtn(eventId, p.member_id, p.status)}
             </div>`;
-        }).join("")}`;
+        }).join("")}
+        ${remarksSection}`;
 }
 
 window._prTogglePanel = async (eventId) => {
@@ -203,6 +215,21 @@ window._prCycleStatus = async (btn) => {
     } catch (e) {
         showToast(e.message, "error");
         btn.disabled = false;
+    }
+};
+
+window._prSaveRemarks = async (eventId, value) => {
+    const status = document.getElementById(`pr-remarks-status-${eventId}`);
+    try {
+        await apiFetch(`/events/${eventId}`, {
+            method: "PUT",
+            body: JSON.stringify({ remarks: value }),
+        });
+        const ev = allEvents.find(e => e.id === eventId);
+        if (ev) ev.remarks = value;
+        if (status) { status.textContent = "Saved"; setTimeout(() => { if (status) status.textContent = ""; }, 2000); }
+    } catch (e) {
+        showToast(e.message, "error");
     }
 };
 

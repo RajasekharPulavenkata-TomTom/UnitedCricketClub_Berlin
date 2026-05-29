@@ -10,6 +10,7 @@ class EventCreate(BaseModel):
     location: Optional[str] = None
     notes: Optional[str] = None
     reporting_time: Optional[_time] = None
+    remarks: Optional[str] = None
 
 
 class EventUpdate(BaseModel):
@@ -19,6 +20,7 @@ class EventUpdate(BaseModel):
     location: Optional[str] = None
     notes: Optional[str] = None
     reporting_time: Optional[_time] = None
+    remarks: Optional[str] = None
 
 
 class AvailabilitySet(BaseModel):
@@ -33,6 +35,7 @@ class EventOut(BaseModel):
     location: Optional[str] = None
     notes: Optional[str] = None
     reporting_time: Optional[_time] = None
+    remarks: Optional[str] = None
     created_at: datetime
     available_count: int = 0
     unavailable_count: int = 0

@@ -71,6 +71,8 @@ def _run_migrations():
                 conn.execute(text("ALTER TABLE events ADD COLUMN match_fee NUMERIC(10,2)"))
             if "reporting_time" not in cols:
                 conn.execute(text("ALTER TABLE events ADD COLUMN reporting_time TIME"))
+            if "remarks" not in cols:
+                conn.execute(text("ALTER TABLE events ADD COLUMN remarks TEXT"))
         if "player_reporting" not in existing_tables:
             conn.execute(text("""
                 CREATE TABLE player_reporting (

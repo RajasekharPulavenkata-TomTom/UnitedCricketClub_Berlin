@@ -45,6 +45,7 @@ def list_events(year: Optional[int] = None, event_type: str = "match", db: Sessi
             "total_members": total,
             "reported_count": reported_count,
             "absent_count": absent_count,
+            "remarks": ev.remarks or "",
         })
     return result
 

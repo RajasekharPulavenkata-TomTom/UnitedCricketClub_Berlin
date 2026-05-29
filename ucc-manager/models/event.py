@@ -19,6 +19,7 @@ class Event(Base):
     notes = Column(Text)
     match_fee = Column(Numeric(10, 2))
     reporting_time = Column(Time)
+    remarks = Column(Text)
     created_at = Column(DateTime, default=_now)
 
     availability = relationship("EventAvailability", back_populates="event", cascade="all, delete-orphan")

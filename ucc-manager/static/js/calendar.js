@@ -45,7 +45,7 @@ export async function init() {
     document.getElementById("det-squad-clear-btn").addEventListener("click", clearSquad);
     document.getElementById("det-squad-copy-btn").addEventListener("click", copySquadXI);
 
-    // Grid click delegation: event badge → view event; cell background → availability dialog
+    // Grid click delegation
     document.getElementById("cal-grid").addEventListener("click", (e) => {
         const badge = e.target.closest("[data-eid]");
         if (badge) {
@@ -54,8 +54,16 @@ export async function init() {
         }
         const cell = e.target.closest("button.cal-cell");
         if (!cell || cell.classList.contains("other-month")) return;
-        const date = cell.dataset.date;
-        if (date) openAvailDialog(date);
+
+        // Cell has events: clicking background opens the first (or only) event
+        const firstBadge = cell.querySelector("[data-eid]");
+        if (firstBadge) {
+            window._viewEvent(Number(firstBadge.dataset.eid));
+            return;
+        }
+
+        // No events: open availability dialog
+        if (cell.dataset.date) openAvailDialog(cell.dataset.date);
     });
 
     // Availability dialog wiring

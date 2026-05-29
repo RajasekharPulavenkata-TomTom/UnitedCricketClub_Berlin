@@ -24,8 +24,8 @@ def _available_ids(event_id: int, db: Session) -> list[int]:
 
 
 @router.get("")
-def list_events(year: Optional[int] = None, db: Session = Depends(get_db)):
-    query = db.query(Event).filter(Event.type == "match")
+def list_events(year: Optional[int] = None, event_type: str = "match", db: Session = Depends(get_db)):
+    query = db.query(Event).filter(Event.type == event_type)
     if year:
         query = query.filter(Event.date.between(f"{year}-01-01", f"{year}-12-31"))
     events = query.order_by(Event.date.desc()).all()

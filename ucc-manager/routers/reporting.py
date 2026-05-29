@@ -4,10 +4,9 @@ from fastapi import APIRouter, Depends, HTTPException
 from pydantic import BaseModel
 from sqlalchemy.orm import Session
 from database import get_db
-from models.event import Event
+from models.event import Event, EventAvailability
 from models.member import Member
 from models.reporting import PlayerReporting
-from models.squad import EventSquad
 
 router = APIRouter(prefix="/api/reporting", tags=["reporting"])
 
@@ -17,10 +16,11 @@ class ReportingUpdate(BaseModel):
     reported_time: Optional[str] = None  # "HH:MM" or "" to clear
 
 
-def _squad_ids(event_id: int, db: Session) -> list[int]:
-    return [r.member_id for r in
-            db.query(EventSquad).filter(EventSquad.event_id == event_id)
-            .order_by(EventSquad.batting_order).all()]
+def _available_ids(event_id: int, db: Session) -> list[int]:
+    return [a.member_id for a in
+            db.query(EventAvailability)
+            .filter(EventAvailability.event_id == event_id,
+                    EventAvailability.status == "available").all()]
 
 
 @router.get("")
@@ -31,10 +31,10 @@ def list_events(year: Optional[int] = None, db: Session = Depends(get_db)):
     events = query.order_by(Event.date.desc()).all()
     result = []
     for ev in events:
-        squad = set(_squad_ids(ev.id, db))
-        total = len(squad)
+        avail = set(_available_ids(ev.id, db))
+        total = len(avail)
         reports = db.query(PlayerReporting).filter(PlayerReporting.event_id == ev.id).all()
-        reported_count = sum(1 for r in reports if r.reported and r.member_id in squad)
+        reported_count = sum(1 for r in reports if r.reported and r.member_id in avail)
         result.append({
             "id": ev.id,
             "date": ev.date.isoformat(),
@@ -49,7 +49,7 @@ def list_events(year: Optional[int] = None, db: Session = Depends(get_db)):
 
 @router.get("/{event_id}/players")
 def get_players(event_id: int, db: Session = Depends(get_db)):
-    ids = _squad_ids(event_id, db)
+    ids = _available_ids(event_id, db)
     if not ids:
         return []
     members = {m.id: m for m in db.query(Member).filter(Member.id.in_(ids)).all()}

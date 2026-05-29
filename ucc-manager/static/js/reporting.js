@@ -87,8 +87,8 @@ function renderCards() {
                     ? `<span class="badge text-bg-warning"><i class="bi bi-clock me-1"></i>Report by ${ev.reporting_time}</span>`
                     : ""}
                   ${ev.total_members > 0
-                    ? `<span class="badge bg-success"><i class="bi bi-people-fill me-1"></i>XI set (${ev.total_members})</span>`
-                    : `<span class="badge bg-warning text-dark"><i class="bi bi-exclamation-triangle me-1"></i>No XI set</span>`}
+                    ? `<span class="badge bg-success"><i class="bi bi-people-fill me-1"></i>${ev.total_members} available</span>`
+                    : `<span class="badge bg-warning text-dark"><i class="bi bi-exclamation-triangle me-1"></i>No availability marked</span>`}
                 </div>
                 ${ev.total_members > 0 ? `
                 <div class="d-flex align-items-center gap-3 mt-1">
@@ -97,7 +97,7 @@ function renderCards() {
                 </div>
                 <div class="progress mt-2" style="height:5px;max-width:280px">
                   <div class="progress-bar ${barColor}" style="width:${pct}%"></div>
-                </div>` : `<span class="text-muted small fst-italic">No Playing XI set</span>`}
+                </div>` : `<span class="text-muted small fst-italic">No players marked available for this match</span>`}
               </div>
               ${ev.total_members > 0 ? `
               <div class="flex-shrink-0 no-print">
@@ -130,8 +130,7 @@ function renderPanel(eventId, players, scheduledTime) {
     const body = document.getElementById(`rp-panel-body-${eventId}`);
     if (!players.length) {
         body.innerHTML = `<p class="text-muted small mb-0">
-            <i class="bi bi-info-circle me-1"></i>No Playing XI set for this match.
-            Select a Playing XI from the Calendar first.</p>`;
+            <i class="bi bi-info-circle me-1"></i>No players have marked themselves available for this match yet.</p>`;
         return;
     }
 

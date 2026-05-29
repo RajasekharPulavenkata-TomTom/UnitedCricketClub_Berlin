@@ -77,11 +77,17 @@ def _run_migrations():
                     id SERIAL PRIMARY KEY,
                     event_id INTEGER NOT NULL REFERENCES events(id) ON DELETE CASCADE,
                     member_id INTEGER NOT NULL REFERENCES members(id) ON DELETE CASCADE,
-                    reported BOOLEAN NOT NULL DEFAULT FALSE,
+                    status VARCHAR(20) NOT NULL DEFAULT 'unknown',
                     reported_time TIME,
                     CONSTRAINT uq_player_reporting UNIQUE (event_id, member_id)
                 )
             """))
+        else:
+            pr_cols = [c["name"] for c in inspector.get_columns("player_reporting")]
+            if "reported" in pr_cols and "status" not in pr_cols:
+                conn.execute(text("ALTER TABLE player_reporting ADD COLUMN status VARCHAR(20) NOT NULL DEFAULT 'unknown'"))
+                conn.execute(text("UPDATE player_reporting SET status = 'reported' WHERE reported = TRUE"))
+                conn.execute(text("ALTER TABLE player_reporting DROP COLUMN reported"))
 
 
 @asynccontextmanager

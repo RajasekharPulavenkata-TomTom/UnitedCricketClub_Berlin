@@ -12,7 +12,7 @@ router = APIRouter(prefix="/api/reporting", tags=["reporting"])
 
 
 class ReportingUpdate(BaseModel):
-    reported: Optional[bool] = None
+    status: Optional[str] = None        # "unknown", "reported", "absent"
     reported_time: Optional[str] = None  # "HH:MM" or "" to clear
 
 
@@ -34,7 +34,8 @@ def list_events(year: Optional[int] = None, db: Session = Depends(get_db)):
         avail = set(_available_ids(ev.id, db))
         total = len(avail)
         reports = db.query(PlayerReporting).filter(PlayerReporting.event_id == ev.id).all()
-        reported_count = sum(1 for r in reports if r.reported and r.member_id in avail)
+        reported_count = sum(1 for r in reports if r.status == "reported" and r.member_id in avail)
+        absent_count   = sum(1 for r in reports if r.status == "absent"   and r.member_id in avail)
         result.append({
             "id": ev.id,
             "date": ev.date.isoformat(),
@@ -43,6 +44,7 @@ def list_events(year: Optional[int] = None, db: Session = Depends(get_db)):
             "reporting_time": ev.reporting_time.strftime("%H:%M") if ev.reporting_time else None,
             "total_members": total,
             "reported_count": reported_count,
+            "absent_count": absent_count,
         })
     return result
 
@@ -59,7 +61,7 @@ def get_players(event_id: int, db: Session = Depends(get_db)):
         {
             "member_id": mid,
             "name": (members[mid].jersey_name or members[mid].name) if mid in members else f"Member {mid}",
-            "reported": reports[mid].reported if mid in reports else False,
+            "status": reports[mid].status if mid in reports else "unknown",
             "reported_time": reports[mid].reported_time.strftime("%H:%M") if mid in reports and reports[mid].reported_time else None,
         }
         for mid in ids if mid in members
@@ -72,10 +74,12 @@ def update_reporting(event_id: int, member_id: int, data: ReportingUpdate, db: S
         raise HTTPException(status_code=404, detail="Event not found")
     rec = db.query(PlayerReporting).filter_by(event_id=event_id, member_id=member_id).first()
     if not rec:
-        rec = PlayerReporting(event_id=event_id, member_id=member_id, reported=False)
+        rec = PlayerReporting(event_id=event_id, member_id=member_id, status="unknown")
         db.add(rec)
-    if data.reported is not None:
-        rec.reported = data.reported
+    if data.status is not None:
+        if data.status not in ("unknown", "reported", "absent"):
+            raise HTTPException(status_code=400, detail="status must be unknown, reported, or absent")
+        rec.status = data.status
     if data.reported_time is not None:
         if data.reported_time == "":
             rec.reported_time = None
@@ -84,6 +88,6 @@ def update_reporting(event_id: int, member_id: int, data: ReportingUpdate, db: S
             rec.reported_time = _time(int(h), int(m_str))
     db.commit()
     return {
-        "reported": rec.reported,
+        "status": rec.status,
         "reported_time": rec.reported_time.strftime("%H:%M") if rec.reported_time else None,
     }

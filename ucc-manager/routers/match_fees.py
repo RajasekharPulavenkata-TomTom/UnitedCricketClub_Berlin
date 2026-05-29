@@ -4,10 +4,9 @@ from fastapi import APIRouter, Depends, HTTPException
 from pydantic import BaseModel
 from sqlalchemy.orm import Session
 from database import get_db
-from models.event import Event
+from models.event import Event, EventAvailability
 from models.member import Member
 from models.match_fee import MatchFeePayment
-from models.squad import EventSquad
 
 router = APIRouter(prefix="/api/match-fees", tags=["match-fees"])
 
@@ -16,10 +15,11 @@ class FeeSet(BaseModel):
     amount: float
 
 
-def _squad_ids(event_id: int, db: Session) -> list[int]:
-    return [r.member_id for r in
-            db.query(EventSquad).filter(EventSquad.event_id == event_id)
-            .order_by(EventSquad.batting_order).all()]
+def _available_ids(event_id: int, db: Session) -> list[int]:
+    return [a.member_id for a in
+            db.query(EventAvailability)
+            .filter(EventAvailability.event_id == event_id,
+                    EventAvailability.status == "available").all()]
 
 
 @router.get("")
@@ -31,10 +31,10 @@ def list_events(year: Optional[int] = None, db: Session = Depends(get_db)):
 
     result = []
     for ev in events:
-        squad = set(_squad_ids(ev.id, db))
-        total = len(squad)
+        avail = set(_available_ids(ev.id, db))
+        total = len(avail)
         payments = db.query(MatchFeePayment).filter(MatchFeePayment.event_id == ev.id).all()
-        paid_count = sum(1 for p in payments if p.paid and p.member_id in squad)
+        paid_count = sum(1 for p in payments if p.paid and p.member_id in avail)
         fee = float(ev.match_fee) if ev.match_fee is not None else None
         collected = round(paid_count * fee, 2) if fee is not None else 0.0
         outstanding = round((total - paid_count) * fee, 2) if fee is not None else 0.0
@@ -64,7 +64,7 @@ def set_fee(event_id: int, data: FeeSet, db: Session = Depends(get_db)):
 
 @router.get("/{event_id}/payments")
 def get_payments(event_id: int, db: Session = Depends(get_db)):
-    ids = _squad_ids(event_id, db)
+    ids = _available_ids(event_id, db)
     if not ids:
         return []
     members = {m.id: m for m in db.query(Member).filter(Member.id.in_(ids)).all()}

@@ -83,8 +83,8 @@ function renderCards() {
                   <span class="fw-semibold">${ev.title}</span>
                   ${ev.location ? `<span class="text-muted small">${ev.location}</span>` : ""}
                   ${ev.total_members > 0
-                    ? `<span class="badge bg-success"><i class="bi bi-people-fill me-1"></i>XI set (${ev.total_members})</span>`
-                    : `<span class="badge bg-warning text-dark"><i class="bi bi-exclamation-triangle me-1"></i>No XI set</span>`}
+                    ? `<span class="badge bg-success"><i class="bi bi-people-fill me-1"></i>${ev.total_members} available</span>`
+                    : `<span class="badge bg-warning text-dark"><i class="bi bi-exclamation-triangle me-1"></i>No availability marked</span>`}
                 </div>
                 ${feeStr ? `
                 <div class="d-flex align-items-center flex-wrap gap-3 mt-1">
@@ -133,8 +133,7 @@ function renderPayments(eventId, payments) {
     const body = document.getElementById(`mf-payments-body-${eventId}`);
     if (!payments.length) {
         body.innerHTML = `<p class="text-muted small mb-0">
-            <i class="bi bi-info-circle me-1"></i>No Playing XI set for this match.
-            Select a Playing XI from the Calendar first.</p>`;
+            <i class="bi bi-info-circle me-1"></i>No players have marked availability for this match yet.</p>`;
         return;
     }
     const paidCount = payments.filter(p => p.paid).length;

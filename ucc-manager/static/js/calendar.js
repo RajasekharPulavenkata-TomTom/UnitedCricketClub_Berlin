@@ -10,11 +10,8 @@ let avail = {};
 let members = [];
 let selectedAvailDate;
 let weatherByDate = {};
-let currentSquad = [];   // [{member_id, name, role, jersey_number, batting_order}]
-let pendingSquad = [];   // same, mutable during editing
 let currentEvent = null;
 let currentEventAvail = {};
-let xiDragSrcIdx = null;
 
 const DAY_NAMES = ["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"];
 const MONTH_NAMES = ["January", "February", "March", "April", "May", "June",
@@ -39,11 +36,6 @@ export async function init() {
     document.getElementById("event-form").addEventListener("submit", onEventSubmit);
     document.getElementById("det-edit-btn").addEventListener("click", onDetailEdit);
     document.getElementById("det-delete-btn").addEventListener("click", onDetailDelete);
-    document.getElementById("det-squad-edit-btn").addEventListener("click", openSquadPicker);
-    document.getElementById("det-squad-cancel-btn").addEventListener("click", closeSquadPicker);
-    document.getElementById("det-squad-save-btn").addEventListener("click", saveSquad);
-    document.getElementById("det-squad-clear-btn").addEventListener("click", clearSquad);
-    document.getElementById("det-squad-copy-btn").addEventListener("click", copySquadXI);
 
     // Grid click delegation
     document.getElementById("cal-grid").addEventListener("click", (e) => {
@@ -266,190 +258,6 @@ async function removeAvailEntry(memberId) {
         showToast(e.message, "error");
     }
 }
-
-// ── Playing XI selector ──────────────────────────────────────────────────────
-
-const ROLE_COLORS = {
-    "Bat": "primary", "Ball": "danger", "All Rounder": "success",
-    "Bat/WK": "info", "Bowler": "warning",
-};
-
-function renderSquadDisplay() {
-    const n = currentSquad.length;
-    document.getElementById("det-squad-count").textContent = n ? `${n}/11` : "";
-    document.getElementById("det-squad-clear-btn").classList.toggle("d-none", n === 0);
-    document.getElementById("det-squad-copy-btn").classList.toggle("d-none", n === 0);
-    const editBtn = document.getElementById("det-squad-edit-btn");
-    editBtn.innerHTML = `<i class="bi bi-pencil-square me-1"></i>${n ? "Edit XI" : "Select XI"}`;
-
-    const display = document.getElementById("det-squad-display");
-    if (n === 0) {
-        display.innerHTML = `<p class="text-muted small mb-0">No Playing XI selected yet.</p>`;
-        return;
-    }
-    display.innerHTML = `<ol class="mb-0 ps-3">${currentSquad.map(p => {
-        const badge = p.role ? `<span class="badge bg-${ROLE_COLORS[p.role] || "secondary"} ms-1" style="font-size:.65rem">${p.role}</span>` : "";
-        const num = p.jersey_number ? `<span class="text-muted small ms-1">#${p.jersey_number}</span>` : "";
-        return `<li class="py-1" style="border-bottom:1px solid #f0f0f0">${p.name}${num}${badge}</li>`;
-    }).join("")}</ol>`;
-}
-
-function openSquadPicker() {
-    if (currentSquad.length === 0) {
-        _loadAvailablePlayers();
-    } else {
-        pendingSquad = currentSquad.map(p => ({ ...p }));
-    }
-    document.getElementById("det-squad-display").style.display = "none";
-    document.getElementById("det-squad-picker").style.display = "";
-    renderSquadPool();
-    renderSquadXIList();
-}
-
-function _loadAvailablePlayers() {
-    const availIds = new Set(
-        Object.entries(currentEventAvail)
-            .filter(([, s]) => s === "available")
-            .map(([id]) => Number(id))
-    );
-    pendingSquad = members
-        .filter(m => availIds.has(m.id))
-        .slice(0, 11)
-        .map(m => ({ member_id: m.id, name: m.jersey_name || m.name, role: m.role, jersey_number: m.jersey_number }));
-}
-
-function closeSquadPicker() {
-    document.getElementById("det-squad-display").style.display = "";
-    document.getElementById("det-squad-picker").style.display = "none";
-}
-
-function renderSquadPool() {
-    const selectedIds = new Set(pendingSquad.map(p => p.member_id));
-    const full = pendingSquad.length >= 11;
-    document.getElementById("det-squad-pool").innerHTML = members.map(m => {
-        const inXI = selectedIds.has(m.id);
-        const isAvail = currentEventAvail[m.id] === "available";
-        const cls = inXI ? "btn-secondary opacity-50" : isAvail ? "btn-outline-success" : "btn-outline-secondary";
-        const icon = isAvail ? "bi-check-circle" : "bi-circle";
-        return `<button type="button" class="btn btn-sm w-100 text-start mb-1 ${cls}"
-            ${inXI || full ? "disabled" : `onclick="window._xiAdd(${m.id})"`}>
-            <i class="bi ${icon} me-1"></i>${m.jersey_name || m.name}
-        </button>`;
-    }).join("");
-}
-
-function renderSquadXIList() {
-    const n = pendingSquad.length;
-    document.getElementById("det-squad-xi-count").textContent = n ? `(${n}/11)` : "";
-    const saveBtn = document.getElementById("det-squad-save-btn");
-    saveBtn.innerHTML = `<i class="bi bi-check-lg me-1"></i>Save XI${n !== 11 ? ` (${n})` : ""}`;
-    saveBtn.className = `btn btn-sm ${n === 11 ? "btn-success" : "btn-primary"}`;
-
-    const list = document.getElementById("det-squad-xi");
-    if (n === 0) {
-        list.innerHTML = `<li class="text-muted small" style="list-style:none;padding:8px 0">Click a player to add</li>`;
-        return;
-    }
-    list.innerHTML = pendingSquad.map((p, i) => `
-        <li class="d-flex align-items-center gap-1 py-1 xi-row" draggable="true" data-idx="${i}"
-            style="border-bottom:1px solid #f0f0f0;cursor:grab">
-          <i class="bi bi-grip-vertical text-muted" style="font-size:.85rem;flex-shrink:0"></i>
-          <span class="flex-grow-1 small fw-medium">${p.name}</span>
-          <button type="button" class="btn btn-link btn-sm text-danger p-0 lh-1"
-              onclick="window._xiRemove(${i})" title="Remove">
-            <i class="bi bi-x-lg" style="font-size:.75rem"></i>
-          </button>
-        </li>`).join("");
-
-    list.querySelectorAll(".xi-row").forEach(row => {
-        row.addEventListener("dragstart", e => {
-            xiDragSrcIdx = Number(e.currentTarget.dataset.idx);
-            e.currentTarget.style.opacity = "0.4";
-            e.dataTransfer.effectAllowed = "move";
-        });
-        row.addEventListener("dragover", e => {
-            e.preventDefault();
-            e.currentTarget.style.background = "#e9ecef";
-        });
-        row.addEventListener("dragleave", e => { e.currentTarget.style.background = ""; });
-        row.addEventListener("drop", e => {
-            e.preventDefault();
-            e.currentTarget.style.background = "";
-            const targetIdx = Number(e.currentTarget.dataset.idx);
-            if (xiDragSrcIdx === null || xiDragSrcIdx === targetIdx) return;
-            const [moved] = pendingSquad.splice(xiDragSrcIdx, 1);
-            pendingSquad.splice(targetIdx, 0, moved);
-            renderSquadPool();
-            renderSquadXIList();
-        });
-        row.addEventListener("dragend", e => { e.currentTarget.style.opacity = ""; });
-    });
-}
-
-window._xiLoadAvailable = () => {
-    _loadAvailablePlayers();
-    renderSquadPool();
-    renderSquadXIList();
-};
-
-window._xiAdd = (memberId) => {
-    if (pendingSquad.length >= 11) return;
-    const m = members.find(m => m.id === memberId);
-    if (!m) return;
-    pendingSquad.push({ member_id: m.id, name: m.jersey_name || m.name, role: m.role, jersey_number: m.jersey_number });
-    renderSquadPool();
-    renderSquadXIList();
-};
-
-window._xiRemove = (idx) => {
-    pendingSquad.splice(idx, 1);
-    renderSquadPool();
-    renderSquadXIList();
-};
-
-async function saveSquad() {
-    try {
-        await apiFetch(`/events/${detailEventId}/squad`, {
-            method: "PUT",
-            body: JSON.stringify({ squad: pendingSquad.map((p, i) => ({ member_id: p.member_id, batting_order: i + 1 })) }),
-        });
-        currentSquad = pendingSquad.map((p, i) => ({ ...p, batting_order: i + 1 }));
-        closeSquadPicker();
-        renderSquadDisplay();
-        showToast("Playing XI saved");
-    } catch (e) {
-        showToast(e.message, "error");
-    }
-}
-
-async function clearSquad() {
-    if (!confirm("Clear the Playing XI for this event?")) return;
-    try {
-        await apiFetch(`/events/${detailEventId}/squad`, { method: "DELETE" });
-        currentSquad = [];
-        closeSquadPicker();
-        renderSquadDisplay();
-        showToast("Playing XI cleared");
-    } catch (e) {
-        showToast(e.message, "error");
-    }
-}
-
-function copySquadXI() {
-    if (!currentSquad.length) return;
-    const ev = currentEvent;
-    const dateStr = ev ? (() => {
-        const [y, m, d] = ev.date.split("-").map(Number);
-        return new Date(y, m - 1, d).toLocaleDateString("en-GB", { weekday: "long", day: "numeric", month: "long", year: "numeric" });
-    })() : "";
-    const header = ev ? `Playing XI – ${ev.title}\n${dateStr}\n\n` : "Playing XI\n\n";
-    const list = currentSquad.map((p, i) => `${i + 1}. ${p.name}${p.role ? ` (${p.role})` : ""}`).join("\n");
-    const text = `🏏 ${header}${list}\n\nUnited Cricket Club`;
-    navigator.clipboard.writeText(text)
-        .then(() => showToast("XI copied to clipboard"))
-        .catch(() => showToast(text));
-}
-
 // ── Event modal ──────────────────────────────────────────────────────────────
 
 function fv(form, name) { return form.querySelector(`[name="${name}"]`).value; }
@@ -511,12 +319,11 @@ async function onEventSubmit(e) {
 
 window._viewEvent = async (id) => {
     detailEventId = id;
-    let ev, eventAvail, squadData;
+    let ev, eventAvail;
     try {
-        [ev, eventAvail, squadData] = await Promise.all([
+        [ev, eventAvail] = await Promise.all([
             apiFetch(`/events?year=${currentYear}&month=${currentMonth}`).then(list => list.find(e => e.id === id)),
             apiFetch(`/events/${id}/availability`),
-            apiFetch(`/events/${id}/squad`).catch(() => []),
         ]);
     } catch (err) {
         showToast("Could not load event: " + err.message, "error");
@@ -574,9 +381,6 @@ window._viewEvent = async (id) => {
     `).join("");
 
     currentEventAvail = Object.fromEntries(eventAvail.map(a => [a.member_id, a.status]));
-    currentSquad = (squadData || []).sort((a, b) => (a.batting_order ?? 99) - (b.batting_order ?? 99));
-    closeSquadPicker();
-    renderSquadDisplay();
 
     detailModal.show();
 };

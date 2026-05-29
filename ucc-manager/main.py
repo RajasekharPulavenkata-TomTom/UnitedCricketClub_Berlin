@@ -4,7 +4,7 @@ from fastapi.staticfiles import StaticFiles
 from sqlalchemy import text, inspect
 from database import engine, Base
 import models  # registers all models before create_all
-from routers import accounting, inventory, members, events, audit, finance_pin, player_availability, tasks, tournament, match_fees
+from routers import accounting, inventory, members, events, audit, finance_pin, player_availability, tasks, tournament, match_fees, reporting
 
 
 def _run_migrations():
@@ -71,6 +71,17 @@ def _run_migrations():
                 conn.execute(text("ALTER TABLE events ADD COLUMN match_fee NUMERIC(10,2)"))
             if "reporting_time" not in cols:
                 conn.execute(text("ALTER TABLE events ADD COLUMN reporting_time TIME"))
+        if "player_reporting" not in existing_tables:
+            conn.execute(text("""
+                CREATE TABLE player_reporting (
+                    id SERIAL PRIMARY KEY,
+                    event_id INTEGER NOT NULL REFERENCES events(id) ON DELETE CASCADE,
+                    member_id INTEGER NOT NULL REFERENCES members(id) ON DELETE CASCADE,
+                    reported BOOLEAN NOT NULL DEFAULT FALSE,
+                    reported_time TIME,
+                    CONSTRAINT uq_player_reporting UNIQUE (event_id, member_id)
+                )
+            """))
 
 
 @asynccontextmanager
@@ -92,5 +103,6 @@ app.include_router(player_availability.router)
 app.include_router(tasks.router)
 app.include_router(tournament.router)
 app.include_router(match_fees.router)
+app.include_router(reporting.router)
 
 app.mount("/", StaticFiles(directory="static", html=True), name="static")

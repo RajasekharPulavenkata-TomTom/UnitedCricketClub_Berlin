@@ -1,0 +1,22 @@
+<h3 class="page-header"><i class="bi bi-clock-history me-2"></i>Match Reporting</h3>
+
+<div class="d-flex align-items-center gap-2 mb-3 no-print">
+  <label class="form-label mb-0 fw-semibold small">Season:</label>
+  <select class="form-select form-select-sm w-auto" id="rp-year"></select>
+</div>
+
+<!-- Summary -->
+<div class="row g-3 mb-4" id="rp-summary"></div>
+
+<!-- Match cards -->
+<div id="rp-cards">
+  <div class="d-flex justify-content-center py-5">
+    <div class="spinner-border text-success"></div>
+  </div>
+</div>
+
+<style>
+.rp-row { display:flex; align-items:center; gap:10px; padding:8px 0; border-bottom:1px solid #f0f0f0; }
+.rp-row:last-child { border-bottom:none; }
+.rp-late { font-size:.7rem; }
+</style>

@@ -1,4 +1,4 @@
-from datetime import date as _date, datetime
+from datetime import date as _date, datetime, time as _time
 from typing import Optional
 from pydantic import BaseModel
 
@@ -9,6 +9,7 @@ class EventCreate(BaseModel):
     type: str = "other"
     location: Optional[str] = None
     notes: Optional[str] = None
+    reporting_time: Optional[_time] = None
 
 
 class EventUpdate(BaseModel):
@@ -17,6 +18,7 @@ class EventUpdate(BaseModel):
     type: Optional[str] = None
     location: Optional[str] = None
     notes: Optional[str] = None
+    reporting_time: Optional[_time] = None
 
 
 class AvailabilitySet(BaseModel):
@@ -30,6 +32,7 @@ class EventOut(BaseModel):
     type: str
     location: Optional[str] = None
     notes: Optional[str] = None
+    reporting_time: Optional[_time] = None
     created_at: datetime
     available_count: int = 0
     unavailable_count: int = 0

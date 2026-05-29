@@ -1,5 +1,5 @@
 from datetime import datetime, timezone
-from sqlalchemy import Column, Integer, String, Text, Date, DateTime, ForeignKey, UniqueConstraint, Numeric
+from sqlalchemy import Column, Integer, String, Text, Date, DateTime, ForeignKey, UniqueConstraint, Numeric, Time
 from sqlalchemy.orm import relationship
 from database import Base
 
@@ -18,6 +18,7 @@ class Event(Base):
     location = Column(String(150))
     notes = Column(Text)
     match_fee = Column(Numeric(10, 2))
+    reporting_time = Column(Time)
     created_at = Column(DateTime, default=_now)
 
     availability = relationship("EventAvailability", back_populates="event", cascade="all, delete-orphan")

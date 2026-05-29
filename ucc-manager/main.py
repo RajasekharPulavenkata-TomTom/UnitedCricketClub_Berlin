@@ -69,6 +69,8 @@ def _run_migrations():
             cols = [c["name"] for c in inspector.get_columns("events")]
             if "match_fee" not in cols:
                 conn.execute(text("ALTER TABLE events ADD COLUMN match_fee NUMERIC(10,2)"))
+            if "reporting_time" not in cols:
+                conn.execute(text("ALTER TABLE events ADD COLUMN reporting_time TIME"))
 
 
 @asynccontextmanager

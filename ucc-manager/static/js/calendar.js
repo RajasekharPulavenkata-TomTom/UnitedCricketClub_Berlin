@@ -166,9 +166,10 @@ function buildGrid() {
             html += `<div class="cal-cell other-month"><div class="cal-date">${cell.day}</div></div>`;
         } else {
             const cls = ["cal-cell", isToday ? "today" : ""].filter(Boolean).join(" ");
-            const eventBadges = cellEvents.map(ev =>
-                `<span class="event-badge ${ev.type}" data-eid="${ev.id}" title="${ev.title}">${ev.title}</span>`
-            ).join("");
+            const eventBadges = cellEvents.map(ev => {
+                const rt = ev.reporting_time ? `<span class="report-time-badge">⏰ ${ev.reporting_time.substring(0, 5)}</span>` : "";
+                return `<span class="event-badge ${ev.type}" data-eid="${ev.id}" title="${ev.title}">${ev.title}</span>${rt}`;
+            }).join("");
             const pips = markedMembers.slice(0, 3)
                 .map(m => `<span class="av-name ${dayAvail[m.id]}">${m.jersey_name || m.name}</span>`)
                 .join("");
@@ -440,11 +441,12 @@ function openEventModal(item = null, prefillDate = null) {
 
     const fill = () => {
         if (item) {
-            setFv(form, "title",    item.title);
-            setFv(form, "date",     item.date);
-            setFv(form, "type",     item.type);
-            setFv(form, "location", item.location || "");
-            setFv(form, "notes",    item.notes || "");
+            setFv(form, "title",          item.title);
+            setFv(form, "date",           item.date);
+            setFv(form, "type",           item.type);
+            setFv(form, "location",       item.location || "");
+            setFv(form, "notes",          item.notes || "");
+            setFv(form, "reporting_time", item.reporting_time ? item.reporting_time.substring(0, 5) : "");
         } else if (prefillDate) {
             setFv(form, "date", prefillDate);
         }
@@ -458,11 +460,12 @@ async function onEventSubmit(e) {
     e.preventDefault();
     const form = e.target;
     const body = {
-        title:    fv(form, "title")    || null,
-        date:     fv(form, "date")     || null,
-        type:     fv(form, "type")     || null,
-        location: fv(form, "location") || null,
-        notes:    fv(form, "notes")    || null,
+        title:          fv(form, "title")          || null,
+        date:           fv(form, "date")            || null,
+        type:           fv(form, "type")            || null,
+        location:       fv(form, "location")        || null,
+        notes:          fv(form, "notes")           || null,
+        reporting_time: fv(form, "reporting_time")  || null,
     };
     const savedId = editingId;
     try {
@@ -503,6 +506,14 @@ window._viewEvent = async (id) => {
     document.getElementById("det-title").textContent = ev.title;
     const typeBadge = `<span class="badge ${ev.type === "match" ? "bg-primary" : ev.type === "training" ? "bg-success" : "bg-secondary"} me-2">${ev.type}</span>`;
     document.getElementById("det-meta").innerHTML = `${typeBadge}${ev.date}${ev.location ? ` &bull; ${ev.location}` : ""}`;
+
+    const rtEl = document.getElementById("det-reporting-time");
+    if (ev.reporting_time) {
+        document.getElementById("det-report-time-val").textContent = ev.reporting_time.substring(0, 5);
+        rtEl.style.display = "";
+    } else {
+        rtEl.style.display = "none";
+    }
 
     fetchWeather(ev.date).then(w => {
         const el = document.getElementById("det-weather");

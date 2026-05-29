@@ -118,9 +118,9 @@ body::before {
   background-size: contain;
   opacity: 0.20;
   pointer-events: none;
-  z-index: 0;
+  z-index: -1;
 }
-#page-content { position: relative; z-index: 1; }
+#page-content { position: relative; }
 
 /* ── Print ───────────────────────────────────────────────────────────────────── */
 @media print {

@@ -486,11 +486,17 @@ async function onEventSubmit(e) {
 
 window._viewEvent = async (id) => {
     detailEventId = id;
-    const [ev, eventAvail, squadData] = await Promise.all([
-        apiFetch(`/events?year=${currentYear}&month=${currentMonth}`).then(list => list.find(e => e.id === id)),
-        apiFetch(`/events/${id}/availability`),
-        apiFetch(`/events/${id}/squad`).catch(() => []),
-    ]);
+    let ev, eventAvail, squadData;
+    try {
+        [ev, eventAvail, squadData] = await Promise.all([
+            apiFetch(`/events?year=${currentYear}&month=${currentMonth}`).then(list => list.find(e => e.id === id)),
+            apiFetch(`/events/${id}/availability`),
+            apiFetch(`/events/${id}/squad`).catch(() => []),
+        ]);
+    } catch (err) {
+        showToast("Could not load event: " + err.message, "error");
+        return;
+    }
     if (!ev) return;
     currentEvent = ev;
 

@@ -295,11 +295,27 @@ function renderSquadDisplay() {
 }
 
 function openSquadPicker() {
-    pendingSquad = currentSquad.map(p => ({ ...p }));
+    if (currentSquad.length === 0) {
+        _loadAvailablePlayers();
+    } else {
+        pendingSquad = currentSquad.map(p => ({ ...p }));
+    }
     document.getElementById("det-squad-display").style.display = "none";
     document.getElementById("det-squad-picker").style.display = "";
     renderSquadPool();
     renderSquadXIList();
+}
+
+function _loadAvailablePlayers() {
+    const availIds = new Set(
+        Object.entries(currentEventAvail)
+            .filter(([, s]) => s === "available")
+            .map(([id]) => Number(id))
+    );
+    pendingSquad = members
+        .filter(m => availIds.has(m.id))
+        .slice(0, 11)
+        .map(m => ({ member_id: m.id, name: m.jersey_name || m.name, role: m.role, jersey_number: m.jersey_number }));
 }
 
 function closeSquadPicker() {
@@ -369,6 +385,12 @@ function renderSquadXIList() {
         row.addEventListener("dragend", e => { e.currentTarget.style.opacity = ""; });
     });
 }
+
+window._xiLoadAvailable = () => {
+    _loadAvailablePlayers();
+    renderSquadPool();
+    renderSquadXIList();
+};
 
 window._xiAdd = (memberId) => {
     if (pendingSquad.length >= 11) return;

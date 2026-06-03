@@ -1,4 +1,4 @@
-from sqlalchemy import Column, Integer, ForeignKey, String, Time, UniqueConstraint
+from sqlalchemy import Column, Integer, ForeignKey, String, Text, Time, UniqueConstraint
 from database import Base
 
 
@@ -9,4 +9,5 @@ class PlayerReporting(Base):
     member_id     = Column(Integer, ForeignKey("members.id", ondelete="CASCADE"), nullable=False)
     status        = Column(String(20), nullable=False, default="unknown")  # unknown, reported, absent
     reported_time = Column(Time)
+    remarks       = Column(Text)
     __table_args__ = (UniqueConstraint("event_id", "member_id", name="uq_player_reporting"),)

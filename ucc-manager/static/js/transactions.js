@@ -1,4 +1,4 @@
-import { apiFetch, fmt, showToast, typeBadge } from "/js/api.js";
+import { apiFetch, fmt, showToast, typeBadge, escHtml } from "/js/api.js";
 
 let allCategories = [];
 let editingId = null;
@@ -61,9 +61,9 @@ async function loadTransactions() {
         tbody.innerHTML = data.map((t) => `<tr>
           <td>${fmt.date(t.date)}</td>
           <td>${typeBadge(t.type)}</td>
-          <td>${t.category ? t.category.name : "<span class='text-muted'>—</span>"}</td>
-          <td>${t.description || "—"}</td>
-          <td class="text-muted small">${t.reference || "—"}</td>
+          <td>${t.category ? escHtml(t.category.name) : "<span class='text-muted'>—</span>"}</td>
+          <td>${escHtml(t.description || "—")}</td>
+          <td class="text-muted small">${escHtml(t.reference || "—")}</td>
           <td class="text-end fw-semibold ${t.type === "income" ? "text-success" : "text-danger"}">
             ${t.type === "expense" ? "-" : "+"}${fmt.currency(t.amount)}
           </td>

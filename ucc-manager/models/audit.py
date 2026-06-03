@@ -8,6 +8,8 @@ class AuditLog(Base):
     id          = Column(Integer, primary_key=True, index=True)
     created_at  = Column(DateTime, default=datetime.utcnow)
     action      = Column(String)       # added | updated | deleted | archived | returned
-    entity_type = Column(String)       # member | event | transaction | equipment | assignment
+    entity_type = Column(String)       # member | event | transaction | equipment
     entity_id   = Column(Integer, nullable=True)
     description = Column(String)
+    user_id     = Column(Integer, nullable=True)
+    user_name   = Column(String, nullable=True)

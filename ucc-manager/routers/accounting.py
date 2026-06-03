@@ -10,6 +10,8 @@ from schemas.accounting import (
 )
 from services import accounting_service
 from routers.audit import log
+from models.auth import User
+from dependencies.auth import get_current_user
 
 router = APIRouter(prefix="/api", tags=["accounting"])
 
@@ -85,7 +87,7 @@ def list_transactions(
 
 
 @router.post("/transactions", response_model=TransactionOut, status_code=201)
-def create_transaction(data: TransactionCreate, db: Session = Depends(get_db)):
+def create_transaction(data: TransactionCreate, db: Session = Depends(get_db), current_user: User = Depends(get_current_user)):
     if data.category_id:
         cat = db.query(Category).filter(Category.id == data.category_id).first()
         if not cat:
@@ -95,7 +97,7 @@ def create_transaction(data: TransactionCreate, db: Session = Depends(get_db)):
     tx = Transaction(**data.model_dump(), status="approved")
     db.add(tx)
     db.flush()
-    log(db, "added", "transaction", tx.id, f"{tx.type.capitalize()} '{tx.description or '—'}' (€{tx.amount}) added")
+    log(db, "added", "transaction", tx.id, f"{tx.type.capitalize()} '{tx.description or '—'}' (€{tx.amount}) added", user=current_user)
     db.commit()
     db.refresh(tx)
     return tx
@@ -110,24 +112,24 @@ def get_transaction(id: int, db: Session = Depends(get_db)):
 
 
 @router.put("/transactions/{id}", response_model=TransactionOut)
-def update_transaction(id: int, data: TransactionUpdate, db: Session = Depends(get_db)):
+def update_transaction(id: int, data: TransactionUpdate, db: Session = Depends(get_db), current_user: User = Depends(get_current_user)):
     tx = db.query(Transaction).filter(Transaction.id == id).first()
     if not tx:
         raise HTTPException(status_code=404, detail="Transaction not found")
     for field, value in data.model_dump(exclude_none=True).items():
         setattr(tx, field, value)
-    log(db, "updated", "transaction", id, f"Transaction '{tx.description or '—'}' (€{tx.amount}) updated")
+    log(db, "updated", "transaction", id, f"Transaction '{tx.description or '—'}' (€{tx.amount}) updated", user=current_user)
     db.commit()
     db.refresh(tx)
     return tx
 
 
 @router.delete("/transactions/{id}", status_code=204)
-def delete_transaction(id: int, db: Session = Depends(get_db)):
+def delete_transaction(id: int, db: Session = Depends(get_db), current_user: User = Depends(get_current_user)):
     tx = db.query(Transaction).filter(Transaction.id == id).first()
     if not tx:
         raise HTTPException(status_code=404, detail="Transaction not found")
-    log(db, "deleted", "transaction", id, f"{tx.type.capitalize()} '{tx.description or '—'}' (€{tx.amount}) deleted")
+    log(db, "deleted", "transaction", id, f"{tx.type.capitalize()} '{tx.description or '—'}' (€{tx.amount}) deleted", user=current_user)
     db.delete(tx)
     db.commit()
 

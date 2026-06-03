@@ -9,6 +9,8 @@ from models.member import Member
 from models.squad import EventSquad
 from schemas.event import EventCreate, EventUpdate, AvailabilitySet, EventOut
 from routers.audit import log
+from models.auth import User
+from dependencies.auth import get_current_user
 
 router = APIRouter(prefix="/api", tags=["events"])
 
@@ -53,35 +55,35 @@ def list_events(
 
 
 @router.post("/events", response_model=EventOut, status_code=201)
-def create_event(data: EventCreate, db: Session = Depends(get_db)):
+def create_event(data: EventCreate, db: Session = Depends(get_db), current_user: User = Depends(get_current_user)):
     event = Event(**data.model_dump())
     db.add(event)
     db.flush()
-    log(db, "added", "event", event.id, f"Event '{event.title}' on {event.date} added")
+    log(db, "added", "event", event.id, f"Event '{event.title}' on {event.date} added", user=current_user)
     db.commit()
     db.refresh(event)
     return _attach_counts([event])[0]
 
 
 @router.put("/events/{id}", response_model=EventOut)
-def update_event(id: int, data: EventUpdate, db: Session = Depends(get_db)):
+def update_event(id: int, data: EventUpdate, db: Session = Depends(get_db), current_user: User = Depends(get_current_user)):
     event = db.query(Event).options(joinedload(Event.availability)).filter(Event.id == id).first()
     if not event:
         raise HTTPException(status_code=404, detail="Event not found")
     for field, value in data.model_dump(exclude_none=True).items():
         setattr(event, field, value)
-    log(db, "updated", "event", id, f"Event '{event.title}' on {event.date} updated")
+    log(db, "updated", "event", id, f"Event '{event.title}' on {event.date} updated", user=current_user)
     db.commit()
     event = db.query(Event).options(joinedload(Event.availability)).filter(Event.id == id).first()
     return _attach_counts([event])[0]
 
 
 @router.delete("/events/{id}", status_code=204)
-def delete_event(id: int, db: Session = Depends(get_db)):
+def delete_event(id: int, db: Session = Depends(get_db), current_user: User = Depends(get_current_user)):
     event = db.query(Event).filter(Event.id == id).first()
     if not event:
         raise HTTPException(status_code=404, detail="Event not found")
-    log(db, "deleted", "event", id, f"Event '{event.title}' on {event.date} deleted")
+    log(db, "deleted", "event", id, f"Event '{event.title}' on {event.date} deleted", user=current_user)
     db.delete(event)
     db.commit()
 
@@ -166,6 +168,12 @@ def get_squad(id: int, db: Session = Depends(get_db)):
 
 @router.put("/events/{id}/squad", status_code=200)
 def set_squad(id: int, data: SquadSet, db: Session = Depends(get_db)):
+    if not db.query(Event).filter(Event.id == id).first():
+        raise HTTPException(status_code=404, detail="Event not found")
+    active_ids = {m.id for m in db.query(Member).filter(Member.is_active == True).all()}
+    invalid = [p.member_id for p in data.squad if p.member_id not in active_ids]
+    if invalid:
+        raise HTTPException(status_code=400, detail=f"Invalid or inactive member IDs: {invalid}")
     db.query(EventSquad).filter(EventSquad.event_id == id).delete()
     for p in data.squad:
         db.add(EventSquad(event_id=id, member_id=p.member_id, batting_order=p.batting_order))

@@ -7,9 +7,16 @@ from models.audit import AuditLog
 router = APIRouter(prefix="/api", tags=["audit"])
 
 
-def log(db: Session, action: str, entity_type: str, entity_id: Optional[int], description: str):
+def log(db: Session, action: str, entity_type: str, entity_id: Optional[int], description: str, user=None):
     """Add an audit entry to the current session (committed by the caller)."""
-    db.add(AuditLog(action=action, entity_type=entity_type, entity_id=entity_id, description=description))
+    db.add(AuditLog(
+        action=action,
+        entity_type=entity_type,
+        entity_id=entity_id,
+        description=description,
+        user_id=user.id if user else None,
+        user_name=user.full_name or user.username if user else None,
+    ))
 
 
 @router.get("/history")
@@ -30,6 +37,7 @@ def get_history(
             "entity_type": r.entity_type,
             "entity_id":   r.entity_id,
             "description": r.description,
+            "user_name":   r.user_name,
         }
         for r in rows
     ]

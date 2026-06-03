@@ -5,8 +5,9 @@ let openEventId = null;
 
 export async function init() {
     const yearSel = document.getElementById("pr-year");
-    for (let y = 2026; y <= 2030; y++) {
-        yearSel.innerHTML += `<option value="${y}" ${y === 2026 ? "selected" : ""}>${y}</option>`;
+    const thisYear = new Date().getFullYear();
+    for (let y = thisYear - 2; y <= thisYear + 2; y++) {
+        yearSel.innerHTML += `<option value="${y}" ${y === thisYear ? "selected" : ""}>${y}</option>`;
     }
     yearSel.addEventListener("change", load);
     await load();
@@ -122,9 +123,13 @@ async function openPanel(eventId) {
     if (!panel) return;
     panel.style.display = "";
     body.innerHTML = `<div class="text-center py-2"><div class="spinner-border spinner-border-sm"></div></div>`;
-    const players = await apiFetch(`/reporting/${eventId}/players`);
-    const ev = allEvents.find(e => e.id === eventId);
-    renderPanel(eventId, players, ev?.reporting_time || null);
+    try {
+        const players = await apiFetch(`/reporting/${eventId}/players`);
+        const ev = allEvents.find(e => e.id === eventId);
+        renderPanel(eventId, players, ev?.reporting_time || null);
+    } catch (e) {
+        body.innerHTML = `<div class="alert alert-danger small">${e.message}</div>`;
+    }
 }
 
 function statusBtn(eventId, memberId, current) {
@@ -172,13 +177,19 @@ function renderPanel(eventId, players, scheduledTime) {
             const isLate = scheduledTime && p.reported_time && p.reported_time > scheduledTime;
             return `
             <div class="pr-row" id="pr-row-${eventId}-${p.member_id}">
-              <span class="flex-grow-1 fw-medium small">${p.name}</span>
+              <span class="pr-name fw-medium small">${p.name}</span>
               ${isLate ? `<span class="badge bg-danger pr-late">Late</span>` : `<span class="pr-late" style="width:36px"></span>`}
               <input type="time" class="form-control form-control-sm" style="width:108px"
                      value="${p.reported_time || ""}"
                      title="Actual arrival time"
                      onchange="window._prSetTime(${eventId}, ${p.member_id}, this.value)" />
               ${statusBtn(eventId, p.member_id, p.status)}
+              <input type="text" class="form-control form-control-sm pr-player-remarks"
+                     placeholder="Remarks…"
+                     value="${(p.remarks || "").replace(/"/g, "&quot;")}"
+                     data-saved-id="pr-remarks-saved-${eventId}-${p.member_id}"
+                     onblur="window._prSavePlayerRemarks(${eventId}, ${p.member_id}, this.value, this.dataset.savedId)" />
+              <span id="pr-remarks-saved-${eventId}-${p.member_id}" class="text-muted small" style="min-width:36px"></span>
             </div>`;
         }).join("")}
         ${remarksSection}`;
@@ -233,6 +244,21 @@ window._prSaveRemarks = async (eventId, value) => {
     }
 };
 
+window._prSavePlayerRemarks = async (eventId, memberId, value, savedId) => {
+    try {
+        await apiFetch(`/reporting/${eventId}/players/${memberId}`, {
+            method: "PATCH",
+            body: JSON.stringify({ remarks: value }),
+        });
+        if (savedId) {
+            const el = document.getElementById(savedId);
+            if (el) { el.textContent = "Saved"; setTimeout(() => { if (el) el.textContent = ""; }, 2000); }
+        }
+    } catch (e) {
+        showToast(e.message, "error");
+    }
+};
+
 window._prSetTime = async (eventId, memberId, value) => {
     try {
         const res = await apiFetch(`/reporting/${eventId}/players/${memberId}`, {
@@ -260,7 +286,11 @@ function updateLateBadge(eventId, memberId, reportedTime) {
 
 async function refreshCardStats(eventId) {
     const year = document.getElementById("pr-year").value;
-    allEvents = await apiFetch(`/reporting?year=${year}&event_type=training`);
+    try {
+        allEvents = await apiFetch(`/reporting?year=${year}&event_type=training`);
+    } catch {
+        return;
+    }
     renderSummary();
     const ev = allEvents.find(e => e.id === eventId);
     if (!ev) return;

@@ -49,6 +49,11 @@ class PasswordReset(BaseModel):
     new_password: str
 
 
+class PasswordChange(BaseModel):
+    current_password: str
+    new_password: str
+
+
 class RegisterRequest(BaseModel):
     username: str
     password: str

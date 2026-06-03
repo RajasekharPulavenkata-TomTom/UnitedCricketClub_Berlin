@@ -5,8 +5,9 @@ let openEventId = null;
 
 export async function init() {
     const yearSel = document.getElementById("mf-year");
-    for (let y = 2026; y <= 2030; y++) {
-        yearSel.innerHTML += `<option value="${y}" ${y === 2026 ? "selected" : ""}>${y}</option>`;
+    const thisYear = new Date().getFullYear();
+    for (let y = thisYear - 2; y <= thisYear + 2; y++) {
+        yearSel.innerHTML += `<option value="${y}" ${y === thisYear ? "selected" : ""}>${y}</option>`;
     }
     yearSel.addEventListener("change", load);
     await load();
@@ -83,8 +84,8 @@ function renderCards() {
                   <span class="fw-semibold">${ev.title}</span>
                   ${ev.location ? `<span class="text-muted small">${ev.location}</span>` : ""}
                   ${ev.total_members > 0
-                    ? `<span class="badge bg-success"><i class="bi bi-people-fill me-1"></i>${ev.total_members} available</span>`
-                    : `<span class="badge bg-warning text-dark"><i class="bi bi-exclamation-triangle me-1"></i>No availability marked</span>`}
+                    ? `<span class="badge bg-success"><i class="bi bi-people-fill me-1"></i>${ev.total_members} Playing XI</span>`
+                    : `<span class="badge bg-warning text-dark"><i class="bi bi-exclamation-triangle me-1"></i>No Playing XI set</span>`}
                 </div>
                 ${feeStr ? `
                 <div class="d-flex align-items-center flex-wrap gap-3 mt-1">
@@ -125,15 +126,19 @@ async function openPayments(eventId) {
     if (!panel) return;
     panel.style.display = "";
     body.innerHTML = `<div class="text-center py-2"><div class="spinner-border spinner-border-sm"></div></div>`;
-    const payments = await apiFetch(`/match-fees/${eventId}/payments`);
-    renderPayments(eventId, payments);
+    try {
+        const payments = await apiFetch(`/match-fees/${eventId}/payments`);
+        renderPayments(eventId, payments);
+    } catch (e) {
+        body.innerHTML = `<div class="alert alert-danger small">${e.message}</div>`;
+    }
 }
 
 function renderPayments(eventId, payments) {
     const body = document.getElementById(`mf-payments-body-${eventId}`);
     if (!payments.length) {
         body.innerHTML = `<p class="text-muted small mb-0">
-            <i class="bi bi-info-circle me-1"></i>No players have marked availability for this match yet.</p>`;
+            <i class="bi bi-info-circle me-1"></i>No Playing XI has been set for this match yet.</p>`;
         return;
     }
     const paidCount = payments.filter(p => p.paid).length;
@@ -184,11 +189,13 @@ window._mfTogglePay = async (eventId, memberId, btn) => {
         btn.className = `btn btn-sm ${res.paid ? "btn-success" : "btn-outline-secondary"} mf-pay-btn`;
         btn.querySelector("i").className = `bi ${res.paid ? "bi-check-circle-fill" : "bi-circle"} me-1`;
         // Refresh summary and card stats without closing the panel
-        const year = document.getElementById("mf-year").value;
-        allEvents = await apiFetch(`/match-fees?year=${year}`);
-        renderSummary();
-        const ev = allEvents.find(e => e.id === eventId);
-        if (ev) updateCardStats(ev);
+        try {
+            const year = document.getElementById("mf-year").value;
+            allEvents = await apiFetch(`/match-fees?year=${year}`);
+            renderSummary();
+            const ev = allEvents.find(e => e.id === eventId);
+            if (ev) updateCardStats(ev);
+        } catch { /* stats refresh failure is non-critical */ }
     } catch (e) {
         showToast(e.message, "error");
     } finally {

@@ -28,9 +28,7 @@ EXPENSE_CATEGORIES = [
 ]
 
 DEFAULT_USERS = [
-    {"username": "ucc_manager",           "full_name": "UCC Manager",           "password": "ucc-root-2025",  "role": "root"},
-    {"username": "ucc_accouting_manager", "full_name": "UCC Accounting Manager","password": "ucc-admin-2025", "role": "admin"},
-    {"username": "ucc_inventory_manager", "full_name": "UCC Inventory Manager", "password": "ucc-user-2025",  "role": "admin"},
+    {"username": "ucc_manager", "full_name": "UCC Manager", "password": "ucc-root-2025", "role": "root"},
 ]
 
 db = SessionLocal()
@@ -54,6 +52,7 @@ for u in DEFAULT_USERS:
             full_name=u["full_name"],
             hashed_password=hash_password(u["password"]),
             role=u["role"],
+            status="active",
         ))
         inserted_users += 1
 
@@ -61,7 +60,5 @@ db.commit()
 db.close()
 print(f"Seeded {inserted_cats} categories and {inserted_users} users (skipped existing).")
 print("\nDefault credentials:")
-print("  ucc_manager           / ucc-root-2025   (Root - full access + user management)")
-print("  ucc_accouting_manager / ucc-admin-2025  (Admin - manage & approve accounting)")
-print("  ucc_inventory_manager / ucc-user-2025   (Admin - manage & approve inventory)")
-print("\nChange passwords after first login!")
+print("  ucc_manager / ucc-root-2025  (Root - full access)")
+print("\nChange password after first login!")

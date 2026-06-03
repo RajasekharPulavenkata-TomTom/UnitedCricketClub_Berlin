@@ -4,7 +4,9 @@ from fastapi.staticfiles import StaticFiles
 from sqlalchemy import text, inspect
 from database import engine, Base
 import models  # registers all models before create_all
-from routers import accounting, inventory, members, events, audit, finance_pin, player_availability, tasks, tournament, match_fees, reporting
+from fastapi import Depends
+from dependencies.auth import get_current_user
+from routers import accounting, inventory, members, events, audit, finance_pin, player_availability, tasks, tournament, match_fees, reporting, auth, approvals, polls
 
 
 def _run_migrations():
@@ -27,16 +29,14 @@ def _run_migrations():
                 conn.execute(text("ALTER TABLE transactions ADD COLUMN status TEXT NOT NULL DEFAULT 'approved'"))
             if "created_by_id" not in cols:
                 conn.execute(text("ALTER TABLE transactions ADD COLUMN created_by_id INTEGER REFERENCES users(id)"))
-        if "assignments" in existing_tables:
-            cols = [c["name"] for c in inspector.get_columns("assignments")]
-            if "status" not in cols:
-                conn.execute(text("ALTER TABLE assignments ADD COLUMN status TEXT NOT NULL DEFAULT 'approved'"))
-            if "created_by_id" not in cols:
-                conn.execute(text("ALTER TABLE assignments ADD COLUMN created_by_id INTEGER REFERENCES users(id)"))
         if "users" in existing_tables:
             cols = [c["name"] for c in inspector.get_columns("users")]
             if "status" not in cols:
                 conn.execute(text("ALTER TABLE users ADD COLUMN status TEXT NOT NULL DEFAULT 'active'"))
+            # Ensure bootstrap admin is never stuck in pending
+            conn.execute(text("UPDATE users SET status='active' WHERE username='ucc_manager' AND status != 'active'"))
+            # Remove deprecated seeded accounts
+            conn.execute(text("DELETE FROM users WHERE username IN ('ucc_accouting_manager','ucc_inventory_manager')"))
         if "tournaments" in existing_tables:
             cols = [c["name"] for c in inspector.get_columns("tournaments")]
             if "date" not in cols:
@@ -81,6 +81,7 @@ def _run_migrations():
                     member_id INTEGER NOT NULL REFERENCES members(id) ON DELETE CASCADE,
                     status VARCHAR(20) NOT NULL DEFAULT 'unknown',
                     reported_time TIME,
+                    remarks TEXT,
                     CONSTRAINT uq_player_reporting UNIQUE (event_id, member_id)
                 )
             """))
@@ -90,6 +91,14 @@ def _run_migrations():
                 conn.execute(text("ALTER TABLE player_reporting ADD COLUMN status VARCHAR(20) NOT NULL DEFAULT 'unknown'"))
                 conn.execute(text("UPDATE player_reporting SET status = 'reported' WHERE reported = TRUE"))
                 conn.execute(text("ALTER TABLE player_reporting DROP COLUMN reported"))
+            if "remarks" not in pr_cols:
+                conn.execute(text("ALTER TABLE player_reporting ADD COLUMN remarks TEXT"))
+        if "audit_logs" in existing_tables:
+            al_cols = [c["name"] for c in inspector.get_columns("audit_logs")]
+            if "user_id" not in al_cols:
+                conn.execute(text("ALTER TABLE audit_logs ADD COLUMN user_id INTEGER REFERENCES users(id)"))
+            if "user_name" not in al_cols:
+                conn.execute(text("ALTER TABLE audit_logs ADD COLUMN user_name VARCHAR(150)"))
 
 
 @asynccontextmanager
@@ -101,16 +110,21 @@ async def lifespan(app: FastAPI):
 
 app = FastAPI(title="UCC Manager", lifespan=lifespan)
 
-app.include_router(accounting.router)
-app.include_router(inventory.router)
-app.include_router(members.router)
-app.include_router(events.router)
-app.include_router(audit.router)
-app.include_router(finance_pin.router)
-app.include_router(player_availability.router)
-app.include_router(tasks.router)
-app.include_router(tournament.router)
-app.include_router(match_fees.router)
-app.include_router(reporting.router)
+_auth = [Depends(get_current_user)]
+
+app.include_router(auth.router)
+app.include_router(approvals.router)
+app.include_router(accounting.router,          dependencies=_auth)
+app.include_router(inventory.router,           dependencies=_auth)
+app.include_router(members.router,             dependencies=_auth)
+app.include_router(events.router,              dependencies=_auth)
+app.include_router(audit.router,               dependencies=_auth)
+app.include_router(finance_pin.router,         dependencies=_auth)
+app.include_router(player_availability.router, dependencies=_auth)
+app.include_router(tasks.router,               dependencies=_auth)
+app.include_router(tournament.router,          dependencies=_auth)
+app.include_router(match_fees.router,          dependencies=_auth)
+app.include_router(reporting.router,           dependencies=_auth)
+app.include_router(polls.router,               dependencies=_auth)
 
 app.mount("/", StaticFiles(directory="static", html=True), name="static")

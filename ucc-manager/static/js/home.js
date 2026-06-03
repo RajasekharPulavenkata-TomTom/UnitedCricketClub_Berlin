@@ -8,10 +8,9 @@ export async function init() {
         return { year: m.getFullYear(), month: m.getMonth() + 1 };
     });
 
-    const [members, equipment, assignments, finance, tasks, ...eventPages] = await Promise.all([
+    const [members, equipment, finance, tasks, ...eventPages] = await Promise.all([
         apiFetch("/members"),
         apiFetch("/equipment?active_only=true"),
-        apiFetch("/assignments?active_only=true"),
         apiFetch("/reports/dashboard"),
         apiFetch("/tasks"),
         ...months.map((m) => apiFetch(`/events?year=${m.year}&month=${m.month}`)),
@@ -25,7 +24,7 @@ export async function init() {
     const activeCount = members.filter((m) => m.is_active).length;
 
     renderMembers(members);
-    renderEquipment(equipment, assignments);
+    renderEquipment(equipment);
     renderFinance(finance);
     renderEvents(upcoming, activeCount);
     renderTasks(tasks);
@@ -86,16 +85,12 @@ function regRow(icon, label, count, total) {
       </div>`;
 }
 
-function renderEquipment(equipment, assignments) {
+function renderEquipment(equipment) {
     const totalItems = equipment.reduce((s, e) => s + e.quantity_total, 0);
     const totalAvail = equipment.reduce((s, e) => s + e.quantity_available, 0);
-    const totalOut   = totalItems - totalAvail;
 
     document.getElementById("home-total-equipment").textContent = totalItems;
     document.getElementById("home-available-equipment").textContent = `${totalAvail} available`;
-    document.getElementById("home-assigned").textContent = totalOut;
-    document.getElementById("home-assigned-sub").textContent =
-        `across ${assignments.length} assignment${assignments.length !== 1 ? "s" : ""}`;
 
     const byType = {};
     equipment.forEach((e) => {

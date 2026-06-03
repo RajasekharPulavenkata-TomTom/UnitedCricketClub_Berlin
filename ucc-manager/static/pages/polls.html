@@ -1,0 +1,69 @@
+<h3 class="page-header"><i class="bi bi-ui-checks-grid me-2"></i>Polls & Voting</h3>
+
+<div class="d-flex align-items-center justify-content-between mb-4 flex-wrap gap-2 no-print">
+  <div class="d-flex gap-2 flex-wrap" id="poll-summary"></div>
+  <button class="btn btn-success btn-sm d-none" id="btn-create-poll" data-bs-toggle="modal" data-bs-target="#createPollModal">
+    <i class="bi bi-plus-lg me-1"></i>Create Poll
+  </button>
+</div>
+
+<div id="polls-container"></div>
+
+<!-- Create Poll Modal -->
+<div class="modal fade" id="createPollModal" tabindex="-1">
+  <div class="modal-dialog modal-lg">
+    <div class="modal-content">
+      <div class="modal-header">
+        <h5 class="modal-title"><i class="bi bi-ui-checks-grid me-2"></i>Create Poll</h5>
+        <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+      </div>
+      <div class="modal-body">
+        <div class="mb-3">
+          <label class="form-label fw-semibold">Poll Question <span class="text-danger">*</span></label>
+          <input type="text" class="form-control" id="poll-title" placeholder="e.g. Who should be club captain for 2025?" />
+        </div>
+        <div class="mb-3">
+          <label class="form-label fw-semibold">Description <span class="text-muted fw-normal small">(optional)</span></label>
+          <textarea class="form-control" id="poll-description" rows="2" placeholder="Additional context for members…"></textarea>
+        </div>
+        <div class="mb-3">
+          <label class="form-label fw-semibold">Closing Date &amp; Time <span class="text-muted fw-normal small">(optional)</span></label>
+          <input type="datetime-local" class="form-control" id="poll-closes-at" />
+        </div>
+        <div class="mb-2">
+          <label class="form-label fw-semibold">Options <span class="text-danger">*</span> <span class="text-muted fw-normal small">(minimum 2)</span></label>
+          <div id="poll-options-list"></div>
+          <button type="button" class="btn btn-sm btn-outline-secondary mt-2" onclick="window._pollAddOption()">
+            <i class="bi bi-plus-lg me-1"></i>Add Option
+          </button>
+        </div>
+        <div class="alert alert-info py-2 small mt-3 mb-0">
+          <i class="bi bi-shield-lock me-1"></i>Voting is <strong>anonymous</strong> — results are only visible after casting a vote.
+        </div>
+        <div id="create-poll-error" class="alert alert-danger py-2 small d-none mt-2 mb-0"></div>
+      </div>
+      <div class="modal-footer">
+        <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+        <button type="button" class="btn btn-success" onclick="window._pollSubmit()">
+          <i class="bi bi-send me-1"></i>Create Poll
+        </button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<style>
+.poll-card { border-radius: 10px; transition: box-shadow .15s; }
+.poll-card:hover { box-shadow: 0 4px 16px rgba(0,0,0,.09); }
+.poll-opt-btn {
+  display: flex; align-items: center; gap: 10px;
+  padding: 11px 16px; border: 2px solid #dee2e6; border-radius: 8px;
+  background: #fff; cursor: pointer; transition: all .15s; text-align: left; width: 100%;
+  font-size: .95rem;
+}
+.poll-opt-btn:hover { border-color: #0d6efd; background: #f0f5ff; }
+.poll-opt-btn.selected { border-color: #0d6efd; background: #e8f0fe; font-weight: 600; }
+.poll-result-bar-bg { background: #f0f0f0; border-radius: 4px; height: 9px; overflow: hidden; margin-top: 5px; }
+.poll-result-bar { height: 9px; border-radius: 4px; transition: width .6s ease; }
+.poll-winner { background: #fff3cd; border-color: #ffc107 !important; }
+</style>

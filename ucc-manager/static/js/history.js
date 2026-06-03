@@ -2,6 +2,7 @@ import { apiFetch } from "/js/api.js";
 
 const ACTION_STYLE = {
     added:    { bg: "#d1e7dd", color: "#0a3622", icon: "bi-plus-lg" },
+    created:  { bg: "#d1e7dd", color: "#0a3622", icon: "bi-plus-lg" },
     updated:  { bg: "#cfe2ff", color: "#084298", icon: "bi-pencil" },
     deleted:  { bg: "#f8d7da", color: "#842029", icon: "bi-trash" },
     archived: { bg: "#fff3cd", color: "#664d03", icon: "bi-archive" },
@@ -13,7 +14,7 @@ const ENTITY_ICON = {
     event:       "bi-calendar3",
     transaction: "bi-cash-coin",
     equipment:   "bi-bag",
-    assignment:  "bi-person-check",
+    task:        "bi-check2-square",
 };
 
 let allItems = [];
@@ -62,6 +63,7 @@ function render(filter) {
             <div class="history-meta mt-1">
               <i class="bi ${entityIcon} me-1"></i>${item.entity_type}
               &nbsp;·&nbsp;${when}
+              ${item.user_name ? `&nbsp;·&nbsp;<i class="bi bi-person-fill me-1"></i>${item.user_name}` : ""}
             </div>
           </div>
           <span class="badge mt-1" style="background:${style.bg};color:${style.color}">${item.action}</span>

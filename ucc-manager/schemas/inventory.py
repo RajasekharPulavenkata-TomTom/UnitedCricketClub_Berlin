@@ -72,42 +72,12 @@ class MaintenanceNoteOut(MaintenanceNoteBase):
     model_config = {"from_attributes": True}
 
 
-class AssignmentCreate(BaseModel):
-    equipment_id: int
-    member_name: str
-    quantity_assigned: int = 1
-    assigned_date: date
-    expected_return_date: Optional[date] = None
-    notes: Optional[str] = None
-
-
-class AssignmentOut(BaseModel):
-    id: int
-    equipment_id: int
-    member_name: str
-    quantity_assigned: int
-    assigned_date: date
-    expected_return_date: Optional[date] = None
-    returned_date: Optional[date] = None
-    notes: Optional[str] = None
-    status: str
-    created_by_id: Optional[int] = None
-    created_at: datetime
-    equipment: Optional["EquipmentOut"] = None
-
-    model_config = {"from_attributes": True}
-
-
 class EquipmentOut(EquipmentBase):
     id: int
     quantity_available: int
     is_active: bool
     created_at: datetime
     updated_at: datetime
-    assignments: List[AssignmentOut] = []
     maintenance_notes: List[MaintenanceNoteOut] = []
 
     model_config = {"from_attributes": True}
-
-
-AssignmentOut.model_rebuild()

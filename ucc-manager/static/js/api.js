@@ -2,17 +2,29 @@ const BASE = "/api";
 
 export async function apiFetch(path, options = {}) {
     const headers = { "Content-Type": "application/json" };
+    const token = localStorage.getItem("ucc_token");
+    if (token) headers["Authorization"] = `Bearer ${token}`;
     const res = await fetch(BASE + path, { headers, ...options });
-    if (res.status === 204) return null;
-    const data = await res.json();
+    if (res.status === 401) {
+        localStorage.removeItem("ucc_token");
+        localStorage.removeItem("ucc_user");
+        window.dispatchEvent(new CustomEvent("ucc:logout"));
+        throw new Error("Session expired. Please log in again.");
+    }
+    let data;
+    try {
+        data = res.status === 204 ? null : await res.json();
+    } catch {
+        throw new Error(`Server error (${res.status})`);
+    }
     if (!res.ok) {
-        const detail = data.detail;
+        const detail = data?.detail;
         const msg = typeof detail === "string" ? detail
             : Array.isArray(detail) ? detail.map(d => {
                 const loc = Array.isArray(d.loc) ? d.loc.filter(x => x !== "body").join(".") : "";
                 return loc ? `${loc}: ${d.msg}` : d.msg;
               }).join("; ")
-            : JSON.stringify(detail) || "API error";
+            : JSON.stringify(detail) || `Server error (${res.status})`;
         throw new Error(msg);
     }
     return data;
@@ -53,4 +65,13 @@ export function typeBadge(t) {
 export function statusBadge(s) {
     const map = { approved: "bg-success", pending: "bg-warning text-dark", rejected: "bg-secondary" };
     return `<span class="badge ${map[s] || "bg-secondary"}">${s}</span>`;
+}
+
+export function escHtml(s) {
+    return String(s ?? "")
+        .replace(/&/g, "&amp;")
+        .replace(/</g, "&lt;")
+        .replace(/>/g, "&gt;")
+        .replace(/"/g, "&quot;")
+        .replace(/'/g, "&#39;");
 }

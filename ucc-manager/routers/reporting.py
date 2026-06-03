@@ -14,6 +14,7 @@ router = APIRouter(prefix="/api/reporting", tags=["reporting"])
 class ReportingUpdate(BaseModel):
     status: Optional[str] = None        # "unknown", "reported", "absent"
     reported_time: Optional[str] = None  # "HH:MM" or "" to clear
+    remarks: Optional[str] = None
 
 
 def _available_ids(event_id: int, db: Session) -> list[int]:
@@ -64,6 +65,7 @@ def get_players(event_id: int, db: Session = Depends(get_db)):
             "name": (members[mid].jersey_name or members[mid].name) if mid in members else f"Member {mid}",
             "status": reports[mid].status if mid in reports else "unknown",
             "reported_time": reports[mid].reported_time.strftime("%H:%M") if mid in reports and reports[mid].reported_time else None,
+            "remarks": reports[mid].remarks or "" if mid in reports else "",
         }
         for mid in ids if mid in members
     ]
@@ -85,10 +87,16 @@ def update_reporting(event_id: int, member_id: int, data: ReportingUpdate, db: S
         if data.reported_time == "":
             rec.reported_time = None
         else:
-            h, m_str = data.reported_time.split(":")
-            rec.reported_time = _time(int(h), int(m_str))
+            try:
+                h, m_str = data.reported_time.split(":")
+                rec.reported_time = _time(int(h), int(m_str))
+            except (ValueError, TypeError):
+                raise HTTPException(status_code=400, detail="reported_time must be HH:MM")
+    if data.remarks is not None:
+        rec.remarks = data.remarks
     db.commit()
     return {
         "status": rec.status,
         "reported_time": rec.reported_time.strftime("%H:%M") if rec.reported_time else None,
+        "remarks": rec.remarks or "",
     }

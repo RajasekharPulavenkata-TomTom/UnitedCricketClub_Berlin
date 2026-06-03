@@ -1,4 +1,4 @@
-import { apiFetch, showToast } from "/js/api.js";
+import { apiFetch, showToast, escHtml } from "/js/api.js";
 
 let modal;
 let editingId = null;
@@ -53,16 +53,16 @@ function render() {
         <tr>
           <td class="text-muted">${i + 1}</td>
           <td>
-            <div class="fw-semibold">${m.name}</div>
+            <div class="fw-semibold">${escHtml(m.name)}</div>
           </td>
           <td>
-            ${m.jersey_name ? `<span class="fw-semibold">${m.jersey_name}</span>` : ""}
-            ${m.jersey_number ? `<span class="badge bg-secondary ms-1">#${m.jersey_number}</span>` : ""}
+            ${m.jersey_name ? `<span class="fw-semibold">${escHtml(m.jersey_name)}</span>` : ""}
+            ${m.jersey_number ? `<span class="badge bg-secondary ms-1">#${escHtml(m.jersey_number)}</span>` : ""}
             ${!m.jersey_name && !m.jersey_number ? "—" : ""}
           </td>
-          <td>${m.role ? `<span class="badge ${roleColors[m.role] || "bg-secondary"}">${m.role}</span>` : "—"}</td>
-          <td>${m.ball_type ? `<span class="badge ${ballColors[m.ball_type] || "bg-secondary"}">${m.ball_type}</span>` : "—"}</td>
-          <td><code class="small">${m.dcb_id || "—"}</code></td>
+          <td>${m.role ? `<span class="badge ${roleColors[m.role] || "bg-secondary"}">${escHtml(m.role)}</span>` : "—"}</td>
+          <td>${m.ball_type ? `<span class="badge ${ballColors[m.ball_type] || "bg-secondary"}">${escHtml(m.ball_type)}</span>` : "—"}</td>
+          <td><code class="small">${escHtml(m.dcb_id || "—")}</code></td>
           <td class="text-center" onclick="event.stopPropagation()">
             <input type="checkbox" ${m.cricheroes ? "checked" : ""} onchange="window._toggleField(${m.id}, 'cricheroes', this.checked)" />
           </td>

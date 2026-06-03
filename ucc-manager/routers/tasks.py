@@ -7,6 +7,8 @@ from models.member import Member
 from models.event import Event
 from schemas.task import TaskCreate, TaskUpdate, TaskOut
 from routers.audit import log
+from models.auth import User
+from dependencies.auth import get_current_user
 
 router = APIRouter(prefix="/api/tasks", tags=["tasks"])
 
@@ -45,6 +47,7 @@ def list_tasks(
 def create_task(
     data: TaskCreate,
     db: Session = Depends(get_db),
+    current_user: User = Depends(get_current_user),
 ):
     if data.status not in VALID_STATUSES:
         raise HTTPException(status_code=422, detail=f"status must be one of {VALID_STATUSES}")
@@ -58,7 +61,7 @@ def create_task(
     task = Task(**data.model_dump())
     db.add(task)
     db.flush()
-    log(db, "created", "task", task.id, f"Task '{task.title}' created")
+    log(db, "created", "task", task.id, f"Task '{task.title}' created", user=current_user)
     db.commit()
     db.refresh(task)
     return task
@@ -92,6 +95,7 @@ def update_task(
     task_id: int,
     data: TaskUpdate,
     db: Session = Depends(get_db),
+    current_user: User = Depends(get_current_user),
 ):
     task = _get_task_or_404(task_id, db)
     updates = data.model_dump(exclude_none=True)
@@ -107,7 +111,7 @@ def update_task(
 
     for field, value in updates.items():
         setattr(task, field, value)
-    log(db, "updated", "task", task.id, f"Task '{task.title}' updated")
+    log(db, "updated", "task", task.id, f"Task '{task.title}' updated", user=current_user)
     db.commit()
     db.refresh(task)
     return task
@@ -118,12 +122,13 @@ def update_status(
     task_id: int,
     status: str = Query(...),
     db: Session = Depends(get_db),
+    current_user: User = Depends(get_current_user),
 ):
     if status not in VALID_STATUSES:
         raise HTTPException(status_code=422, detail=f"status must be one of {VALID_STATUSES}")
     task = _get_task_or_404(task_id, db)
     task.status = status
-    log(db, "updated", "task", task.id, f"Task '{task.title}' marked {status}")
+    log(db, "updated", "task", task.id, f"Task '{task.title}' marked {status}", user=current_user)
     db.commit()
     db.refresh(task)
     return task
@@ -138,6 +143,7 @@ def bulk_assign(
     due_date: Optional[str] = None,
     event_id: Optional[int] = None,
     db: Session = Depends(get_db),
+    current_user: User = Depends(get_current_user),
 ):
     if priority not in VALID_PRIORITIES:
         raise HTTPException(status_code=422, detail=f"priority must be one of {VALID_PRIORITIES}")
@@ -158,7 +164,7 @@ def bulk_assign(
         )
         db.add(task)
         db.flush()
-        log(db, "created", "task", task.id, f"Task '{title}' bulk-assigned to member {mid}")
+        log(db, "created", "task", task.id, f"Task '{title}' bulk-assigned to member {mid}", user=current_user)
         created.append(task)
 
     db.commit()
@@ -171,8 +177,9 @@ def bulk_assign(
 def delete_task(
     task_id: int,
     db: Session = Depends(get_db),
+    current_user: User = Depends(get_current_user),
 ):
     task = _get_task_or_404(task_id, db)
-    log(db, "deleted", "task", task.id, f"Task '{task.title}' deleted")
+    log(db, "deleted", "task", task.id, f"Task '{task.title}' deleted", user=current_user)
     db.delete(task)
     db.commit()

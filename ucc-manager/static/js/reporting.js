@@ -5,8 +5,9 @@ let openEventId = null;
 
 export async function init() {
     const yearSel = document.getElementById("rp-year");
-    for (let y = 2026; y <= 2030; y++) {
-        yearSel.innerHTML += `<option value="${y}" ${y === 2026 ? "selected" : ""}>${y}</option>`;
+    const thisYear = new Date().getFullYear();
+    for (let y = thisYear - 2; y <= thisYear + 2; y++) {
+        yearSel.innerHTML += `<option value="${y}" ${y === thisYear ? "selected" : ""}>${y}</option>`;
     }
     yearSel.addEventListener("change", load);
     await load();
@@ -122,9 +123,13 @@ async function openPanel(eventId) {
     if (!panel) return;
     panel.style.display = "";
     body.innerHTML = `<div class="text-center py-2"><div class="spinner-border spinner-border-sm"></div></div>`;
-    const players = await apiFetch(`/reporting/${eventId}/players`);
-    const ev = allEvents.find(e => e.id === eventId);
-    renderPanel(eventId, players, ev?.reporting_time || null);
+    try {
+        const players = await apiFetch(`/reporting/${eventId}/players`);
+        const ev = allEvents.find(e => e.id === eventId);
+        renderPanel(eventId, players, ev?.reporting_time || null);
+    } catch (e) {
+        body.innerHTML = `<div class="alert alert-danger small">${e.message}</div>`;
+    }
 }
 
 function statusBtn(eventId, memberId, current) {
@@ -233,7 +238,11 @@ function updateLateBadge(eventId, memberId, reportedTime) {
 
 async function refreshCardStats(eventId) {
     const year = document.getElementById("rp-year").value;
-    allEvents = await apiFetch(`/reporting?year=${year}`);
+    try {
+        allEvents = await apiFetch(`/reporting?year=${year}`);
+    } catch {
+        return;
+    }
     renderSummary();
     const ev = allEvents.find(e => e.id === eventId);
     if (!ev) return;

@@ -3,7 +3,7 @@ from fastapi import APIRouter, Depends, HTTPException
 from sqlalchemy.orm import Session
 from database import get_db
 from models.auth import User
-from schemas.auth import LoginRequest, TokenOut, UserCreate, UserUpdate, PasswordReset, UserOut, RegisterRequest
+from schemas.auth import LoginRequest, TokenOut, UserCreate, UserUpdate, PasswordReset, PasswordChange, UserOut, RegisterRequest
 from services.auth_service import create_access_token, hash_password, verify_password
 from dependencies.auth import get_current_user, require_root
 
@@ -15,6 +15,10 @@ def login(data: LoginRequest, db: Session = Depends(get_db)):
     user = db.query(User).filter(User.username == data.username, User.is_active == True).first()
     if not user or not verify_password(data.password, user.hashed_password):
         raise HTTPException(status_code=401, detail="Invalid username or password")
+    if user.status == "pending":
+        raise HTTPException(status_code=403, detail="Your account is pending admin approval")
+    if user.status == "rejected":
+        raise HTTPException(status_code=403, detail="Your account registration was not approved")
     return TokenOut(
         access_token=create_access_token(user),
         role=user.role,
@@ -32,7 +36,7 @@ def register(data: RegisterRequest, db: Session = Depends(get_db)):
         full_name=data.full_name,
         hashed_password=hash_password(data.password),
         role="user",
-        status="active",
+        status="pending",
     )
     db.add(user)
     db.commit()
@@ -111,6 +115,14 @@ def update_user(id: int, data: UserUpdate, current_user: User = Depends(require_
     db.commit()
     db.refresh(user)
     return user
+
+
+@router.put("/me/password", status_code=204)
+def change_own_password(data: PasswordChange, current_user: User = Depends(get_current_user), db: Session = Depends(get_db)):
+    if not verify_password(data.current_password, current_user.hashed_password):
+        raise HTTPException(status_code=400, detail="Current password is incorrect")
+    current_user.hashed_password = hash_password(data.new_password)
+    db.commit()
 
 
 @router.put("/users/{id}/password", status_code=204)

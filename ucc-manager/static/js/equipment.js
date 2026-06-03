@@ -116,28 +116,15 @@ window._retireEq = async (id) => {
 window._viewEq = async (id) => {
     const item = await apiFetch(`/equipment/${id}`);
     document.getElementById("eqDetailTitle").textContent = item.name;
-    const activeAssignments = item.assignments.filter((a) => !a.returned_date && a.status === "approved");
     document.getElementById("eq-detail-body").innerHTML = `
-    <div class="row g-3 mb-4">
-      <div class="col-md-6">
-        <table class="table table-sm">
-          <tr><th>Type</th><td class="text-capitalize">${item.type}</td></tr>
-          <tr><th>Condition</th><td>${conditionBadge(item.condition)}</td></tr>
-          <tr><th>Total Qty</th><td>${item.quantity_total}</td></tr>
-          <tr><th>Available</th><td>${item.quantity_available}</td></tr>
-          ${item.supplier ? `<tr><th>Supplier</th><td>${item.supplier}</td></tr>` : ""}
-          ${item.serial_number ? `<tr><th>Serial #</th><td>${item.serial_number}</td></tr>` : ""}
-        </table>
-      </div>
-      <div class="col-md-6">
-        <h6 class="fw-semibold">Currently Out (${activeAssignments.length})</h6>
-        ${activeAssignments.length ? activeAssignments.map((a) => `
-          <div class="border rounded p-2 mb-1 small">
-            <strong>${a.member_name}</strong> — ${a.quantity_assigned} unit(s) since ${fmt.date(a.assigned_date)}
-            ${a.expected_return_date ? `<span class="text-muted ms-1">(due ${fmt.date(a.expected_return_date)})</span>` : ""}
-          </div>`).join("") : `<p class="text-muted small">None checked out.</p>`}
-      </div>
-    </div>
+    <table class="table table-sm mb-4">
+      <tr><th>Type</th><td class="text-capitalize">${item.type}</td></tr>
+      <tr><th>Condition</th><td>${conditionBadge(item.condition)}</td></tr>
+      <tr><th>Total Qty</th><td>${item.quantity_total}</td></tr>
+      <tr><th>Available</th><td>${item.quantity_available}</td></tr>
+      ${item.supplier ? `<tr><th>Supplier</th><td>${item.supplier}</td></tr>` : ""}
+      ${item.serial_number ? `<tr><th>Serial #</th><td>${item.serial_number}</td></tr>` : ""}
+    </table>
     <h6 class="fw-semibold">Maintenance Log (${item.maintenance_notes.length})</h6>
     ${item.maintenance_notes.length ? `<div class="table-responsive"><table class="table table-sm"><thead class="table-light"><tr><th>Date</th><th>Description</th><th>Cost</th><th>Done By</th></tr></thead><tbody>
       ${item.maintenance_notes.map((n) => `<tr><td>${fmt.date(n.date)}</td><td>${n.description}</td><td>${n.cost ? fmt.currency(n.cost) : "—"}</td><td>${n.done_by || "—"}</td></tr>`).join("")}

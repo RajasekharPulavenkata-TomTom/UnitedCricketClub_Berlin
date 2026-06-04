@@ -29,13 +29,25 @@ def list_events(year: Optional[int] = None, db: Session = Depends(get_db)):
     if year:
         query = query.filter(Event.date.between(f"{year}-01-01", f"{year}-12-31"))
     events = query.order_by(Event.date.desc()).all()
+    if not events:
+        return []
+
+    event_ids = [ev.id for ev in events]
+    squads = db.query(EventSquad).filter(EventSquad.event_id.in_(event_ids)).all()
+    squad_by_event = {}
+    for s in squads:
+        squad_by_event.setdefault(s.event_id, set()).add(s.member_id)
+
+    payments = db.query(MatchFeePayment).filter(MatchFeePayment.event_id.in_(event_ids)).all()
+    payments_by_event: dict[int, list] = {}
+    for p in payments:
+        payments_by_event.setdefault(p.event_id, []).append(p)
 
     result = []
     for ev in events:
-        avail = set(_squad_ids(ev.id, db))
+        avail = squad_by_event.get(ev.id, set())
         total = len(avail)
-        payments = db.query(MatchFeePayment).filter(MatchFeePayment.event_id == ev.id).all()
-        paid_count = sum(1 for p in payments if p.paid and p.member_id in avail)
+        paid_count = sum(1 for p in payments_by_event.get(ev.id, []) if p.paid and p.member_id in avail)
         fee = float(ev.match_fee) if ev.match_fee is not None else None
         collected = round(paid_count * fee, 2) if fee is not None else 0.0
         outstanding = round((total - paid_count) * fee, 2) if fee is not None else 0.0

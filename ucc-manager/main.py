@@ -1,10 +1,10 @@
 from contextlib import asynccontextmanager
-from fastapi import FastAPI
+from fastapi import FastAPI, Depends
 from fastapi.staticfiles import StaticFiles
+from fastapi.middleware.gzip import GZipMiddleware
 from sqlalchemy import text, inspect
 from database import engine, Base
 import models  # registers all models before create_all
-from fastapi import Depends
 from dependencies.auth import get_current_user
 from routers import accounting, inventory, members, events, audit, finance_pin, player_availability, tasks, tournament, match_fees, reporting, auth, approvals, polls
 
@@ -109,6 +109,7 @@ async def lifespan(app: FastAPI):
 
 
 app = FastAPI(title="UCC Manager", lifespan=lifespan)
+app.add_middleware(GZipMiddleware, minimum_size=1000)
 
 _auth = [Depends(get_current_user)]
 

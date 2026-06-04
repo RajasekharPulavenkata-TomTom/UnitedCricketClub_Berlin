@@ -152,18 +152,19 @@ class SquadSet(BaseModel):
 @router.get("/events/{id}/squad")
 def get_squad(id: int, db: Session = Depends(get_db)):
     rows = db.query(EventSquad).filter(EventSquad.event_id == id).order_by(EventSquad.batting_order).all()
-    result = []
-    for r in rows:
-        m = db.query(Member).filter(Member.id == r.member_id).first()
-        if m:
-            result.append({
-                "member_id": m.id,
-                "name": m.jersey_name or m.name,
-                "role": m.role,
-                "jersey_number": m.jersey_number,
-                "batting_order": r.batting_order,
-            })
-    return result
+    if not rows:
+        return []
+    members = {m.id: m for m in db.query(Member).filter(Member.id.in_([r.member_id for r in rows])).all()}
+    return [
+        {
+            "member_id": r.member_id,
+            "name": (members[r.member_id].jersey_name or members[r.member_id].name),
+            "role": members[r.member_id].role,
+            "jersey_number": members[r.member_id].jersey_number,
+            "batting_order": r.batting_order,
+        }
+        for r in rows if r.member_id in members
+    ]
 
 
 @router.put("/events/{id}/squad", status_code=200)

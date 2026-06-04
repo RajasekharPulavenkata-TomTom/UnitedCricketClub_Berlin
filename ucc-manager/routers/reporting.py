@@ -30,22 +30,36 @@ def list_events(year: Optional[int] = None, event_type: str = "match", db: Sessi
     if year:
         query = query.filter(Event.date.between(f"{year}-01-01", f"{year}-12-31"))
     events = query.order_by(Event.date.desc()).all()
+    if not events:
+        return []
+
+    event_ids = [ev.id for ev in events]
+    avail_rows = db.query(EventAvailability).filter(
+        EventAvailability.event_id.in_(event_ids),
+        EventAvailability.status == "available",
+    ).all()
+    avail_by_event: dict[int, set] = {}
+    for a in avail_rows:
+        avail_by_event.setdefault(a.event_id, set()).add(a.member_id)
+
+    report_rows = db.query(PlayerReporting).filter(PlayerReporting.event_id.in_(event_ids)).all()
+    reports_by_event: dict[int, list] = {}
+    for r in report_rows:
+        reports_by_event.setdefault(r.event_id, []).append(r)
+
     result = []
     for ev in events:
-        avail = set(_available_ids(ev.id, db))
-        total = len(avail)
-        reports = db.query(PlayerReporting).filter(PlayerReporting.event_id == ev.id).all()
-        reported_count = sum(1 for r in reports if r.status == "reported" and r.member_id in avail)
-        absent_count   = sum(1 for r in reports if r.status == "absent"   and r.member_id in avail)
+        avail = avail_by_event.get(ev.id, set())
+        reports = reports_by_event.get(ev.id, [])
         result.append({
             "id": ev.id,
             "date": ev.date.isoformat(),
             "title": ev.title,
             "location": ev.location,
             "reporting_time": ev.reporting_time.strftime("%H:%M") if ev.reporting_time else None,
-            "total_members": total,
-            "reported_count": reported_count,
-            "absent_count": absent_count,
+            "total_members": len(avail),
+            "reported_count": sum(1 for r in reports if r.status == "reported" and r.member_id in avail),
+            "absent_count":   sum(1 for r in reports if r.status == "absent"   and r.member_id in avail),
             "remarks": ev.remarks or "",
         })
     return result

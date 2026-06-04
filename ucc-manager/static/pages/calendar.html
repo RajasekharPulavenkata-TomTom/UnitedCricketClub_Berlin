@@ -1,18 +1,18 @@
 <h3 class="page-header"><i class="bi bi-calendar3 me-2"></i>Calendar</h3>
 
-<div class="d-flex align-items-center justify-content-between mb-3 no-print">
+<div class="d-flex align-items-center justify-content-between flex-wrap gap-2 mb-3 no-print">
   <div class="d-flex align-items-center gap-2">
     <button class="btn btn-outline-secondary btn-sm" id="cal-prev"><i class="bi bi-chevron-left"></i></button>
-    <h5 class="mb-0 fw-semibold" id="cal-title" style="min-width:180px;text-align:center"></h5>
+    <h5 class="mb-0 fw-semibold" id="cal-title" style="min-width:140px;text-align:center"></h5>
     <button class="btn btn-outline-secondary btn-sm" id="cal-next"><i class="bi bi-chevron-right"></i></button>
     <button class="btn btn-outline-secondary btn-sm ms-2" id="cal-today">Today</button>
   </div>
-  <div class="d-flex gap-2">
+  <div class="d-flex gap-2 flex-wrap">
     <a href="/docs/DCB-Spielberichtsbogen_Eng.pdf" download class="btn btn-outline-danger btn-sm" title="Download DCB Match Report Sheet">
-      <i class="bi bi-file-earmark-pdf me-1"></i>Match Sheet
+      <i class="bi bi-file-earmark-pdf me-1"></i><span class="d-none d-sm-inline">Match Sheet</span><span class="d-sm-none">Sheet</span>
     </a>
     <button class="btn btn-outline-secondary btn-sm" id="btn-share-avail" title="Copy player availability link">
-      <i class="bi bi-share me-1"></i>Player Link
+      <i class="bi bi-share me-1"></i><span class="d-none d-sm-inline">Player Link</span>
     </button>
     <button class="btn btn-success btn-sm" id="btn-add-event">
       <i class="bi bi-plus-lg me-1"></i>Add Event
@@ -210,4 +210,11 @@ button.cal-cell { appearance: none; -webkit-appearance: none; outline: none; }
 .squad-row.in-squad { background:#f0f5ff; }
 .squad-num { width:22px; text-align:right; font-size:.82rem; font-weight:700; color:#0d6efd; flex-shrink:0; }
 .report-time-badge { display: block; font-size: .65rem; color: #664d03; background: #fff3cd; border-radius: 3px; padding: 1px 4px; margin-top: 1px; }
+@media (max-width: 575px) {
+  .cal-cell { min-height: 64px; padding: 4px; }
+  .cal-weather { display: none; }
+  .av-name { display: none; }
+  .cal-day-header { font-size: .65rem; }
+  .event-badge { font-size: .65rem; padding: 1px 3px; }
+}
 </style>

@@ -22,8 +22,8 @@
   <div class="d-flex align-items-start justify-content-between flex-wrap gap-2 no-print">
     <h4 class="mb-0"><i class="bi bi-diagram-3 me-2"></i>Field Editor</h4>
     <div class="d-flex gap-2 flex-wrap align-items-center">
-      <input id="fe-name" type="text" class="form-control form-control-sm" style="width:180px" placeholder="Formation name…">
-      <select id="fe-event" class="form-select form-select-sm" style="width:190px">
+      <input id="fe-name" type="text" class="form-control form-control-sm" style="width:180px;min-width:120px;flex:1 1 140px" placeholder="Formation name…">
+      <select id="fe-event" class="form-select form-select-sm" style="width:190px;min-width:140px;flex:1 1 150px">
         <option value="">— No match linked —</option>
       </select>
       <button id="btn-fe-load-squad" class="btn btn-sm btn-outline-primary" title="Load match squad onto field" disabled>
@@ -47,7 +47,7 @@
   <!-- body -->
   <div class="row g-3">
     <!-- sidebar -->
-    <div class="col-lg-3 no-print">
+    <div class="col-lg-3 no-print order-lg-first order-last">
       <div class="card mb-3">
         <div class="card-header d-flex justify-content-between align-items-center py-2">
           <span class="fw-semibold small"><i class="bi bi-people me-1"></i>Players</span>
@@ -55,7 +55,7 @@
         </div>
         <div class="card-body p-2">
           <input id="fe-player-search" type="text" class="form-control form-control-sm mb-2" placeholder="Search…">
-          <div id="fe-player-list" style="max-height:320px;overflow-y:auto"></div>
+          <div id="fe-player-list" style="max-height:260px;overflow-y:auto"></div>
         </div>
       </div>
       <div class="card">
@@ -63,14 +63,14 @@
           <span class="fw-semibold small"><i class="bi bi-collection me-1"></i>Saved Formations</span>
           <span id="fe-formations-count" class="badge bg-secondary">0</span>
         </div>
-        <div id="fe-formations-list" style="max-height:320px;overflow-y:auto">
+        <div id="fe-formations-list" style="max-height:260px;overflow-y:auto">
           <div class="text-center text-muted small py-3">No formations yet</div>
         </div>
       </div>
     </div>
 
     <!-- field -->
-    <div class="col-lg-9">
+    <div class="col-lg-9 order-lg-last order-first">
       <div class="text-center" id="fe-field-wrap">
         <svg id="fe-svg" viewBox="0 0 600 600" xmlns="http://www.w3.org/2000/svg" style="width:100%">
           <defs>

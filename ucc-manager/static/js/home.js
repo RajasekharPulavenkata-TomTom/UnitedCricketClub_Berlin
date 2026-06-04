@@ -143,8 +143,13 @@ function renderEvents(events, activeCount) {
                 <span class="badge ${typeColor[e.type] || "bg-secondary"} me-2">${e.type}</span>
                 ${e.home_away === "home" ? `<i class="bi bi-house-fill text-success me-1" title="Home"></i>` : e.home_away === "away" ? `<i class="bi bi-airplane-engines-fill text-primary me-1" title="Away"></i>` : ""}
                 <span class="fw-medium">${e.title}</span>
-                ${e.match_time ? `<small class="text-muted ms-2"><i class="bi bi-stopwatch me-1"></i>${e.match_time.substring(0, 5)}</small>` : ""}
-                ${e.notes ? `<small class="text-muted ms-2">${e.notes}</small>` : ""}
+                <div class="text-muted small mt-1 d-flex flex-wrap gap-2">
+                  ${e.match_type ? `<span><i class="bi bi-trophy me-1"></i>${e.match_type}</span>` : ""}
+                  ${e.match_time ? `<span><i class="bi bi-stopwatch me-1"></i>${e.match_time.substring(0, 5)}</span>` : ""}
+                  ${e.reporting_time ? `<span><i class="bi bi-clock me-1"></i>Report ${e.reporting_time.substring(0, 5)}</span>` : ""}
+                  ${e.location ? `<span><i class="bi bi-geo-alt me-1"></i>${e.location}</span>` : ""}
+                  ${e.notes ? `<span>${e.notes}</span>` : ""}
+                </div>
                 <div id="home-wx-${e.id}" class="text-muted small mt-1"></div>
               </td>
               <td class="text-center"><span class="badge bg-success">${e.available_count}</span></td>

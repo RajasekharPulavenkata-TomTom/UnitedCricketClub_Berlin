@@ -150,10 +150,13 @@ def bulk_assign(
     from datetime import date as date_type
     parsed_due = date_type.fromisoformat(due_date) if due_date else None
 
+    found_ids = {m.id for m in db.query(Member).filter(Member.id.in_(member_ids)).all()}
+    missing = [mid for mid in member_ids if mid not in found_ids]
+    if missing:
+        raise HTTPException(status_code=404, detail=f"Members not found: {missing}")
+
     created = []
     for mid in member_ids:
-        if not db.query(Member).filter(Member.id == mid).first():
-            raise HTTPException(status_code=404, detail=f"Member {mid} not found")
         task = Task(
             title=title,
             description=description,

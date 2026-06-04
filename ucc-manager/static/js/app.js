@@ -155,6 +155,10 @@ if (localStorage.getItem("ucc_token")) {
 
 // ── Pages ──────────────────────────────────────────────────────────────────────
 
+// Single timestamp for the whole session — busts cache on page load/deploy
+// but allows the browser to cache files across in-session navigations.
+const _SV = Date.now();
+
 const FINANCE_PAGES = new Set(["dashboard", "transactions", "categories", "reports"]);
 
 const PAGES = {
@@ -203,10 +207,10 @@ async function router() {
     }
 
     try {
-        const html = await fetch(page.html + "?t=" + Date.now()).then((r) => r.text());
+        const html = await fetch(page.html + "?v=" + _SV).then((r) => r.text());
         container.innerHTML = html;
         if (FINANCE_PAGES.has(hash)) injectFinanceToolbar(container);
-        const mod = await import(page.js + "?t=" + Date.now());
+        const mod = await import(page.js + "?v=" + _SV);
         if (mod.init) mod.init();
     } catch (e) {
         container.innerHTML = `<div class="alert alert-danger">Failed to load page: ${e.message}</div>`;

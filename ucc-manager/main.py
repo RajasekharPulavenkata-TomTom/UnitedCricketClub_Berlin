@@ -99,6 +99,14 @@ def _run_migrations():
                 conn.execute(text("ALTER TABLE audit_logs ADD COLUMN user_id INTEGER REFERENCES users(id)"))
             if "user_name" not in al_cols:
                 conn.execute(text("ALTER TABLE audit_logs ADD COLUMN user_name VARCHAR(150)"))
+        # Performance indexes — PostgreSQL does not auto-index FK columns
+        conn.execute(text("CREATE INDEX IF NOT EXISTS ix_transactions_category_id ON transactions (category_id)"))
+        conn.execute(text("CREATE INDEX IF NOT EXISTS ix_transactions_date ON transactions (date DESC)"))
+        conn.execute(text("CREATE INDEX IF NOT EXISTS ix_tasks_assigned_to_id ON tasks (assigned_to_id)"))
+        conn.execute(text("CREATE INDEX IF NOT EXISTS ix_tasks_event_id ON tasks (event_id)"))
+        conn.execute(text("CREATE INDEX IF NOT EXISTS ix_tournament_participants_tournament_id ON tournament_participants (tournament_id)"))
+        conn.execute(text("CREATE INDEX IF NOT EXISTS ix_audit_logs_entity_type ON audit_logs (entity_type)"))
+        conn.execute(text("CREATE INDEX IF NOT EXISTS ix_audit_logs_created_at ON audit_logs (created_at DESC)"))
 
 
 @asynccontextmanager

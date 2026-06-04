@@ -1,6 +1,6 @@
 from typing import List
 from fastapi import APIRouter, Depends, HTTPException
-from sqlalchemy.orm import Session
+from sqlalchemy.orm import Session, selectinload
 from database import get_db
 from models.tournament import Tournament, TournamentParticipant
 from schemas.tournament import (
@@ -28,7 +28,12 @@ def _enrich(t: Tournament) -> Tournament:
 
 @router.get("", response_model=List[TournamentOut])
 def list_tournaments(db: Session = Depends(get_db)):
-    return [_enrich(t) for t in db.query(Tournament).order_by(Tournament.created_at.desc()).all()]
+    return [_enrich(t) for t in (
+        db.query(Tournament)
+        .options(selectinload(Tournament.participants))
+        .order_by(Tournament.created_at.desc())
+        .all()
+    )]
 
 
 @router.post("", response_model=TournamentOut, status_code=201)

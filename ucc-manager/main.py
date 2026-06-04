@@ -111,7 +111,6 @@ def _run_migrations():
         conn.execute(text("CREATE INDEX IF NOT EXISTS ix_tournament_participants_tournament_id ON tournament_participants (tournament_id)"))
         conn.execute(text("CREATE INDEX IF NOT EXISTS ix_audit_logs_entity_type ON audit_logs (entity_type)"))
         conn.execute(text("CREATE INDEX IF NOT EXISTS ix_audit_logs_created_at ON audit_logs (created_at DESC)"))
-        conn.execute(text("CREATE INDEX IF NOT EXISTS ix_violations_member_id ON violations (member_id)"))
         conn.execute(text("CREATE INDEX IF NOT EXISTS ix_users_member_id ON users (member_id)"))
 
 

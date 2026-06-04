@@ -84,6 +84,8 @@ function renderCards() {
                 <div class="d-flex align-items-center flex-wrap gap-2 mb-1">
                   <span class="badge bg-secondary">${dateStr}</span>
                   <span class="fw-semibold">${escHtml(ev.title)}</span>
+                  ${ev.match_type ? `<span class="badge bg-info text-dark">${ev.match_type}</span>` : ""}
+                  ${ev.home_away ? `<span class="badge ${ev.home_away === "home" ? "bg-success" : "bg-warning text-dark"}">${ev.home_away === "home" ? "Home" : "Away"}</span>` : ""}
                   ${ev.location ? `<span class="text-muted small">${escHtml(ev.location)}</span>` : ""}
                   ${ev.reporting_time
                     ? `<span class="badge text-bg-warning"><i class="bi bi-clock me-1"></i>Report by ${ev.reporting_time}</span>`

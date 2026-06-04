@@ -31,6 +31,8 @@ def _attach_counts(events: list) -> list[dict]:
             "notes": e.notes,
             "reporting_time": e.reporting_time,
             "remarks": e.remarks,
+            "match_type": e.match_type,
+            "home_away": e.home_away,
             "created_at": e.created_at,
             "available_count": counts["available"],
             "unavailable_count": counts["unavailable"],

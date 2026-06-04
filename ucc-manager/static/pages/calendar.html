@@ -54,10 +54,29 @@
             </div>
             <div class="col-md-6">
               <label class="form-label">Type</label>
-              <select class="form-select" name="type">
+              <select class="form-select" name="type" id="ev-type-select">
                 <option value="match">Match</option>
                 <option value="training">Training</option>
                 <option value="other" selected>Other</option>
+              </select>
+            </div>
+            <div class="col-md-6 match-only-field" style="display:none">
+              <label class="form-label">Match Format</label>
+              <select class="form-select" name="match_type">
+                <option value="">— Select —</option>
+                <option value="T20">T20</option>
+                <option value="35-Overs">35-Overs</option>
+                <option value="40-Overs">40-Overs</option>
+                <option value="45-Overs">45-Overs</option>
+                <option value="50-Overs">50-Overs</option>
+              </select>
+            </div>
+            <div class="col-md-6 match-only-field" style="display:none">
+              <label class="form-label">Home / Away</label>
+              <select class="form-select" name="home_away">
+                <option value="">— Select —</option>
+                <option value="home">Home</option>
+                <option value="away">Away</option>
               </select>
             </div>
             <div class="col-md-6">

@@ -11,6 +11,8 @@ class EventCreate(BaseModel):
     notes: Optional[str] = None
     reporting_time: Optional[_time] = None
     remarks: Optional[str] = None
+    match_type: Optional[str] = None
+    home_away: Optional[str] = None
 
 
 class EventUpdate(BaseModel):
@@ -21,6 +23,8 @@ class EventUpdate(BaseModel):
     notes: Optional[str] = None
     reporting_time: Optional[_time] = None
     remarks: Optional[str] = None
+    match_type: Optional[str] = None
+    home_away: Optional[str] = None
 
 
 class AvailabilitySet(BaseModel):
@@ -36,6 +40,8 @@ class EventOut(BaseModel):
     notes: Optional[str] = None
     reporting_time: Optional[_time] = None
     remarks: Optional[str] = None
+    match_type: Optional[str] = None
+    home_away: Optional[str] = None
     created_at: datetime
     available_count: int = 0
     unavailable_count: int = 0

@@ -35,6 +35,9 @@ export async function init() {
         navigator.clipboard.writeText(url).then(() => showToast("Link copied!")).catch(() => showToast(url));
     });
     document.getElementById("event-form").addEventListener("submit", onEventSubmit);
+    document.getElementById("ev-type-select").addEventListener("change", function() {
+        _toggleMatchFields(this.closest("form"));
+    });
     document.getElementById("det-edit-btn").addEventListener("click", onDetailEdit);
     document.getElementById("det-delete-btn").addEventListener("click", onDetailDelete);
 
@@ -264,6 +267,13 @@ async function removeAvailEntry(memberId) {
 function fv(form, name) { return form.querySelector(`[name="${name}"]`).value; }
 function setFv(form, name, value) { form.querySelector(`[name="${name}"]`).value = value; }
 
+function _toggleMatchFields(form) {
+    const isMatch = fv(form, "type") === "match";
+    form.querySelectorAll(".match-only-field").forEach(el => {
+        el.style.display = isMatch ? "" : "none";
+    });
+}
+
 function openEventModal(item = null, prefillDate = null) {
     editingId = item ? item.id : null;
     document.getElementById("eventModalTitle").textContent = item ? "Edit Event" : "Add Event";
@@ -278,9 +288,12 @@ function openEventModal(item = null, prefillDate = null) {
             setFv(form, "location",       item.location || "");
             setFv(form, "notes",          item.notes || "");
             setFv(form, "reporting_time", item.reporting_time ? item.reporting_time.substring(0, 5) : "");
+            setFv(form, "match_type",     item.match_type || "");
+            setFv(form, "home_away",      item.home_away || "");
         } else if (prefillDate) {
             setFv(form, "date", prefillDate);
         }
+        _toggleMatchFields(form);
     };
 
     eventModal._element.addEventListener("shown.bs.modal", fill, { once: true });
@@ -297,6 +310,8 @@ async function onEventSubmit(e) {
         location:       fv(form, "location")        || null,
         notes:          fv(form, "notes")           || null,
         reporting_time: fv(form, "reporting_time")  || null,
+        match_type:     fv(form, "match_type")      || null,
+        home_away:      fv(form, "home_away")       || null,
     };
     const savedId = editingId;
     try {
@@ -338,7 +353,9 @@ window._viewEvent = async (id) => {
 
     document.getElementById("det-title").textContent = ev.title;
     const typeBadge = `<span class="badge ${ev.type === "match" ? "bg-primary" : ev.type === "training" ? "bg-success" : "bg-secondary"} me-2">${ev.type}</span>`;
-    document.getElementById("det-meta").innerHTML = `${typeBadge}${ev.date}${ev.location ? ` &bull; ${escHtml(ev.location)}` : ""}`;
+    const matchTypeBadge = ev.match_type ? `<span class="badge bg-info text-dark me-1">${ev.match_type}</span>` : "";
+    const homeAwayBadge = ev.home_away ? `<span class="badge ${ev.home_away === "home" ? "bg-success" : "bg-warning text-dark"} me-1">${ev.home_away === "home" ? "Home" : "Away"}</span>` : "";
+    document.getElementById("det-meta").innerHTML = `${typeBadge}${matchTypeBadge}${homeAwayBadge}${ev.date}${ev.location ? ` &bull; ${escHtml(ev.location)}` : ""}`;
 
     const rtEl = document.getElementById("det-reporting-time");
     if (ev.reporting_time) {

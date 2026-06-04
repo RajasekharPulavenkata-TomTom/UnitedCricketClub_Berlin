@@ -72,6 +72,8 @@ def list_events(year: Optional[int] = None, event_type: str = "match", db: Sessi
             "title": ev.title,
             "location": ev.location,
             "reporting_time": ev.reporting_time.strftime("%H:%M") if ev.reporting_time else None,
+            "match_type": ev.match_type,
+            "home_away": ev.home_away,
             "total_members": len(members),
             "reported_count": sum(1 for r in reports if r.status == "reported" and r.member_id in members),
             "absent_count":   sum(1 for r in reports if r.status == "absent"   and r.member_id in members),

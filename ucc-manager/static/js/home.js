@@ -125,6 +125,7 @@ function renderEvents(events, activeCount) {
     }
 
     const typeColor = { match: "bg-primary", training: "bg-success", other: "bg-secondary" };
+    const typeEmoji = { match: "🏏", training: "🎯", other: "📅" };
 
     el.innerHTML = `<div class="table-responsive"><table class="table table-hover mb-0">
       <thead class="table-light">
@@ -140,7 +141,7 @@ function renderEvents(events, activeCount) {
             return `<tr style="cursor:pointer" onclick="location.hash='calendar'">
               <td class="text-nowrap">${fmt.date(e.date)}</td>
               <td>
-                <span class="badge ${typeColor[e.type] || "bg-secondary"} me-2">${e.type}</span>
+                <span class="badge ${typeColor[e.type] || "bg-secondary"} me-2">${typeEmoji[e.type] || ""} ${e.type}</span>
                 ${e.home_away === "home"
                     ? `<span class="badge badge-prepare-ground me-2"><i class="bi bi-house-fill me-1"></i>Prepare Ground</span>`
                     : e.home_away === "away"

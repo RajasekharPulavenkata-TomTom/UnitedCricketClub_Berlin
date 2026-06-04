@@ -141,7 +141,11 @@ function renderEvents(events, activeCount) {
               <td class="text-nowrap">${fmt.date(e.date)}</td>
               <td>
                 <span class="badge ${typeColor[e.type] || "bg-secondary"} me-2">${e.type}</span>
-                ${e.home_away === "home" ? `<i class="bi bi-house-fill text-success me-1" title="Home"></i>` : e.home_away === "away" ? `<i class="bi bi-airplane-engines-fill text-primary me-1" title="Away"></i>` : ""}
+                ${e.home_away === "home"
+                    ? `<span class="badge badge-prepare-ground me-2"><i class="bi bi-house-fill me-1"></i>Prepare Ground</span>`
+                    : e.home_away === "away"
+                    ? `<span class="badge bg-secondary me-2"><i class="bi bi-airplane-engines-fill me-1"></i>Away</span>`
+                    : ""}
                 <span class="fw-medium">${e.title}</span>
                 <div class="text-muted small mt-1 d-flex flex-wrap gap-2">
                   ${e.match_type ? `<span><i class="bi bi-trophy me-1"></i>${e.match_type}</span>` : ""}

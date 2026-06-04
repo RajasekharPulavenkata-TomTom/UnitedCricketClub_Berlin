@@ -122,6 +122,18 @@ body::before {
 }
 #page-content { position: relative; }
 
+/* ── Home match — prepare ground badge ──────────────────────────────────────── */
+@keyframes prepareGroundBeacon {
+  0%   { box-shadow: 0 0 0 0   rgba(25, 135, 84, 0.7); }
+  65%  { box-shadow: 0 0 0 9px rgba(25, 135, 84, 0);   }
+  100% { box-shadow: 0 0 0 0   rgba(25, 135, 84, 0);   }
+}
+.badge-prepare-ground {
+  animation: prepareGroundBeacon 2s ease-out infinite;
+  background-color: #198754 !important;
+  color: #fff !important;
+}
+
 /* ── Print ───────────────────────────────────────────────────────────────────── */
 @media print {
   .no-print, .navbar, nav, .btn, button { display: none !important; }

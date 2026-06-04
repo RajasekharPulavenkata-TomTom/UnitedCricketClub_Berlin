@@ -22,6 +22,7 @@ class Event(Base):
     remarks = Column(Text)
     match_type = Column(String(20))   # T20, 40-Overs, 50-Overs, etc.
     home_away = Column(String(10))    # home, away
+    match_time = Column(Time)
     created_at = Column(DateTime, default=_now)
 
     availability = relationship("EventAvailability", back_populates="event", cascade="all, delete-orphan")

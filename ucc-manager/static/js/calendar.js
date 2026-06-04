@@ -290,6 +290,7 @@ function openEventModal(item = null, prefillDate = null) {
             setFv(form, "reporting_time", item.reporting_time ? item.reporting_time.substring(0, 5) : "");
             setFv(form, "match_type",     item.match_type || "");
             setFv(form, "home_away",      item.home_away || "");
+            setFv(form, "match_time",     item.match_time ? item.match_time.substring(0, 5) : "");
         } else if (prefillDate) {
             setFv(form, "date", prefillDate);
         }
@@ -312,6 +313,7 @@ async function onEventSubmit(e) {
         reporting_time: fv(form, "reporting_time")  || null,
         match_type:     fv(form, "match_type")      || null,
         home_away:      fv(form, "home_away")       || null,
+        match_time:     fv(form, "match_time")      || null,
     };
     const savedId = editingId;
     try {
@@ -356,6 +358,16 @@ window._viewEvent = async (id) => {
     const matchTypeBadge = ev.match_type ? `<span class="badge bg-info text-dark me-1">${ev.match_type}</span>` : "";
     const homeAwayBadge = ev.home_away ? `<span class="badge ${ev.home_away === "home" ? "bg-success" : "bg-warning text-dark"} me-1">${ev.home_away === "home" ? "Home" : "Away"}</span>` : "";
     document.getElementById("det-meta").innerHTML = `${typeBadge}${matchTypeBadge}${homeAwayBadge}${ev.date}${ev.location ? ` &bull; ${escHtml(ev.location)}` : ""}`;
+
+    const mtEl = document.getElementById("det-match-time");
+    if (mtEl) {
+        if (ev.match_time) {
+            document.getElementById("det-match-time-val").textContent = ev.match_time.substring(0, 5);
+            mtEl.style.display = "";
+        } else {
+            mtEl.style.display = "none";
+        }
+    }
 
     const rtEl = document.getElementById("det-reporting-time");
     if (ev.reporting_time) {

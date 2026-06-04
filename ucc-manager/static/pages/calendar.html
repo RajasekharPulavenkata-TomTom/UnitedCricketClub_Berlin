@@ -88,6 +88,10 @@
               </select>
             </div>
             <div class="col-md-6">
+              <label class="form-label">Match Time <span class="text-muted small fw-normal">(optional)</span></label>
+              <input type="time" class="form-control" name="match_time" />
+            </div>
+            <div class="col-md-6">
               <label class="form-label">Reporting Time <span class="text-muted small fw-normal">(optional)</span></label>
               <input type="time" class="form-control" name="reporting_time" />
             </div>
@@ -121,6 +125,12 @@
         <div class="d-flex gap-2 mb-3 no-print">
           <button class="btn btn-sm btn-outline-secondary" id="det-edit-btn"><i class="bi bi-pencil me-1"></i>Edit</button>
           <button class="btn btn-sm btn-outline-danger" id="det-delete-btn"><i class="bi bi-trash me-1"></i>Delete</button>
+        </div>
+        <div id="det-match-time" class="mb-2" style="display:none">
+          <span class="badge text-bg-primary fs-6 px-3 py-2">
+            <i class="bi bi-stopwatch me-1"></i>
+            Match at <span id="det-match-time-val"></span>
+          </span>
         </div>
         <div id="det-reporting-time" class="mb-2" style="display:none">
           <span class="badge text-bg-warning fs-6 px-3 py-2">

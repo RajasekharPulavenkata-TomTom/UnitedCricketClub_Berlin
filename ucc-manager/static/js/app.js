@@ -184,6 +184,7 @@ const PAGES = {
     "cricket-glossary": { html: "/pages/cricket-glossary.html",    js: "/js/cricket-glossary.js"   },
     "dl-calculator":    { html: "/pages/dl-calculator.html",       js: "/js/dl-calculator.js"      },
     polls:              { html: "/pages/polls.html",               js: "/js/polls.js"              },
+    "pain-points":      { html: "/pages/pain-points.html",         js: "/js/pain-points.js"        },
     approvals:          { html: "/pages/approvals.html",           js: "/js/approvals.js"          },
     "user-management":  { html: "/pages/user-management.html",    js: "/js/user-management.js"    },
 };

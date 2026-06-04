@@ -152,7 +152,6 @@ function renderEvents(events, activeCount) {
                   ${e.match_time ? `<span><i class="bi bi-stopwatch me-1"></i>${e.match_time.substring(0, 5)}</span>` : ""}
                   ${e.reporting_time ? `<span><i class="bi bi-clock me-1"></i>Report ${e.reporting_time.substring(0, 5)}</span>` : ""}
                   ${e.location ? `<span><i class="bi bi-geo-alt me-1"></i>${e.location}</span>` : ""}
-                  ${e.notes ? `<span>${e.notes}</span>` : ""}
                 </div>
                 <div id="home-wx-${e.id}" class="text-muted small mt-1"></div>
               </td>

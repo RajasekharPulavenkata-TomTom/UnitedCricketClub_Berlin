@@ -291,7 +291,6 @@ function openEventModal(item = null, prefillDate = null) {
             setFv(form, "date",           item.date);
             setFv(form, "type",           item.type);
             setFv(form, "location",       item.location || "");
-            setFv(form, "notes",          item.notes || "");
             setFv(form, "reporting_time", item.reporting_time ? item.reporting_time.substring(0, 5) : "");
             setFv(form, "match_type",     item.match_type || "");
             setFv(form, "home_away",      item.home_away || "");
@@ -314,7 +313,6 @@ async function onEventSubmit(e) {
         date:           fv(form, "date")            || null,
         type:           fv(form, "type")            || null,
         location:       fv(form, "location")        || null,
-        notes:          fv(form, "notes")           || null,
         reporting_time: fv(form, "reporting_time")  || null,
         match_type:     fv(form, "match_type")      || null,
         home_away:      fv(form, "home_away")       || null,

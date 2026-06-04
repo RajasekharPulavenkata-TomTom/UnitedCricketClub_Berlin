@@ -16,15 +16,17 @@ export function wmoInfo(code) {
 export async function fetchWeatherRange(startDate, endDate) {
     try {
         const url = `https://api.open-meteo.com/v1/forecast?latitude=${LAT}&longitude=${LON}` +
-            `&daily=temperature_2m_max,temperature_2m_min,weathercode` +
+            `&daily=temperature_2m_max,temperature_2m_min,weather_code` +
             `&timezone=Europe%2FBerlin&start_date=${startDate}&end_date=${endDate}`;
-        const res = await fetch(url);
+        const res = await fetch(url, { signal: AbortSignal.timeout(8000) });
+        if (!res.ok) return {};
         const d = await res.json();
         if (!d.daily?.time?.length) return {};
+        const codes = d.daily.weather_code ?? d.daily.weathercode ?? [];
         const result = {};
         d.daily.time.forEach((date, i) => {
             result[date] = {
-                code: d.daily.weathercode[i],
+                code: codes[i],
                 maxT: Math.round(d.daily.temperature_2m_max[i]),
                 minT: Math.round(d.daily.temperature_2m_min[i]),
             };
@@ -38,13 +40,15 @@ export async function fetchWeather(date) {
     if (diffDays < 0 || diffDays > 16) return null;
     try {
         const url = `https://api.open-meteo.com/v1/forecast?latitude=${LAT}&longitude=${LON}` +
-            `&daily=temperature_2m_max,temperature_2m_min,precipitation_sum,weathercode` +
+            `&daily=temperature_2m_max,temperature_2m_min,precipitation_sum,weather_code` +
             `&timezone=Europe%2FBerlin&start_date=${date}&end_date=${date}`;
-        const res = await fetch(url);
+        const res = await fetch(url, { signal: AbortSignal.timeout(8000) });
+        if (!res.ok) return null;
         const d = await res.json();
-        if (!d.daily?.weathercode?.length) return null;
+        const codes = d.daily?.weather_code ?? d.daily?.weathercode;
+        if (!codes?.length) return null;
         return {
-            code:   d.daily.weathercode[0],
+            code:   codes[0],
             maxT:   Math.round(d.daily.temperature_2m_max[0]),
             minT:   Math.round(d.daily.temperature_2m_min[0]),
             precip: d.daily.precipitation_sum[0],

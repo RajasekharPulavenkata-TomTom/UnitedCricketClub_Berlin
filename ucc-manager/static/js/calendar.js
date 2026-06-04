@@ -1,5 +1,5 @@
 import { apiFetch, showToast, escHtml } from "/js/api.js";
-import { fetchWeather, fetchWeatherRange, weatherHtml, wmoInfo } from "/js/weather.js?v=2";
+import { fetchWeather, fetchWeatherRange, weatherHtml, wmoInfo } from "/js/weather.js?v=3";
 
 let eventModal, detailModal;
 let editingId = null;

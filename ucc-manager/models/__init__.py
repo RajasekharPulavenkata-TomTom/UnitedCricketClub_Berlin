@@ -14,5 +14,6 @@ from .reporting import PlayerReporting
 from .poll import Poll, PollOption, PollVote
 from .pain_point import PainPoint
 from .violation import Violation
+from .field_formation import FieldFormation
 
-__all__ = ["User", "Category", "Transaction", "EquipmentItem", "MaintenanceNote", "Member", "Event", "EventAvailability", "AuditLog", "ClubSetting", "PlayerAvailability", "EventSquad", "Task", "Tournament", "TournamentParticipant", "MatchFeePayment", "PlayerReporting", "Poll", "PollOption", "PollVote", "PainPoint", "Violation"]
+__all__ = ["User", "Category", "Transaction", "EquipmentItem", "MaintenanceNote", "Member", "Event", "EventAvailability", "AuditLog", "ClubSetting", "PlayerAvailability", "EventSquad", "Task", "Tournament", "TournamentParticipant", "MatchFeePayment", "PlayerReporting", "Poll", "PollOption", "PollVote", "PainPoint", "Violation", "FieldFormation"]

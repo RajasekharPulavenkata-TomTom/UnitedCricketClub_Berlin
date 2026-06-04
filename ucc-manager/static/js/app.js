@@ -175,6 +175,7 @@ const PAGES = {
     "match-fees":       { html: "/pages/match-fees.html",         js: "/js/match-fees.js"         },
     "reporting":          { html: "/pages/reporting.html",           js: "/js/reporting.js"           },
     "practice-reporting": { html: "/pages/practice-reporting.html", js: "/js/practice-reporting.js"  },
+    "field-editor":       { html: "/pages/field-editor.html",       js: "/js/field-editor.js"         },
     calendar:           { html: "/pages/calendar.html",            js: "/js/calendar.js"           },
     rules:              { html: "/pages/rules.html",               js: "/js/rules.js"              },
     history:            { html: "/pages/history.html",             js: "/js/history.js"            },

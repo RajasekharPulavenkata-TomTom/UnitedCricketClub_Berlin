@@ -90,7 +90,7 @@ function renderCards() {
                     : ""}
                   ${ev.total_members > 0
                     ? `<span class="badge bg-success"><i class="bi bi-people-fill me-1"></i>${ev.total_members} in squad</span>`
-                    : `<span class="badge bg-warning text-dark"><i class="bi bi-exclamation-triangle me-1"></i>No squad selected</span>`}
+                    : `<a href="#calendar" class="badge bg-warning text-dark text-decoration-none"><i class="bi bi-exclamation-triangle me-1"></i>No squad — set in Calendar</a>`}
                 </div>
                 ${ev.total_members > 0 ? `
                 <div class="d-flex align-items-center flex-wrap gap-3 mt-1" id="rp-stats-${ev.id}">
@@ -100,7 +100,7 @@ function renderCards() {
                 </div>
                 <div class="progress mt-2" style="height:5px;max-width:280px">
                   <div class="progress-bar ${barColor}" id="rp-bar-${ev.id}" style="width:${pct}%"></div>
-                </div>` : `<span class="text-muted small fst-italic">No squad selected for this match</span>`}
+                </div>` : `<a href="#calendar" class="small fst-italic text-warning text-decoration-none"><i class="bi bi-exclamation-triangle me-1"></i>No squad — set in Calendar</a>`}
               </div>
               ${ev.total_members > 0 ? `
               <div class="flex-shrink-0 no-print">
@@ -152,7 +152,8 @@ function renderPanel(eventId, players, scheduledTime) {
     const body = document.getElementById(`rp-panel-body-${eventId}`);
     if (!players.length) {
         body.innerHTML = `<p class="text-muted small mb-0">
-            <i class="bi bi-info-circle me-1"></i>No squad selected for this match yet. Select players in the Calendar → Match Squad section.</p>`;
+            <i class="bi bi-info-circle me-1"></i>No squad selected for this match yet.
+            <a href="#calendar" class="text-primary">Open Calendar</a> and use the Match Squad section to select players.</p>`;
         return;
     }
     const reportedCount = players.filter(p => p.status === "reported").length;

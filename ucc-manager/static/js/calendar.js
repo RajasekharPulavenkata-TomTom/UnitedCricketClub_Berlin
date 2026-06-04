@@ -499,14 +499,22 @@ function _renderSquad() {
     list.innerHTML = html || `<p class="text-muted small mb-0">No active members found.</p>`;
 }
 
+let _squadSaveTimer = null;
+function _squadAutoSave() {
+    clearTimeout(_squadSaveTimer);
+    _squadSaveTimer = setTimeout(window._squadSave, 600);
+}
+
 window._squadAdd = (id) => {
     if (_squadIds.length >= SQUAD_MAX) { showToast(`Squad limit is ${SQUAD_MAX} players`, "error"); return; }
     if (!_squadIds.includes(id)) _squadIds.push(id);
     _renderSquad();
+    _squadAutoSave();
 };
 window._squadRemove = (id) => {
     _squadIds = _squadIds.filter(x => x !== id);
     _renderSquad();
+    _squadAutoSave();
 };
 window._squadMove = (id, dir) => {
     const i = _squadIds.indexOf(id);
@@ -515,8 +523,10 @@ window._squadMove = (id, dir) => {
     if (j < 0 || j >= _squadIds.length) return;
     [_squadIds[i], _squadIds[j]] = [_squadIds[j], _squadIds[i]];
     _renderSquad();
+    _squadAutoSave();
 };
 window._squadSave = async () => {
+    clearTimeout(_squadSaveTimer);
     try {
         await apiFetch(`/events/${detailEventId}/squad`, {
             method: "PUT",

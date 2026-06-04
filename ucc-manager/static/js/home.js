@@ -154,13 +154,22 @@ function renderEvents(events, activeCount) {
       </tbody>
     </table></div>`;
 
+    const todayMs = Date.now();
     events.forEach((e) => {
+        const diffDays = Math.round((new Date(e.date + "T12:00:00") - todayMs) / 86400000);
+        const cell = document.getElementById(`home-wx-${e.id}`);
+        if (!cell) return;
+        if (diffDays > 15) {
+            cell.innerHTML = `<span style="font-size:.7rem"><i class="bi bi-cloud-slash me-1"></i>Forecast available closer to event</span>`;
+            return;
+        }
         fetchWeather(e.date).then((w) => {
-            const cell = document.getElementById(`home-wx-${e.id}`);
-            if (!cell || !w) return;
+            if (!w) return;
+            const live = document.getElementById(`home-wx-${e.id}`);
+            if (!live) return;
             const { icon, color, label } = wmoInfo(w.code);
             const swing = swingInfo(w);
-            cell.innerHTML = `<i class="bi ${icon} me-1" style="color:${color}" title="${label}"></i>${w.maxT}°C / ${w.minT}°C` +
+            live.innerHTML = `<i class="bi ${icon} me-1" style="color:${color}" title="${label}"></i>${w.maxT}°C / ${w.minT}°C` +
                 `&nbsp;&nbsp;<span class="badge ${swing.badgeClass}" title="${swing.reason}"><i class="bi bi-wind me-1"></i>${swing.level} swing</span>`;
         });
     });

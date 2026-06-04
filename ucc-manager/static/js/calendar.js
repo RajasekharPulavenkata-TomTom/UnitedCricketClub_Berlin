@@ -4,7 +4,6 @@ import { fetchWeather, fetchWeatherRange, weatherHtml, wmoInfo } from "/js/weath
 let eventModal, detailModal;
 let editingId = null;
 let detailEventId = null;
-let _squadIds = []; // ordered member_ids for Playing XI
 let currentYear, currentMonth;
 let currentEvents = [];
 let avail = {};
@@ -320,15 +319,12 @@ async function onEventSubmit(e) {
 
 window._viewEvent = async (id) => {
     detailEventId = id;
-    let ev, eventAvail, squadRows = [];
+    let ev, eventAvail;
     try {
         [ev, eventAvail] = await Promise.all([
             apiFetch(`/events?year=${currentYear}&month=${currentMonth}`).then(list => list.find(e => e.id === id)),
             apiFetch(`/events/${id}/availability`),
         ]);
-        if (ev?.type === "match") {
-            squadRows = await apiFetch(`/events/${id}/squad`).catch(() => []);
-        }
     } catch (err) {
         showToast("Could not load event: " + err.message, "error");
         return;
@@ -386,17 +382,6 @@ window._viewEvent = async (id) => {
 
     currentEventAvail = Object.fromEntries(eventAvail.map(a => [a.member_id, a.status]));
 
-    // Playing XI section
-    const squadSection = document.getElementById("det-squad-section");
-    if (ev.type === "match") {
-        _squadIds = squadRows.map(s => s.member_id);
-        squadSection.classList.remove("d-none");
-        _renderSquad();
-    } else {
-        squadSection.classList.add("d-none");
-        _squadIds = [];
-    }
-
     detailModal.show();
 };
 
@@ -434,95 +419,6 @@ window._bulkResetAvail = async () => {
     );
     await render();
     window._viewEvent(detailEventId);
-};
-
-// ── Playing XI ───────────────────────────────────────────────────────────────
-
-function _renderSquad() {
-    const countEl = document.getElementById("det-squad-count");
-    const list = document.getElementById("det-squad-list");
-    const n = _squadIds.length;
-    countEl.textContent = n;
-    countEl.className = `badge ms-1 ${n === 11 ? "bg-success" : n > 0 ? "bg-primary" : "bg-secondary"}`;
-
-    function avBadge(id) {
-        const s = currentEventAvail[id];
-        if (s === "available")   return `<span class="badge bg-success"   style="font-size:.6rem">Avail</span>`;
-        if (s === "unavailable") return `<span class="badge bg-danger"    style="font-size:.6rem">Unavail</span>`;
-        return "";
-    }
-
-    let html = "";
-
-    // ── Selected players ─────────────────────────────────────────────────────
-    _squadIds.forEach((id, idx) => {
-        const m = members.find(m => m.id === id);
-        if (!m) return;
-        html += `
-        <div class="squad-row in-xi">
-          <span class="squad-num">${idx + 1}</span>
-          <span class="flex-grow-1 fw-medium small">${escHtml(m.jersey_name || m.name)}</span>
-          ${avBadge(id)}
-          <div class="btn-group btn-group-sm no-print">
-            <button class="btn btn-outline-secondary py-0 px-1" ${idx === 0 ? "disabled" : ""}
-                onclick="window._squadMove(${id},-1)" title="Move up"><i class="bi bi-chevron-up"></i></button>
-            <button class="btn btn-outline-secondary py-0 px-1" ${idx === _squadIds.length - 1 ? "disabled" : ""}
-                onclick="window._squadMove(${id},1)" title="Move down"><i class="bi bi-chevron-down"></i></button>
-            <button class="btn btn-outline-danger py-0 px-1"
-                onclick="window._squadRemove(${id})" title="Remove"><i class="bi bi-x"></i></button>
-          </div>
-        </div>`;
-    });
-
-    if (_squadIds.length > 0) {
-        html += `<div class="text-muted small py-2 ps-2 mb-1" style="border-bottom:2px dashed #dee2e6">Add players below</div>`;
-    }
-
-    // ── Available pool ────────────────────────────────────────────────────────
-    const notSelected = members.filter(m => !_squadIds.includes(m.id));
-    const avFirst = notSelected.filter(m => currentEventAvail[m.id] === "available");
-    const rest    = notSelected.filter(m => currentEventAvail[m.id] !== "available");
-
-    [...avFirst, ...rest].forEach(m => {
-        html += `
-        <div class="squad-row">
-          <span class="squad-num text-muted" style="color:#adb5bd!important">—</span>
-          <span class="flex-grow-1 small">${escHtml(m.jersey_name || m.name)}</span>
-          ${avBadge(m.id)}
-          <button class="btn btn-sm btn-outline-primary py-0 px-2 no-print"
-              onclick="window._squadAdd(${m.id})" title="Add to XI"><i class="bi bi-plus-lg"></i></button>
-        </div>`;
-    });
-
-    list.innerHTML = html || `<p class="text-muted small mb-0">No active members found.</p>`;
-}
-
-window._squadAdd = (id) => {
-    if (!_squadIds.includes(id)) _squadIds.push(id);
-    _renderSquad();
-};
-window._squadRemove = (id) => {
-    _squadIds = _squadIds.filter(x => x !== id);
-    _renderSquad();
-};
-window._squadMove = (id, dir) => {
-    const i = _squadIds.indexOf(id);
-    if (i < 0) return;
-    const j = i + dir;
-    if (j < 0 || j >= _squadIds.length) return;
-    [_squadIds[i], _squadIds[j]] = [_squadIds[j], _squadIds[i]];
-    _renderSquad();
-};
-window._squadSave = async () => {
-    try {
-        await apiFetch(`/events/${detailEventId}/squad`, {
-            method: "PUT",
-            body: JSON.stringify({ squad: _squadIds.map((mid, i) => ({ member_id: mid, batting_order: i + 1 })) }),
-        });
-        showToast(`Playing XI saved (${_squadIds.length} players)`);
-    } catch (e) {
-        showToast(e.message, "error");
-    }
 };
 
 async function onDetailEdit() {

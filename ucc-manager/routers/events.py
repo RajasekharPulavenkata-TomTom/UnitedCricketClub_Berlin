@@ -6,7 +6,6 @@ from sqlalchemy import func
 from database import get_db
 from models.event import Event, EventAvailability
 from models.member import Member
-from models.squad import EventSquad
 from schemas.event import EventCreate, EventUpdate, AvailabilitySet, EventOut
 from routers.audit import log
 from models.auth import User
@@ -139,50 +138,3 @@ def clear_availability(id: int, member_id: int, db: Session = Depends(get_db)):
         db.commit()
 
 
-# ── Squad ────────────────────────────────────────────────────────────────────
-
-class SquadPlayer(BaseModel):
-    member_id: int
-    batting_order: int
-
-class SquadSet(BaseModel):
-    squad: List[SquadPlayer]
-
-
-@router.get("/events/{id}/squad")
-def get_squad(id: int, db: Session = Depends(get_db)):
-    rows = db.query(EventSquad).filter(EventSquad.event_id == id).order_by(EventSquad.batting_order).all()
-    if not rows:
-        return []
-    members = {m.id: m for m in db.query(Member).filter(Member.id.in_([r.member_id for r in rows])).all()}
-    return [
-        {
-            "member_id": r.member_id,
-            "name": (members[r.member_id].jersey_name or members[r.member_id].name),
-            "role": members[r.member_id].role,
-            "jersey_number": members[r.member_id].jersey_number,
-            "batting_order": r.batting_order,
-        }
-        for r in rows if r.member_id in members
-    ]
-
-
-@router.put("/events/{id}/squad", status_code=200)
-def set_squad(id: int, data: SquadSet, db: Session = Depends(get_db)):
-    if not db.query(Event).filter(Event.id == id).first():
-        raise HTTPException(status_code=404, detail="Event not found")
-    active_ids = {m.id for m in db.query(Member).filter(Member.is_active == True).all()}
-    invalid = [p.member_id for p in data.squad if p.member_id not in active_ids]
-    if invalid:
-        raise HTTPException(status_code=400, detail=f"Invalid or inactive member IDs: {invalid}")
-    db.query(EventSquad).filter(EventSquad.event_id == id).delete()
-    for p in data.squad:
-        db.add(EventSquad(event_id=id, member_id=p.member_id, batting_order=p.batting_order))
-    db.commit()
-    return {"ok": True}
-
-
-@router.delete("/events/{id}/squad", status_code=204)
-def clear_squad(id: int, db: Session = Depends(get_db)):
-    db.query(EventSquad).filter(EventSquad.event_id == id).delete()
-    db.commit()

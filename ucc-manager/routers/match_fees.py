@@ -4,10 +4,9 @@ from fastapi import APIRouter, Depends, HTTPException
 from pydantic import BaseModel
 from sqlalchemy.orm import Session
 from database import get_db
-from models.event import Event
+from models.event import Event, EventAvailability
 from models.member import Member
 from models.match_fee import MatchFeePayment
-from models.squad import EventSquad
 
 router = APIRouter(prefix="/api/match-fees", tags=["match-fees"])
 
@@ -16,11 +15,11 @@ class FeeSet(BaseModel):
     amount: float
 
 
-def _squad_ids(event_id: int, db: Session) -> list[int]:
-    return [s.member_id for s in
-            db.query(EventSquad)
-            .filter(EventSquad.event_id == event_id)
-            .order_by(EventSquad.batting_order).all()]
+def _available_ids(event_id: int, db: Session) -> list[int]:
+    return [a.member_id for a in
+            db.query(EventAvailability)
+            .filter(EventAvailability.event_id == event_id,
+                    EventAvailability.status == "available").all()]
 
 
 @router.get("")
@@ -33,10 +32,13 @@ def list_events(year: Optional[int] = None, db: Session = Depends(get_db)):
         return []
 
     event_ids = [ev.id for ev in events]
-    squads = db.query(EventSquad).filter(EventSquad.event_id.in_(event_ids)).all()
-    squad_by_event = {}
-    for s in squads:
-        squad_by_event.setdefault(s.event_id, set()).add(s.member_id)
+    avail_rows = db.query(EventAvailability).filter(
+        EventAvailability.event_id.in_(event_ids),
+        EventAvailability.status == "available",
+    ).all()
+    avail_by_event: dict[int, set] = {}
+    for a in avail_rows:
+        avail_by_event.setdefault(a.event_id, set()).add(a.member_id)
 
     payments = db.query(MatchFeePayment).filter(MatchFeePayment.event_id.in_(event_ids)).all()
     payments_by_event: dict[int, list] = {}
@@ -45,7 +47,7 @@ def list_events(year: Optional[int] = None, db: Session = Depends(get_db)):
 
     result = []
     for ev in events:
-        avail = squad_by_event.get(ev.id, set())
+        avail = avail_by_event.get(ev.id, set())
         total = len(avail)
         paid_count = sum(1 for p in payments_by_event.get(ev.id, []) if p.paid and p.member_id in avail)
         fee = float(ev.match_fee) if ev.match_fee is not None else None
@@ -77,7 +79,7 @@ def set_fee(event_id: int, data: FeeSet, db: Session = Depends(get_db)):
 
 @router.get("/{event_id}/payments")
 def get_payments(event_id: int, db: Session = Depends(get_db)):
-    ids = _squad_ids(event_id, db)
+    ids = _available_ids(event_id, db)
     if not ids:
         return []
     members = {m.id: m for m in db.query(Member).filter(Member.id.in_(ids)).all()}

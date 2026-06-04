@@ -164,7 +164,9 @@ function buildGrid() {
             const cls = ["cal-cell", isToday ? "today" : ""].filter(Boolean).join(" ");
             const eventBadges = cellEvents.map(ev => {
                 const rt = ev.reporting_time ? `<span class="report-time-badge">⏰ ${ev.reporting_time.substring(0, 5)}</span>` : "";
-                return `<span class="event-badge ${ev.type}" data-eid="${ev.id}" title="${escHtml(ev.title)}">${escHtml(ev.title)}</span>${rt}`;
+                const haIcon = ev.home_away === "home" ? "🏠" : ev.home_away === "away" ? "✈️" : "";
+                const mt = ev.match_time ? ` · ${ev.match_time.substring(0, 5)}` : "";
+                return `<span class="event-badge ${ev.type}" data-eid="${ev.id}" title="${escHtml(ev.title)}">${haIcon}${haIcon ? " " : ""}${escHtml(ev.title)}${mt}</span>${rt}`;
             }).join("");
             const pips = markedMembers.slice(0, 3)
                 .map(m => `<span class="av-name ${dayAvail[m.id]}">${escHtml(m.jersey_name || m.name)}</span>`)

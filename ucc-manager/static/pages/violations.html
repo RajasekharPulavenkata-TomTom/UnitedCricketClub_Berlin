@@ -1,0 +1,94 @@
+<div class="d-flex align-items-center justify-content-between mb-3 flex-wrap gap-2">
+  <h3 class="page-header mb-0" id="v-page-title">
+    <i class="bi bi-shield-exclamation me-2"></i>Rule Violations
+  </h3>
+  <button class="btn btn-success btn-sm d-none no-print" id="btn-log-violation"
+    data-bs-toggle="modal" data-bs-target="#logViolationModal">
+    <i class="bi bi-plus-lg me-1"></i>Log Violation
+  </button>
+</div>
+
+<!-- Admin: summary stats -->
+<div class="d-flex gap-2 flex-wrap mb-3 d-none" id="v-admin-stats"></div>
+
+<!-- Admin: filters -->
+<div class="d-flex gap-2 flex-wrap mb-4 align-items-center d-none no-print" id="v-filters">
+  <select class="form-select form-select-sm" id="v-filter-member" style="width:auto;min-width:180px">
+    <option value="">All members</option>
+  </select>
+  <select class="form-select form-select-sm" id="v-filter-rule" style="width:auto;min-width:160px">
+    <option value="">All rules</option>
+    <option value="MISCONDUCT">Misconduct</option>
+    <option value="PUNCTUALITY">Punctuality</option>
+    <option value="EQUIPMENT">Equipment</option>
+    <option value="FINANCIAL">Financial</option>
+    <option value="COMMUNICATION">Communication</option>
+    <option value="OTHER">Other</option>
+  </select>
+  <select class="form-select form-select-sm" id="v-filter-status" style="width:auto;min-width:180px">
+    <option value="">All statuses</option>
+    <option value="pending">Pending acknowledgement</option>
+    <option value="acknowledged">Acknowledged</option>
+  </select>
+</div>
+
+<!-- Member: strike summary -->
+<div id="v-member-summary"></div>
+
+<!-- Not linked message -->
+<div class="alert alert-info d-none" id="v-no-member">
+  <i class="bi bi-person-x me-2"></i>Your account is not linked to a member profile. Contact an admin to link your account.
+</div>
+
+<!-- Violations list -->
+<div id="v-container"></div>
+
+<!-- Log Violation Modal (admin only) -->
+<div class="modal fade" id="logViolationModal" tabindex="-1">
+  <div class="modal-dialog">
+    <div class="modal-content">
+      <div class="modal-header">
+        <h5 class="modal-title"><i class="bi bi-shield-exclamation me-2"></i>Log Violation</h5>
+        <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+      </div>
+      <div class="modal-body">
+        <form id="v-log-form" autocomplete="off">
+          <div class="mb-3">
+            <label class="form-label fw-semibold">Member <span class="text-danger">*</span></label>
+            <select class="form-select" id="v-log-member" required>
+              <option value="">Loading members…</option>
+            </select>
+          </div>
+          <div class="mb-3">
+            <label class="form-label fw-semibold">Rule Violated <span class="text-danger">*</span></label>
+            <select class="form-select" id="v-log-rule" required>
+              <option value="">— Select rule —</option>
+              <option value="MISCONDUCT">Misconduct — bad behaviour, language or attitude</option>
+              <option value="PUNCTUALITY">Punctuality — late arrival or no-show without notice</option>
+              <option value="EQUIPMENT">Equipment — misuse or damage of club equipment</option>
+              <option value="FINANCIAL">Financial — non-payment of fees or obligations</option>
+              <option value="COMMUNICATION">Communication — failure to notify or ignoring messages</option>
+              <option value="OTHER">Other — see description</option>
+            </select>
+          </div>
+          <div class="mb-2">
+            <label class="form-label fw-semibold">Description <span class="text-muted fw-normal small">(optional)</span></label>
+            <textarea class="form-control" id="v-log-description" rows="3" placeholder="Describe what happened…"></textarea>
+          </div>
+          <div id="log-violation-error" class="alert alert-danger py-2 small d-none mt-2 mb-0"></div>
+        </form>
+      </div>
+      <div class="modal-footer">
+        <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+        <button type="button" class="btn btn-danger" onclick="window._vLog()">
+          <i class="bi bi-shield-exclamation me-1"></i>Log Violation
+        </button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<style>
+.violation-card { border-radius: 10px; transition: box-shadow .15s; }
+.violation-card:hover { box-shadow: 0 4px 16px rgba(0,0,0,.09); }
+</style>

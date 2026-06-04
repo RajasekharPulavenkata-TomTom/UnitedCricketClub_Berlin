@@ -112,6 +112,9 @@ def update_user(id: int, data: UserUpdate, current_user: User = Depends(require_
         raise HTTPException(status_code=400, detail="Cannot demote yourself")
     for field, value in data.model_dump(exclude_none=True).items():
         setattr(user, field, value)
+    # Allow explicitly clearing member_id by sending null
+    if "member_id" in data.model_fields_set:
+        user.member_id = data.member_id
     db.commit()
     db.refresh(user)
     return user

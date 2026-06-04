@@ -36,6 +36,7 @@ class UserUpdate(BaseModel):
     full_name: Optional[str] = None
     role: Optional[str] = None
     is_active: Optional[bool] = None
+    member_id: Optional[int] = None
 
     @field_validator("role")
     @classmethod
@@ -67,6 +68,7 @@ class UserOut(BaseModel):
     role: str
     is_active: bool
     status: str
+    member_id: Optional[int] = None
     created_at: datetime
 
     model_config = {"from_attributes": True}

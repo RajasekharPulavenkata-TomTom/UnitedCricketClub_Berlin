@@ -13,5 +13,6 @@ from .match_fee import MatchFeePayment
 from .reporting import PlayerReporting
 from .poll import Poll, PollOption, PollVote
 from .pain_point import PainPoint
+from .violation import Violation
 
-__all__ = ["User", "Category", "Transaction", "EquipmentItem", "MaintenanceNote", "Member", "Event", "EventAvailability", "AuditLog", "ClubSetting", "PlayerAvailability", "EventSquad", "Task", "Tournament", "TournamentParticipant", "MatchFeePayment", "PlayerReporting", "Poll", "PollOption", "PollVote", "PainPoint"]
+__all__ = ["User", "Category", "Transaction", "EquipmentItem", "MaintenanceNote", "Member", "Event", "EventAvailability", "AuditLog", "ClubSetting", "PlayerAvailability", "EventSquad", "Task", "Tournament", "TournamentParticipant", "MatchFeePayment", "PlayerReporting", "Poll", "PollOption", "PollVote", "PainPoint", "Violation"]

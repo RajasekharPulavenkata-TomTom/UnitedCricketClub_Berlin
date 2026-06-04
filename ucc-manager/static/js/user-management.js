@@ -1,7 +1,9 @@
-import { apiFetch, fmt, showToast } from "/js/api.js";
+import { apiFetch, fmt, showToast, escHtml } from "/js/api.js";
 
 let addModal, editModal, pwdModal;
 let allUsers = [];
+let allMembers = [];
+let memberMap = {};
 
 export async function init() {
     addModal  = new bootstrap.Modal(document.getElementById("umAddModal"));
@@ -25,12 +27,16 @@ export async function init() {
 
 async function load() {
     const tbody = document.getElementById("um-tbody");
-    tbody.innerHTML = `<tr><td colspan="6" class="text-center py-3"><div class="spinner-border spinner-border-sm"></div></td></tr>`;
+    tbody.innerHTML = `<tr><td colspan="7" class="text-center py-3"><div class="spinner-border spinner-border-sm"></div></td></tr>`;
     try {
-        allUsers = await apiFetch("/auth/users");
+        [allUsers, allMembers] = await Promise.all([
+            apiFetch("/auth/users"),
+            apiFetch("/members"),
+        ]);
+        memberMap = Object.fromEntries(allMembers.map(m => [m.id, m.jersey_name || m.name]));
         render();
     } catch (e) {
-        tbody.innerHTML = `<tr><td colspan="6" class="text-danger text-center">${e.message}</td></tr>`;
+        tbody.innerHTML = `<tr><td colspan="7" class="text-danger text-center">${escHtml(e.message)}</td></tr>`;
     }
 }
 
@@ -44,13 +50,16 @@ function render() {
     if (statusFilter) list = list.filter(u => u.status === statusFilter);
 
     if (!list.length) {
-        tbody.innerHTML = `<tr><td colspan="6" class="text-center py-4 text-muted">No users found.</td></tr>`;
+        tbody.innerHTML = `<tr><td colspan="7" class="text-center py-4 text-muted">No users found.</td></tr>`;
         return;
     }
 
     tbody.innerHTML = list.map(u => {
-        const roleBadge = { root: "bg-danger", admin: "bg-warning text-dark", user: "bg-secondary" };
+        const roleBadge   = { root: "bg-danger", admin: "bg-warning text-dark", user: "bg-secondary" };
         const statusBadge = { active: "bg-success", pending: "bg-warning text-dark", rejected: "bg-secondary" };
+        const memberCell  = u.member_id && memberMap[u.member_id]
+            ? `<span class="text-success small"><i class="bi bi-person-check me-1"></i>${escHtml(memberMap[u.member_id])}</span>`
+            : `<span class="text-muted small">—</span>`;
         const actions = u.status === "pending"
             ? `<button class="btn btn-sm btn-success me-1" onclick="window._umApprove(${u.id})" title="Approve"><i class="bi bi-check-lg"></i></button>
                <button class="btn btn-sm btn-outline-danger me-1" onclick="window._umReject(${u.id})" title="Reject"><i class="bi bi-x-lg"></i></button>`
@@ -58,10 +67,11 @@ function render() {
                  <i class="bi bi-person-${u.is_active ? "dash" : "check"}"></i>
                </button>`;
         return `<tr>
-          <td class="fw-semibold">${u.username}</td>
-          <td>${u.full_name || "—"}</td>
+          <td class="fw-semibold">${escHtml(u.username)}</td>
+          <td>${escHtml(u.full_name || "—")}</td>
           <td><span class="badge ${roleBadge[u.role] || "bg-secondary"}">${u.role}</span></td>
           <td><span class="badge ${statusBadge[u.status] || "bg-secondary"}">${u.status}</span></td>
+          <td>${memberCell}</td>
           <td class="text-muted small">${fmt.date(u.created_at.slice(0, 10))}</td>
           <td class="no-print">
             <button class="btn btn-sm btn-outline-secondary me-1" onclick="window._umEdit(${u.id})" title="Edit"><i class="bi bi-pencil"></i></button>
@@ -102,12 +112,15 @@ async function onEdit(e) {
     const id = parseInt(form.id.value);
     const errEl = document.getElementById("um-edit-error");
     errEl.classList.add("d-none");
+    const memberIdRaw = form.member_id.value;
+    const member_id = memberIdRaw ? parseInt(memberIdRaw) : null;
     try {
         await apiFetch(`/auth/users/${id}`, {
             method: "PUT",
             body: JSON.stringify({
                 full_name: form.full_name.value.trim() || null,
                 role: form.role.value,
+                member_id,
             }),
         });
         showToast("User updated");
@@ -145,6 +158,12 @@ window._umEdit = (id) => {
     form.id.value = u.id;
     form.full_name.value = u.full_name || "";
     form.role.value = u.role;
+    // Populate member dropdown
+    const sel = document.getElementById("um-edit-member");
+    const sorted = [...allMembers].sort((a, b) => (a.jersey_name || a.name).localeCompare(b.jersey_name || b.name));
+    sel.innerHTML = `<option value="">— Not linked —</option>` +
+        sorted.map(m => `<option value="${m.id}">${escHtml(m.jersey_name || m.name)}</option>`).join("");
+    sel.value = u.member_id || "";
     document.getElementById("um-edit-error").classList.add("d-none");
     editModal.show();
 };

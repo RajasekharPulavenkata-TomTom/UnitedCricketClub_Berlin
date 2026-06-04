@@ -1,5 +1,5 @@
 from datetime import datetime, timezone
-from sqlalchemy import Column, Integer, String, Boolean, DateTime
+from sqlalchemy import Column, Integer, String, Boolean, DateTime, ForeignKey
 from database import Base
 
 
@@ -16,5 +16,6 @@ class User(Base):
     hashed_password = Column(String(200), nullable=False)
     role = Column(String(10), nullable=False)  # root | admin | user
     is_active = Column(Boolean, nullable=False, default=True)
-    status = Column(String(10), nullable=False, default="active")  # active | pending | rejected
+    status    = Column(String(10), nullable=False, default="active")  # active | pending | rejected
+    member_id = Column(Integer, ForeignKey("members.id", ondelete="SET NULL"), nullable=True, index=True)
     created_at = Column(DateTime, default=_now)

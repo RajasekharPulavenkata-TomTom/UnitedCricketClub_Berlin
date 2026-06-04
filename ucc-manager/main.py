@@ -6,7 +6,7 @@ from sqlalchemy import text, inspect
 from database import engine, Base
 import models  # registers all models before create_all
 from dependencies.auth import get_current_user
-from routers import accounting, inventory, members, events, audit, finance_pin, player_availability, tasks, tournament, match_fees, reporting, auth, approvals, polls, pain_points
+from routers import accounting, inventory, members, events, audit, finance_pin, player_availability, tasks, tournament, match_fees, reporting, auth, approvals, polls, pain_points, violations
 
 
 def _run_migrations():
@@ -35,6 +35,8 @@ def _run_migrations():
             cols = _cols["users"]
             if "status" not in cols:
                 conn.execute(text("ALTER TABLE users ADD COLUMN status TEXT NOT NULL DEFAULT 'active'"))
+            if "member_id" not in cols:
+                conn.execute(text("ALTER TABLE users ADD COLUMN member_id INTEGER REFERENCES members(id) ON DELETE SET NULL"))
             # Ensure bootstrap admin is never stuck in pending
             conn.execute(text("UPDATE users SET status='active' WHERE username='ucc_manager' AND status != 'active'"))
             # Remove deprecated seeded accounts
@@ -109,6 +111,8 @@ def _run_migrations():
         conn.execute(text("CREATE INDEX IF NOT EXISTS ix_tournament_participants_tournament_id ON tournament_participants (tournament_id)"))
         conn.execute(text("CREATE INDEX IF NOT EXISTS ix_audit_logs_entity_type ON audit_logs (entity_type)"))
         conn.execute(text("CREATE INDEX IF NOT EXISTS ix_audit_logs_created_at ON audit_logs (created_at DESC)"))
+        conn.execute(text("CREATE INDEX IF NOT EXISTS ix_violations_member_id ON violations (member_id)"))
+        conn.execute(text("CREATE INDEX IF NOT EXISTS ix_users_member_id ON users (member_id)"))
 
 
 @asynccontextmanager
@@ -138,5 +142,6 @@ app.include_router(match_fees.router,          dependencies=_auth)
 app.include_router(reporting.router,           dependencies=_auth)
 app.include_router(polls.router,               dependencies=_auth)
 app.include_router(pain_points.router,         dependencies=_auth)
+app.include_router(violations.router,          dependencies=_auth)
 
 app.mount("/", StaticFiles(directory="static", html=True), name="static")

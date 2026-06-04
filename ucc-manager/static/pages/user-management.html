@@ -27,12 +27,13 @@
             <th>Full Name</th>
             <th>Role</th>
             <th>Status</th>
+            <th>Member</th>
             <th>Created</th>
             <th class="no-print"></th>
           </tr>
         </thead>
         <tbody id="um-tbody">
-          <tr><td colspan="6" class="text-center py-4 text-muted">Loading…</td></tr>
+          <tr><td colspan="7" class="text-center py-4 text-muted">Loading…</td></tr>
         </tbody>
       </table>
     </div>
@@ -102,6 +103,13 @@
               <option value="admin">Admin — manage & approve</option>
               <option value="root">Root — full access</option>
             </select>
+          </div>
+          <div class="mb-3">
+            <label class="form-label fw-semibold">Member Profile <span class="text-muted fw-normal small">(optional)</span></label>
+            <select class="form-select" name="member_id" id="um-edit-member">
+              <option value="">— Not linked —</option>
+            </select>
+            <div class="form-text text-muted small">Links this login to a player's member record (required for violations).</div>
           </div>
           <div id="um-edit-error" class="alert alert-danger py-2 small d-none"></div>
         </div>

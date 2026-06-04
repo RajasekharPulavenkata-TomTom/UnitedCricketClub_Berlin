@@ -60,6 +60,7 @@ export async function init() {
 
     allEvents = events.sort((a, b) => b.date.localeCompare(a.date));
     populateEventSelects();
+    onEventChange();
 
     allFormations = formations;
     renderFormationList();
@@ -77,6 +78,9 @@ function setupControls() {
     document.getElementById("btn-fe-save").addEventListener("click", openSaveModal);
     document.getElementById("btn-fe-export").addEventListener("click", exportPNG);
     document.getElementById("btn-fe-print").addEventListener("click", printFormation);
+    document.getElementById("btn-fe-load-squad").addEventListener("click", loadSquad);
+
+    document.getElementById("fe-event").addEventListener("change", onEventChange);
 
     document.getElementById("fe-player-search").addEventListener("input", renderPlayerList);
 
@@ -242,6 +246,46 @@ function setupSVGDrag() {
 
     svg.addEventListener("pointerup", () => { dragState = null; });
     svg.addEventListener("pointercancel", () => { dragState = null; });
+}
+
+// ── Event change / Load Squad ─────────────────────────────────────────────────
+
+function onEventChange() {
+    const eventId = parseInt(document.getElementById("fe-event").value) || null;
+    const btn = document.getElementById("btn-fe-load-squad");
+    // Enable the button only for match events that have squad data potentially available
+    const ev = allEvents.find(e => e.id === eventId);
+    btn.disabled = !(ev && ev.type === "match");
+}
+
+async function loadSquad() {
+    const eventId = parseInt(document.getElementById("fe-event").value) || null;
+    if (!eventId) return;
+    try {
+        const squadRows = await apiFetch(`/events/${eventId}/squad`);
+        if (!squadRows.length) {
+            showToast("No squad saved for this match yet — set it in the Calendar", "error");
+            return;
+        }
+        if (placedPlayers.length && !confirm(`Replace the ${placedPlayers.length} player(s) on the field with the match squad?`)) return;
+
+        placedPlayers = [];
+        squadRows.forEach((s, i) => {
+            const member = allMembers.find(m => m.id === s.member_id);
+            const preset = PRESET[i % PRESET.length];
+            placedPlayers.push({
+                member_id:   s.member_id,
+                jersey_name: s.name || (member ? (member.jersey_name || member.name) : `#${s.member_id}`),
+                x: preset.x,
+                y: preset.y,
+            });
+        });
+        dirty = true;
+        renderField();
+        showToast(`Loaded ${squadRows.length} player${squadRows.length !== 1 ? "s" : ""} from match squad`);
+    } catch (err) {
+        showToast(err.message, "error");
+    }
 }
 
 // ── Toggle player on/off field ────────────────────────────────────────────────

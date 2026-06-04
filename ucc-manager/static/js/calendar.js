@@ -164,9 +164,12 @@ function buildGrid() {
             const cls = ["cal-cell", isToday ? "today" : ""].filter(Boolean).join(" ");
             const eventBadges = cellEvents.map(ev => {
                 const rt = ev.reporting_time ? `<span class="report-time-badge">⏰ ${ev.reporting_time.substring(0, 5)}</span>` : "";
-                const haIcon = ev.home_away === "home" ? "🏠" : ev.home_away === "away" ? "✈️" : "";
+                const awayIcon = ev.home_away === "away" ? "✈️ " : "";
                 const mt = ev.match_time ? ` · ${ev.match_time.substring(0, 5)}` : "";
-                return `<span class="event-badge ${ev.type}" data-eid="${ev.id}" title="${escHtml(ev.title)}">${haIcon}${haIcon ? " " : ""}${escHtml(ev.title)}${mt}</span>${rt}`;
+                const pg = ev.home_away === "home"
+                    ? `<span class="badge badge-prepare-ground" style="font-size:.6rem;display:block;margin-top:2px"><i class="bi bi-house-fill me-1"></i>Prepare Ground</span>`
+                    : "";
+                return `<span class="event-badge ${ev.type}" data-eid="${ev.id}" title="${escHtml(ev.title)}">${awayIcon}${escHtml(ev.title)}${mt}</span>${rt}${pg}`;
             }).join("");
             const pips = markedMembers.slice(0, 3)
                 .map(m => `<span class="av-name ${dayAvail[m.id]}">${escHtml(m.jersey_name || m.name)}</span>`)

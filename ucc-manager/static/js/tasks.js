@@ -1,4 +1,4 @@
-import { apiFetch, showToast, fmt } from "/js/api.js";
+import { apiFetch, showToast, fmt, escHtml } from "/js/api.js";
 
 let taskModal, bulkModal;
 let editingId = null;
@@ -108,10 +108,10 @@ function render() {
         <tr class="${isOverdue(t) ? "overdue-row" : (rowClass[t.status] || "")}">
           <td class="text-muted">${i + 1}</td>
           <td>
-            <div class="fw-semibold">${t.title}</div>
-            ${t.description ? `<div class="text-muted small">${t.description}</div>` : ""}
+            <div class="fw-semibold">${escHtml(t.title)}</div>
+            ${t.description ? `<div class="text-muted small">${escHtml(t.description)}</div>` : ""}
           </td>
-          <td>${t.assigned_to ? t.assigned_to.name : '<span class="text-muted">—</span>'}</td>
+          <td>${t.assigned_to ? escHtml(t.assigned_to.name) : '<span class="text-muted">—</span>'}</td>
           <td>${priorityBadge(t.priority)}</td>
           <td>
             <select class="form-select form-select-sm w-auto d-inline-block" onchange="window._changeStatus(${t.id}, this.value)">
@@ -125,7 +125,7 @@ function render() {
                 ? `<span class="${isOverdue(t) ? "text-danger fw-semibold" : ""}">${fmt.date(t.due_date)}</span>`
                 : "—"}
           </td>
-          <td>${t.event ? `<span class="small">${fmt.date(t.event.date)} – ${t.event.title}</span>` : "—"}</td>
+          <td>${t.event ? `<span class="small">${fmt.date(t.event.date)} – ${escHtml(t.event.title)}</span>` : "—"}</td>
           <td class="no-print">
             <button class="btn btn-sm btn-outline-secondary me-1" onclick="window._editTask(${t.id})">
               <i class="bi bi-pencil"></i>
@@ -165,7 +165,7 @@ function openBulkModal() {
         <div class="form-check">
           <input class="form-check-input" type="checkbox" id="bm-${m.id}" value="${m.id}" data-active="${m.is_active}" />
           <label class="form-check-label" for="bm-${m.id}">
-            ${m.name} ${!m.is_active ? '<span class="badge bg-secondary ms-1">Inactive</span>' : ""}
+            ${escHtml(m.name)} ${!m.is_active ? '<span class="badge bg-secondary ms-1">Inactive</span>' : ""}
           </label>
         </div>`).join("");
     bulkModal.show();

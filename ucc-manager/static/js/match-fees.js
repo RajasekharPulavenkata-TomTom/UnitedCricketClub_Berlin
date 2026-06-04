@@ -1,4 +1,4 @@
-import { apiFetch, showToast } from "/js/api.js";
+import { apiFetch, showToast, escHtml } from "/js/api.js";
 
 let allEvents = [];
 let openEventId = null;
@@ -81,8 +81,8 @@ function renderCards() {
               <div class="flex-grow-1 min-width-0">
                 <div class="d-flex align-items-center flex-wrap gap-2 mb-1">
                   <span class="badge bg-secondary">${dateStr}</span>
-                  <span class="fw-semibold">${ev.title}</span>
-                  ${ev.location ? `<span class="text-muted small">${ev.location}</span>` : ""}
+                  <span class="fw-semibold">${escHtml(ev.title)}</span>
+                  ${ev.location ? `<span class="text-muted small">${escHtml(ev.location)}</span>` : ""}
                   ${ev.total_members > 0
                     ? `<span class="badge bg-success"><i class="bi bi-people-fill me-1"></i>${ev.total_members} Playing XI</span>`
                     : `<span class="badge bg-warning text-dark"><i class="bi bi-exclamation-triangle me-1"></i>No Playing XI set</span>`}
@@ -148,7 +148,7 @@ function renderPayments(eventId, payments) {
             <button type="button"
                 class="btn btn-sm ${p.paid ? "btn-success" : "btn-outline-secondary"} mf-pay-btn"
                 onclick="window._mfTogglePay(${eventId}, ${p.member_id}, this)">
-              <i class="bi ${p.paid ? "bi-check-circle-fill" : "bi-circle"} me-1"></i>${p.name}
+              <i class="bi ${p.paid ? "bi-check-circle-fill" : "bi-circle"} me-1"></i>${escHtml(p.name)}
             </button>`).join("")}
         </div>
         <div class="small text-muted">${paidCount} of ${payments.length} paid</div>`;

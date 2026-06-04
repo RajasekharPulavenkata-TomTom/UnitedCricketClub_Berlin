@@ -1,4 +1,4 @@
-import { apiFetch, showToast } from "/js/api.js";
+import { apiFetch, showToast, escHtml } from "/js/api.js";
 
 let allEvents = [];
 let openEventId = null;
@@ -83,8 +83,8 @@ function renderCards() {
               <div class="flex-grow-1">
                 <div class="d-flex align-items-center flex-wrap gap-2 mb-1">
                   <span class="badge bg-secondary">${dateStr}</span>
-                  <span class="fw-semibold">${ev.title}</span>
-                  ${ev.location ? `<span class="text-muted small">${ev.location}</span>` : ""}
+                  <span class="fw-semibold">${escHtml(ev.title)}</span>
+                  ${ev.location ? `<span class="text-muted small">${escHtml(ev.location)}</span>` : ""}
                   ${ev.reporting_time
                     ? `<span class="badge text-bg-warning"><i class="bi bi-clock me-1"></i>Report by ${ev.reporting_time}</span>`
                     : ""}
@@ -166,7 +166,7 @@ function renderPanel(eventId, players, scheduledTime) {
             const isLate = scheduledTime && p.reported_time && p.reported_time > scheduledTime;
             return `
             <div class="rp-row" id="rp-row-${eventId}-${p.member_id}">
-              <span class="flex-grow-1 fw-medium small">${p.name}</span>
+              <span class="flex-grow-1 fw-medium small">${escHtml(p.name)}</span>
               ${isLate ? `<span class="badge bg-danger rp-late">Late</span>` : `<span class="rp-late" style="width:36px"></span>`}
               <input type="time" class="form-control form-control-sm" style="width:108px"
                      value="${p.reported_time || ""}"

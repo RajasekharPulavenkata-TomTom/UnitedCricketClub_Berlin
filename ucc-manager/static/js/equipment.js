@@ -1,7 +1,8 @@
-import { apiFetch, fmt, showToast, conditionBadge } from "/js/api.js";
+import { apiFetch, fmt, showToast, conditionBadge, escHtml } from "/js/api.js";
 
 let modal, detailModal;
 let editingId = null;
+let _searchTimer;
 
 export async function init() {
     modal = new bootstrap.Modal(document.getElementById("eqModal"));
@@ -10,8 +11,12 @@ export async function init() {
     document.getElementById("btn-add-eq").addEventListener("click", () => openModal());
 
     document.getElementById("eq-form").addEventListener("submit", onSubmit);
-    ["filter-type", "filter-cond", "filter-search", "filter-active"].forEach((id) => {
+    ["filter-type", "filter-cond", "filter-active"].forEach((id) => {
         document.getElementById(id).addEventListener("input", load);
+    });
+    document.getElementById("filter-search").addEventListener("input", () => {
+        clearTimeout(_searchTimer);
+        _searchTimer = setTimeout(load, 300);
     });
 
     await load();
@@ -41,14 +46,14 @@ async function load() {
             const actions = `<button class="btn btn-sm btn-outline-secondary me-1" onclick="window._editEq(${item.id})"><i class="bi bi-pencil"></i></button>
                    <button class="btn btn-sm btn-outline-danger" onclick="window._retireEq(${item.id})" title="Retire"><i class="bi bi-archive"></i></button>`;
             return `<tr style="cursor:pointer" onclick="window._viewEq(${item.id})">
-              <td class="fw-semibold">${item.name}</td>
+              <td class="fw-semibold">${escHtml(item.name)}</td>
               <td class="text-capitalize">${item.type}</td>
               <td>${conditionBadge(item.condition)}</td>
               <td class="text-center">${item.quantity_total}</td>
               <td class="text-center">
                 <span class="badge ${item.quantity_available > 0 ? "bg-success" : "bg-secondary"}">${item.quantity_available}</span>
               </td>
-              <td class="text-muted small">${item.notes || "—"}</td>
+              <td class="text-muted small">${escHtml(item.notes || "—")}</td>
               <td class="no-print" onclick="event.stopPropagation()">${actions}</td>
             </tr>`;
         }).join("");
@@ -122,12 +127,12 @@ window._viewEq = async (id) => {
       <tr><th>Condition</th><td>${conditionBadge(item.condition)}</td></tr>
       <tr><th>Total Qty</th><td>${item.quantity_total}</td></tr>
       <tr><th>Available</th><td>${item.quantity_available}</td></tr>
-      ${item.supplier ? `<tr><th>Supplier</th><td>${item.supplier}</td></tr>` : ""}
-      ${item.serial_number ? `<tr><th>Serial #</th><td>${item.serial_number}</td></tr>` : ""}
+      ${item.supplier ? `<tr><th>Supplier</th><td>${escHtml(item.supplier)}</td></tr>` : ""}
+      ${item.serial_number ? `<tr><th>Serial #</th><td>${escHtml(item.serial_number)}</td></tr>` : ""}
     </table>
     <h6 class="fw-semibold">Maintenance Log (${item.maintenance_notes.length})</h6>
     ${item.maintenance_notes.length ? `<div class="table-responsive"><table class="table table-sm"><thead class="table-light"><tr><th>Date</th><th>Description</th><th>Cost</th><th>Done By</th></tr></thead><tbody>
-      ${item.maintenance_notes.map((n) => `<tr><td>${fmt.date(n.date)}</td><td>${n.description}</td><td>${n.cost ? fmt.currency(n.cost) : "—"}</td><td>${n.done_by || "—"}</td></tr>`).join("")}
+      ${item.maintenance_notes.map((n) => `<tr><td>${fmt.date(n.date)}</td><td>${escHtml(n.description)}</td><td>${n.cost ? fmt.currency(n.cost) : "—"}</td><td>${escHtml(n.done_by || "—")}</td></tr>`).join("")}
     </tbody></table></div>` : `<p class="text-muted small">No maintenance records.</p>`}`;
     detailModal.show();
 };

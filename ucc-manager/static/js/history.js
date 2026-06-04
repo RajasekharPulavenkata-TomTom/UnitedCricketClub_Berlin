@@ -1,4 +1,4 @@
-import { apiFetch } from "/js/api.js";
+import { apiFetch, escHtml } from "/js/api.js";
 
 const ACTION_STYLE = {
     added:    { bg: "#d1e7dd", color: "#0a3622", icon: "bi-plus-lg" },
@@ -59,11 +59,11 @@ function render(filter) {
             <i class="bi ${style.icon}"></i>
           </div>
           <div class="flex-grow-1">
-            <div>${item.description}</div>
+            <div>${escHtml(item.description)}</div>
             <div class="history-meta mt-1">
               <i class="bi ${entityIcon} me-1"></i>${item.entity_type}
               &nbsp;·&nbsp;${when}
-              ${item.user_name ? `&nbsp;·&nbsp;<i class="bi bi-person-fill me-1"></i>${item.user_name}` : ""}
+              ${item.user_name ? `&nbsp;·&nbsp;<i class="bi bi-person-fill me-1"></i>${escHtml(item.user_name)}` : ""}
             </div>
           </div>
           <span class="badge mt-1" style="background:${style.bg};color:${style.color}">${item.action}</span>

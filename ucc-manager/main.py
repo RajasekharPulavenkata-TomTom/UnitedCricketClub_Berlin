@@ -11,26 +11,28 @@ from routers import accounting, inventory, members, events, audit, finance_pin, 
 
 def _run_migrations():
     inspector = inspect(engine)
-    existing_tables = inspector.get_table_names()
+    existing_tables = set(inspector.get_table_names())
+    # Pre-fetch all columns in one pass — avoids repeated round-trips during migration checks
+    _cols = {t: {c["name"] for c in inspector.get_columns(t)} for t in existing_tables}
     with engine.begin() as conn:
         # Rename legacy default usernames
         conn.execute(text("UPDATE users SET username='ucc_manager', full_name='UCC Manager' WHERE username='root'"))
         conn.execute(text("UPDATE users SET username='ucc_accouting_manager', full_name='UCC Accounting Manager' WHERE username='admin'"))
         conn.execute(text("UPDATE users SET username='ucc_inventory_manager', full_name='UCC Inventory Manager', role='admin' WHERE username='player1'"))
         if "equipment_items" in existing_tables:
-            cols = [c["name"] for c in inspector.get_columns("equipment_items")]
+            cols = _cols["equipment_items"]
             if "purchase_date" in cols:
                 conn.execute(text("ALTER TABLE equipment_items DROP COLUMN purchase_date"))
             if "purchase_price" in cols:
                 conn.execute(text("ALTER TABLE equipment_items DROP COLUMN purchase_price"))
         if "transactions" in existing_tables:
-            cols = [c["name"] for c in inspector.get_columns("transactions")]
+            cols = _cols["transactions"]
             if "status" not in cols:
                 conn.execute(text("ALTER TABLE transactions ADD COLUMN status TEXT NOT NULL DEFAULT 'approved'"))
             if "created_by_id" not in cols:
                 conn.execute(text("ALTER TABLE transactions ADD COLUMN created_by_id INTEGER REFERENCES users(id)"))
         if "users" in existing_tables:
-            cols = [c["name"] for c in inspector.get_columns("users")]
+            cols = _cols["users"]
             if "status" not in cols:
                 conn.execute(text("ALTER TABLE users ADD COLUMN status TEXT NOT NULL DEFAULT 'active'"))
             # Ensure bootstrap admin is never stuck in pending
@@ -38,15 +40,15 @@ def _run_migrations():
             # Remove deprecated seeded accounts
             conn.execute(text("DELETE FROM users WHERE username IN ('ucc_accouting_manager','ucc_inventory_manager')"))
         if "tournaments" in existing_tables:
-            cols = [c["name"] for c in inspector.get_columns("tournaments")]
+            cols = _cols["tournaments"]
             if "date" not in cols:
                 conn.execute(text("ALTER TABLE tournaments ADD COLUMN date DATE"))
         if "tournament_participants" in existing_tables:
-            cols = [c["name"] for c in inspector.get_columns("tournament_participants")]
+            cols = _cols["tournament_participants"]
             if "paid" not in cols:
                 conn.execute(text("ALTER TABLE tournament_participants ADD COLUMN paid BOOLEAN NOT NULL DEFAULT FALSE"))
         if "members" in existing_tables:
-            cols = [c["name"] for c in inspector.get_columns("members")]
+            cols = _cols["members"]
             if "jersey_name" not in cols:
                 conn.execute(text("ALTER TABLE members ADD COLUMN jersey_name VARCHAR(100)"))
             if "role" not in cols:
@@ -62,11 +64,11 @@ def _run_migrations():
             if "cricclubs" not in cols:
                 conn.execute(text("ALTER TABLE members ADD COLUMN cricclubs BOOLEAN NOT NULL DEFAULT FALSE"))
         if "event_squads" in existing_tables:
-            cols = [c["name"] for c in inspector.get_columns("event_squads")]
+            cols = _cols["event_squads"]
             if "batting_order" not in cols:
                 conn.execute(text("ALTER TABLE event_squads ADD COLUMN batting_order INTEGER"))
         if "events" in existing_tables:
-            cols = [c["name"] for c in inspector.get_columns("events")]
+            cols = _cols["events"]
             if "match_fee" not in cols:
                 conn.execute(text("ALTER TABLE events ADD COLUMN match_fee NUMERIC(10,2)"))
             if "reporting_time" not in cols:
@@ -86,7 +88,7 @@ def _run_migrations():
                 )
             """))
         else:
-            pr_cols = [c["name"] for c in inspector.get_columns("player_reporting")]
+            pr_cols = _cols.get("player_reporting", set())
             if "reported" in pr_cols and "status" not in pr_cols:
                 conn.execute(text("ALTER TABLE player_reporting ADD COLUMN status VARCHAR(20) NOT NULL DEFAULT 'unknown'"))
                 conn.execute(text("UPDATE player_reporting SET status = 'reported' WHERE reported = TRUE"))
@@ -94,7 +96,7 @@ def _run_migrations():
             if "remarks" not in pr_cols:
                 conn.execute(text("ALTER TABLE player_reporting ADD COLUMN remarks TEXT"))
         if "audit_logs" in existing_tables:
-            al_cols = [c["name"] for c in inspector.get_columns("audit_logs")]
+            al_cols = _cols["audit_logs"]
             if "user_id" not in al_cols:
                 conn.execute(text("ALTER TABLE audit_logs ADD COLUMN user_id INTEGER REFERENCES users(id)"))
             if "user_name" not in al_cols:

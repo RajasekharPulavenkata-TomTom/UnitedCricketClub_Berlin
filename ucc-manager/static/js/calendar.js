@@ -1,4 +1,4 @@
-import { apiFetch, showToast } from "/js/api.js";
+import { apiFetch, showToast, escHtml } from "/js/api.js";
 import { fetchWeather, fetchWeatherRange, weatherHtml, wmoInfo } from "/js/weather.js?v=2";
 
 let eventModal, detailModal;
@@ -161,10 +161,10 @@ function buildGrid() {
             const cls = ["cal-cell", isToday ? "today" : ""].filter(Boolean).join(" ");
             const eventBadges = cellEvents.map(ev => {
                 const rt = ev.reporting_time ? `<span class="report-time-badge">⏰ ${ev.reporting_time.substring(0, 5)}</span>` : "";
-                return `<span class="event-badge ${ev.type}" data-eid="${ev.id}" title="${ev.title}">${ev.title}</span>${rt}`;
+                return `<span class="event-badge ${ev.type}" data-eid="${ev.id}" title="${escHtml(ev.title)}">${escHtml(ev.title)}</span>${rt}`;
             }).join("");
             const pips = markedMembers.slice(0, 3)
-                .map(m => `<span class="av-name ${dayAvail[m.id]}">${m.jersey_name || m.name}</span>`)
+                .map(m => `<span class="av-name ${dayAvail[m.id]}">${escHtml(m.jersey_name || m.name)}</span>`)
                 .join("");
             const more = markedMembers.length > 3
                 ? `<span class="av-name" style="background:#6c757d">+${markedMembers.length - 3} more</span>`
@@ -217,7 +217,7 @@ function renderAvailList() {
             : `<span class="badge bg-danger">Unavailable</span>`;
         return `
         <div class="av-entry-row">
-          <span class="fw-medium">${m.jersey_name || m.name}</span>
+          <span class="fw-medium">${escHtml(m.jersey_name || m.name)}</span>
           <div class="d-flex align-items-center gap-2">
             ${badge}
             <button class="btn btn-outline-secondary btn-sm av-remove-btn" data-id="${m.id}">
@@ -338,7 +338,7 @@ window._viewEvent = async (id) => {
 
     document.getElementById("det-title").textContent = ev.title;
     const typeBadge = `<span class="badge ${ev.type === "match" ? "bg-primary" : ev.type === "training" ? "bg-success" : "bg-secondary"} me-2">${ev.type}</span>`;
-    document.getElementById("det-meta").innerHTML = `${typeBadge}${ev.date}${ev.location ? ` &bull; ${ev.location}` : ""}`;
+    document.getElementById("det-meta").innerHTML = `${typeBadge}${ev.date}${ev.location ? ` &bull; ${escHtml(ev.location)}` : ""}`;
 
     const rtEl = document.getElementById("det-reporting-time");
     if (ev.reporting_time) {
@@ -461,7 +461,7 @@ function _renderSquad() {
         html += `
         <div class="squad-row in-xi">
           <span class="squad-num">${idx + 1}</span>
-          <span class="flex-grow-1 fw-medium small">${m.jersey_name || m.name}</span>
+          <span class="flex-grow-1 fw-medium small">${escHtml(m.jersey_name || m.name)}</span>
           ${avBadge(id)}
           <div class="btn-group btn-group-sm no-print">
             <button class="btn btn-outline-secondary py-0 px-1" ${idx === 0 ? "disabled" : ""}
@@ -487,7 +487,7 @@ function _renderSquad() {
         html += `
         <div class="squad-row">
           <span class="squad-num text-muted" style="color:#adb5bd!important">—</span>
-          <span class="flex-grow-1 small">${m.jersey_name || m.name}</span>
+          <span class="flex-grow-1 small">${escHtml(m.jersey_name || m.name)}</span>
           ${avBadge(m.id)}
           <button class="btn btn-sm btn-outline-primary py-0 px-2 no-print"
               onclick="window._squadAdd(${m.id})" title="Add to XI"><i class="bi bi-plus-lg"></i></button>

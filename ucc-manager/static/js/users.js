@@ -1,8 +1,9 @@
-import { apiFetch, showToast } from "/js/api.js";
+import { apiFetch, showToast, escHtml } from "/js/api.js";
 import { roleBadge } from "/js/auth.js";
 
 let modal, pwModal;
 let editingId = null;
+let allUsers = [];
 
 export async function init() {
     modal = new bootstrap.Modal(document.getElementById("userModal"));
@@ -29,8 +30,8 @@ async function loadPending() {
         countBadge.textContent = users.length;
         tbody.innerHTML = users.map((u) => `
           <tr>
-            <td class="fw-semibold">${u.username}</td>
-            <td>${u.full_name || "<span class='text-muted'>—</span>"}</td>
+            <td class="fw-semibold">${escHtml(u.username)}</td>
+            <td>${u.full_name ? escHtml(u.full_name) : "<span class='text-muted'>—</span>"}</td>
             <td class="text-muted small">${new Date(u.created_at).toLocaleDateString("en-GB")}</td>
             <td>
               <button class="btn btn-sm btn-success me-1" onclick="window._approveUser(${u.id})"><i class="bi bi-check-lg me-1"></i>Approve</button>
@@ -46,16 +47,16 @@ async function load() {
     const tbody = document.getElementById("users-tbody");
     tbody.innerHTML = `<tr><td colspan="6" class="text-center py-3"><div class="spinner-border spinner-border-sm"></div></td></tr>`;
     try {
-        const users = await apiFetch("/auth/users");
-        tbody.innerHTML = users.map((u) => `
+        allUsers = await apiFetch("/auth/users");
+        tbody.innerHTML = allUsers.map((u) => `
           <tr class="${!u.is_active ? "table-secondary" : ""}">
-            <td class="fw-semibold">${u.username}</td>
-            <td>${u.full_name || "<span class='text-muted'>—</span>"}</td>
+            <td class="fw-semibold">${escHtml(u.username)}</td>
+            <td>${u.full_name ? escHtml(u.full_name) : "<span class='text-muted'>—</span>"}</td>
             <td>${roleBadge(u.role)}</td>
             <td>${statusBadge(u)}</td>
             <td class="text-muted small">${new Date(u.created_at).toLocaleDateString("en-GB")}</td>
             <td>
-              <button class="btn btn-sm btn-outline-secondary me-1" onclick="window._editUser(${u.id}, '${u.username}', '${u.full_name || ""}', '${u.role}')"><i class="bi bi-pencil"></i></button>
+              <button class="btn btn-sm btn-outline-secondary me-1" onclick="window._editUser(${u.id})"><i class="bi bi-pencil"></i></button>
               <button class="btn btn-sm btn-outline-warning me-1" onclick="window._resetPw(${u.id})" title="Reset password"><i class="bi bi-key"></i></button>
               <button class="btn btn-sm ${u.is_active ? "btn-outline-danger" : "btn-outline-success"}" onclick="window._toggleUser(${u.id}, ${u.is_active})" title="${u.is_active ? "Deactivate" : "Reactivate"}">
                 <i class="bi bi-${u.is_active ? "slash-circle" : "check-circle"}"></i>
@@ -140,7 +141,7 @@ async function onPasswordReset(e) {
     }
 }
 
-window._editUser = (id, username, full_name, role) => openModal({ id, username, full_name, role });
+window._editUser = (id) => { const u = allUsers.find(u => u.id === id); if (u) openModal(u); };
 
 window._resetPw = (id) => {
     document.getElementById("pw-form").reset();

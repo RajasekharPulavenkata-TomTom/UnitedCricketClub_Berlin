@@ -16,3 +16,10 @@ export function saveAuth(token, role, username, userId) {
 export function clearAuth() {
     [TOKEN_KEY, USER_KEY, UID_KEY].forEach((k) => localStorage.removeItem(k));
 }
+
+export function isAdmin() {
+    try {
+        const user = JSON.parse(localStorage.getItem("ucc_user") || "null");
+        return user?.role === "admin" || user?.role === "root";
+    } catch { return false; }
+}

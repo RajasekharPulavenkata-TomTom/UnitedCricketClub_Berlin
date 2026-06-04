@@ -1,9 +1,19 @@
 """Run once to seed default categories and users. Safe to re-run — skips existing."""
+from sqlalchemy import text, inspect as sa_inspect
 from database import SessionLocal, engine, Base
 import models
 from models.accounting import Category
 from models.auth import User
 from services.auth_service import hash_password
+
+# Apply column migrations before create_all so ORM queries work with the new schema
+_insp = sa_inspect(engine)
+_existing = set(_insp.get_table_names())
+with engine.begin() as _conn:
+    if "users" in _existing:
+        _user_cols = {c["name"] for c in _insp.get_columns("users")}
+        if "member_id" not in _user_cols:
+            _conn.execute(text("ALTER TABLE users ADD COLUMN member_id INTEGER REFERENCES members(id) ON DELETE SET NULL"))
 
 Base.metadata.create_all(bind=engine)
 

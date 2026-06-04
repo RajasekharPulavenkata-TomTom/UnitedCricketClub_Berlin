@@ -1,5 +1,5 @@
 import { apiFetch, fmt } from "/js/api.js";
-import { fetchWeather, wmoInfo, swingInfo } from "/js/weather.js";
+import { fetchWeather, wmoInfo, swingInfo } from "/js/weather.js?v=4";
 
 export async function init() {
     const now = new Date();

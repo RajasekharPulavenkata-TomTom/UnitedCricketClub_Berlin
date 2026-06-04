@@ -1,4 +1,23 @@
 const LAT = 52.513735, LON = 13.235553;
+// historical-forecast covers past + future; archive covers past only as fallback
+const FORECAST_API = "https://historical-forecast-api.open-meteo.com/v1/forecast";
+const ARCHIVE_API  = "https://archive-api.open-meteo.com/v1/archive";
+
+function todayStr() {
+    const t = new Date();
+    return `${t.getFullYear()}-${String(t.getMonth()+1).padStart(2,"0")}-${String(t.getDate()).padStart(2,"0")}`;
+}
+
+async function _fetchDaily(base, params) {
+    try {
+        const url = `${base}?latitude=${LAT}&longitude=${LON}&timezone=Europe%2FBerlin&${params}`;
+        const res = await fetch(url, { signal: AbortSignal.timeout(8000) });
+        if (!res.ok) return null;
+        const d = await res.json();
+        if (!d.daily?.time?.length) return null;
+        return d;
+    } catch { return null; }
+}
 
 export function wmoInfo(code) {
     if (code === 0)   return { label: "Clear sky",     icon: "bi-sun",                  color: "#f6c90e" };
@@ -14,46 +33,41 @@ export function wmoInfo(code) {
 }
 
 export async function fetchWeatherRange(startDate, endDate) {
-    try {
-        const url = `https://api.open-meteo.com/v1/forecast?latitude=${LAT}&longitude=${LON}` +
-            `&daily=temperature_2m_max,temperature_2m_min,weather_code` +
-            `&timezone=Europe%2FBerlin&start_date=${startDate}&end_date=${endDate}`;
-        const res = await fetch(url, { signal: AbortSignal.timeout(8000) });
-        if (!res.ok) return {};
-        const d = await res.json();
-        if (!d.daily?.time?.length) return {};
-        const codes = d.daily.weather_code ?? d.daily.weathercode ?? [];
-        const result = {};
-        d.daily.time.forEach((date, i) => {
-            result[date] = {
-                code: codes[i],
-                maxT: Math.round(d.daily.temperature_2m_max[i]),
-                minT: Math.round(d.daily.temperature_2m_min[i]),
-            };
-        });
-        return result;
-    } catch { return {}; }
+    const params = `daily=temperature_2m_max,temperature_2m_min,weather_code&start_date=${startDate}&end_date=${endDate}`;
+    // Try historical-forecast first (covers past + future); fall back to archive for past dates
+    let d = await _fetchDaily(FORECAST_API, params);
+    if (!d) {
+        const today = todayStr();
+        const archiveEnd = endDate < today ? endDate : (startDate < today ? today : null);
+        if (archiveEnd) d = await _fetchDaily(ARCHIVE_API, params.replace(`end_date=${endDate}`, `end_date=${archiveEnd}`));
+    }
+    if (!d) return {};
+    const codes = d.daily.weather_code ?? d.daily.weathercode ?? [];
+    const result = {};
+    d.daily.time.forEach((date, i) => {
+        result[date] = {
+            code: codes[i],
+            maxT: Math.round(d.daily.temperature_2m_max[i]),
+            minT: Math.round(d.daily.temperature_2m_min[i]),
+        };
+    });
+    return result;
 }
 
 export async function fetchWeather(date) {
-    const diffDays = Math.round((new Date(date + "T12:00:00") - new Date()) / 86400000);
-    if (diffDays < 0 || diffDays > 16) return null;
-    try {
-        const url = `https://api.open-meteo.com/v1/forecast?latitude=${LAT}&longitude=${LON}` +
-            `&daily=temperature_2m_max,temperature_2m_min,precipitation_sum,weather_code` +
-            `&timezone=Europe%2FBerlin&start_date=${date}&end_date=${date}`;
-        const res = await fetch(url, { signal: AbortSignal.timeout(8000) });
-        if (!res.ok) return null;
-        const d = await res.json();
-        const codes = d.daily?.weather_code ?? d.daily?.weathercode;
-        if (!codes?.length) return null;
-        return {
-            code:   codes[0],
-            maxT:   Math.round(d.daily.temperature_2m_max[0]),
-            minT:   Math.round(d.daily.temperature_2m_min[0]),
-            precip: d.daily.precipitation_sum[0],
-        };
-    } catch { return null; }
+    const params = `daily=temperature_2m_max,temperature_2m_min,precipitation_sum,weather_code&start_date=${date}&end_date=${date}`;
+    // Use forecast API; fall back to archive for past dates
+    let d = await _fetchDaily(FORECAST_API, params);
+    if (!d && date < todayStr()) d = await _fetchDaily(ARCHIVE_API, params);
+    if (!d) return null;
+    const codes = d.daily?.weather_code ?? d.daily?.weathercode;
+    if (!codes?.length) return null;
+    return {
+        code:   codes[0],
+        maxT:   Math.round(d.daily.temperature_2m_max[0]),
+        minT:   Math.round(d.daily.temperature_2m_min[0]),
+        precip: d.daily.precipitation_sum?.[0] ?? 0,
+    };
 }
 
 export function swingInfo(w) {

@@ -387,13 +387,15 @@ window._viewEvent = async (id) => {
     currentEventAvail = Object.fromEntries(eventAvail.map(a => [a.member_id, a.status]));
 
     const squadSection = document.getElementById("det-squad-section");
-    if (ev.type === "match") {
-        _squadIds = squadRows.map(s => s.member_id);
-        squadSection.classList.remove("d-none");
-        _renderSquad();
-    } else {
-        squadSection.classList.add("d-none");
-        _squadIds = [];
+    if (squadSection) {
+        if (ev.type === "match") {
+            _squadIds = squadRows.map(s => s.member_id);
+            squadSection.classList.remove("d-none");
+            try { _renderSquad(); } catch (e) { console.error("Squad render error:", e); }
+        } else {
+            squadSection.classList.add("d-none");
+            _squadIds = [];
+        }
     }
 
     detailModal.show();

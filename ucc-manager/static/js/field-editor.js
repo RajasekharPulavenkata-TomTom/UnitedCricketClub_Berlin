@@ -83,6 +83,7 @@ function setupControls() {
     document.getElementById("fe-event").addEventListener("change", onEventChange);
 
     document.getElementById("fe-player-search").addEventListener("input", renderPlayerList);
+    document.getElementById("btn-ai-suggest").addEventListener("click", runAISuggestion);
 
     document.getElementById("btn-fe-save-confirm").addEventListener("click", saveFormation);
 }
@@ -162,6 +163,7 @@ function renderFormationList() {
 // ── SVG field rendering ───────────────────────────────────────────────────────
 
 function memberColor(memberId) {
+    if (!memberId) return "#1a3a8b";  // UCC blue for AI-placed fielders
     const m = allMembers.find(m => m.id === memberId);
     return ROLE_COLOR[m?.role] || "#546e7a";
 }
@@ -395,6 +397,59 @@ window._feDelete = async (id) => {
         showToast(err.message, "error");
     }
 };
+
+// ── AI Field Suggester ────────────────────────────────────────────────────────
+
+async function runAISuggestion() {
+    const btn     = document.getElementById("btn-ai-suggest");
+    const spinner = document.getElementById("ai-spinner");
+    const expl    = document.getElementById("ai-explanation");
+
+    btn.disabled = true;
+    spinner.classList.remove("d-none");
+    expl.classList.add("d-none");
+
+    const body = {
+        arm:          document.getElementById("ai-arm").value,
+        side:         document.getElementById("ai-side").value,
+        bowling_type: document.getElementById("ai-type").value,
+        length:       document.getElementById("ai-length").value,
+        line:         document.getElementById("ai-line").value,
+        movement:     document.getElementById("ai-movement").value,
+        amount:       document.getElementById("ai-amount").value,
+        batter_hand:  document.getElementById("ai-batter").value,
+    };
+
+    try {
+        const res = await apiFetch("/ai/field-suggestion", {
+            method: "POST",
+            body: JSON.stringify(body),
+        });
+
+        // Place fielders as anonymous dots (no member_id) using AI coordinates
+        if (placedPlayers.length && !confirm(`Replace the ${placedPlayers.length} current player(s) with the AI-suggested field?`)) return;
+
+        placedPlayers = res.positions.map(p => ({
+            member_id:   null,
+            jersey_name: p.label,
+            x: p.x,
+            y: p.y,
+        }));
+        dirty = true;
+        renderField();
+
+        if (res.explanation) {
+            expl.textContent = `🤖 ${res.explanation}`;
+            expl.classList.remove("d-none");
+        }
+        showToast("AI field generated — drag to adjust, then Save");
+    } catch (err) {
+        showToast(err.message, "error");
+    } finally {
+        btn.disabled = false;
+        spinner.classList.add("d-none");
+    }
+}
 
 // ── Export & Print ────────────────────────────────────────────────────────────
 

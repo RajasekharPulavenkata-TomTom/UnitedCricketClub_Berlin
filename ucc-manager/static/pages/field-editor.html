@@ -44,6 +44,101 @@
     </div>
   </div>
 
+  <!-- AI Field Suggester -->
+  <div class="card mb-3 border-primary no-print">
+    <div class="card-header bg-primary text-white d-flex justify-content-between align-items-center py-2" style="cursor:pointer" data-bs-toggle="collapse" data-bs-target="#ai-suggester-body">
+      <span class="fw-semibold"><span class="me-2">🤖</span>AI Field Suggester</span>
+      <i class="bi bi-chevron-down"></i>
+    </div>
+    <div class="collapse show" id="ai-suggester-body">
+      <div class="card-body pb-2">
+        <div class="row g-2 mb-2">
+          <div class="col-6 col-md-3">
+            <label class="form-label small fw-semibold mb-1">Bowler Arm</label>
+            <select class="form-select form-select-sm" id="ai-arm">
+              <option value="right">Right Arm</option>
+              <option value="left">Left Arm</option>
+            </select>
+          </div>
+          <div class="col-6 col-md-3">
+            <label class="form-label small fw-semibold mb-1">Over / Around</label>
+            <select class="form-select form-select-sm" id="ai-side">
+              <option value="over">Over the Wicket</option>
+              <option value="around">Around the Wicket</option>
+            </select>
+          </div>
+          <div class="col-6 col-md-3">
+            <label class="form-label small fw-semibold mb-1">Bowling Type</label>
+            <select class="form-select form-select-sm" id="ai-type">
+              <option value="fast">Fast</option>
+              <option value="medium-fast">Medium-Fast</option>
+              <option value="medium">Medium</option>
+              <option value="off-spin">Off-Spin</option>
+              <option value="leg-spin">Leg-Spin</option>
+              <option value="left-arm-spin">Left-Arm Spin</option>
+            </select>
+          </div>
+          <div class="col-6 col-md-3">
+            <label class="form-label small fw-semibold mb-1">Batter Hand</label>
+            <select class="form-select form-select-sm" id="ai-batter">
+              <option value="right">Right-Handed</option>
+              <option value="left">Left-Handed</option>
+            </select>
+          </div>
+          <div class="col-6 col-md-3">
+            <label class="form-label small fw-semibold mb-1">Length</label>
+            <select class="form-select form-select-sm" id="ai-length">
+              <option value="good-length">Good Length</option>
+              <option value="full">Full</option>
+              <option value="yorker">Yorker</option>
+              <option value="short-of-length">Short of Length</option>
+              <option value="bouncer">Bouncer</option>
+            </select>
+          </div>
+          <div class="col-6 col-md-3">
+            <label class="form-label small fw-semibold mb-1">Line</label>
+            <select class="form-select form-select-sm" id="ai-line">
+              <option value="off-stump">Off Stump</option>
+              <option value="outside-off">Outside Off</option>
+              <option value="middle">Middle Stump</option>
+              <option value="leg">Leg Stump</option>
+              <option value="outside-leg">Outside Leg</option>
+            </select>
+          </div>
+          <div class="col-6 col-md-3">
+            <label class="form-label small fw-semibold mb-1">Movement</label>
+            <select class="form-select form-select-sm" id="ai-movement">
+              <option value="none">None</option>
+              <option value="outswing">Outswing</option>
+              <option value="inswing">Inswing</option>
+              <option value="seam">Seam</option>
+              <option value="off-turn">Off-Turn</option>
+              <option value="leg-turn">Leg-Turn</option>
+            </select>
+          </div>
+          <div class="col-6 col-md-3">
+            <label class="form-label small fw-semibold mb-1">Amount</label>
+            <select class="form-select form-select-sm" id="ai-amount">
+              <option value="medium">Medium</option>
+              <option value="low">Low</option>
+              <option value="high">High</option>
+            </select>
+          </div>
+        </div>
+        <div class="d-flex align-items-center gap-3 flex-wrap">
+          <button class="btn btn-primary btn-sm" id="btn-ai-suggest">
+            <i class="bi bi-stars me-1"></i>Generate Field
+          </button>
+          <div id="ai-spinner" class="d-none">
+            <div class="spinner-border spinner-border-sm text-primary"></div>
+            <span class="small text-muted ms-2">Thinking…</span>
+          </div>
+        </div>
+        <div id="ai-explanation" class="alert alert-info py-2 small mt-2 d-none"></div>
+      </div>
+    </div>
+  </div>
+
   <!-- body -->
   <div class="row g-3">
     <!-- sidebar -->

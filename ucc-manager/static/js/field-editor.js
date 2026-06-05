@@ -418,6 +418,7 @@ async function runAISuggestion() {
         movement:     document.getElementById("ai-movement").value,
         amount:       document.getElementById("ai-amount").value,
         batter_hand:  document.getElementById("ai-batter").value,
+        phase:        document.getElementById("ai-phase").value,
     };
 
     try {

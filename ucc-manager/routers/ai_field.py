@@ -42,6 +42,14 @@ POSITIONS = {
 POSITION_LIST = ", ".join(POSITIONS.keys())
 
 
+RESTRICTION_RULES = {
+    "powerplay":     "POWERPLAY: maximum 2 fielders allowed outside the 30-yard circle. Pack the infield.",
+    "middle":        "MIDDLE OVERS: maximum 4 fielders allowed outside the 30-yard circle.",
+    "death":         "DEATH OVERS: maximum 5 fielders allowed outside the 30-yard circle. Protect the boundary.",
+    "none":          "No field restrictions (Test match). All 9 fielders (excluding WK and bowler) can be placed anywhere.",
+}
+
+
 class FieldRequest(BaseModel):
     arm: str           # "right" | "left"
     side: str          # "over" | "around"
@@ -51,6 +59,7 @@ class FieldRequest(BaseModel):
     movement: str      # "none" | "inswing" | "outswing" | "seam" | "off-turn" | "leg-turn"
     amount: str        # "low" | "medium" | "high"
     batter_hand: str   # "right" | "left"
+    phase: str = "none"  # "powerplay" | "middle" | "death" | "none"
 
 
 @router.post("/field-suggestion")
@@ -62,6 +71,8 @@ async def suggest_field(req: FieldRequest):
     genai.configure(api_key=api_key)
     model = genai.GenerativeModel("gemini-2.0-flash")
 
+    restriction = RESTRICTION_RULES.get(req.phase, RESTRICTION_RULES["none"])
+
     prompt = f"""You are an expert cricket tactics coach. Suggest the best field placement.
 
 Bowling conditions:
@@ -72,11 +83,18 @@ Bowling conditions:
 - Movement: {req.movement} (intensity: {req.amount})
 - Batter: {req.batter_hand}-handed
 
+Field restriction: {restriction}
+
+The 30-yard circle positions (INSIDE circle — infield): Wicketkeeper, 1st Slip, 2nd Slip, 3rd Slip, Gully, Point, Cover, Mid-off, Mid-on, Mid-wicket, Square Leg, Silly Mid-off, Silly Mid-on, Short Leg, Forward Short Leg.
+The boundary positions (OUTSIDE circle — outfield): Long-off, Long-on, Deep Mid-wicket, Deep Square Leg, Fine Leg, Deep Fine Leg, Third Man, Deep Third Man, Deep Cover, Deep Point, Cover Point, Extra Cover.
+
+You MUST respect the field restriction on how many fielders can be in the outfield. Wicketkeeper and bowler are never in the outfield count.
+
 Choose exactly 11 positions from this list (Wicketkeeper must always be included):
 {POSITION_LIST}
 
 Return ONLY valid JSON with no extra text:
-{{"positions": ["Wicketkeeper", "...10 more from the list..."], "explanation": "1-2 sentences of tactical reasoning"}}"""
+{{"positions": ["Wicketkeeper", "...10 more from the list..."], "explanation": "1-2 sentences of tactical reasoning mentioning the field restriction phase"}}"""
 
     try:
         response = model.generate_content(prompt)

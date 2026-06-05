@@ -60,7 +60,7 @@ async def suggest_field(req: FieldRequest):
         raise HTTPException(status_code=503, detail="AI service not configured — set GEMINI_API_KEY")
 
     genai.configure(api_key=api_key)
-    model = genai.GenerativeModel("gemini-1.5-flash")
+    model = genai.GenerativeModel("gemini-2.0-flash")
 
     prompt = f"""You are an expert cricket tactics coach. Suggest the best field placement.
 

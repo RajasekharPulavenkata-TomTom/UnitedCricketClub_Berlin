@@ -69,7 +69,7 @@ async def suggest_field(req: FieldRequest):
         raise HTTPException(status_code=503, detail="AI service not configured — set GEMINI_API_KEY")
 
     genai.configure(api_key=api_key)
-    model = genai.GenerativeModel("gemini-2.0-flash")
+    model = genai.GenerativeModel("gemini-2.5-flash")
 
     restriction = RESTRICTION_RULES.get(req.phase, RESTRICTION_RULES["none"])
 

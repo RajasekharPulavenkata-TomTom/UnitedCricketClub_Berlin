@@ -1,6 +1,6 @@
 from pydantic import BaseModel
 from typing import Optional, List
-from datetime import datetime, date
+from datetime import datetime, date as Date
 
 
 class MemberRef(BaseModel):
@@ -32,20 +32,20 @@ class ParticipantOut(BaseModel):
 class TournamentCreate(BaseModel):
     name: str
     total_fee: float
-    date: Optional[date] = None
+    date: Optional[Date] = None
 
 
 class TournamentUpdate(BaseModel):
     name: Optional[str] = None
     total_fee: Optional[float] = None
-    date: Optional[date] = None
+    date: Optional[Date] = None
 
 
 class TournamentOut(BaseModel):
     id: int
     name: str
     total_fee: float
-    date: Optional[date] = None
+    date: Optional[Date] = None
     created_at: datetime
     updated_at: datetime
     participants: List[ParticipantOut] = []

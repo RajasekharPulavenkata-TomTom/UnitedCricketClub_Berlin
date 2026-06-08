@@ -39,6 +39,6 @@ class MemberUpdate(BaseModel):
 class MemberOut(MemberBase):
     id: int
     is_active: bool
-    created_at: datetime
+    created_at: Optional[datetime] = None
 
     model_config = {"from_attributes": True}

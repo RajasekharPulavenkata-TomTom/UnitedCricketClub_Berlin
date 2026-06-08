@@ -137,6 +137,8 @@ def _run_migrations():
                     CONSTRAINT uq_anon_poll_user UNIQUE (poll_id, user_id)
                 )
             """))
+        # Fix any NULL created_at left by raw-SQL seed inserts
+        conn.execute(text("UPDATE members SET created_at = NOW() WHERE created_at IS NULL"))
         # Performance indexes — PostgreSQL does not auto-index FK columns
         conn.execute(text("CREATE INDEX IF NOT EXISTS ix_transactions_category_id ON transactions (category_id)"))
         conn.execute(text("CREATE INDEX IF NOT EXISTS ix_transactions_date ON transactions (date DESC)"))
@@ -221,7 +223,7 @@ def _seed_members():
                 )
             else:
                 conn.execute(
-                    text("INSERT INTO members (name, email, phone, is_active) VALUES (:n, :e, :p, TRUE)"),
+                    text("INSERT INTO members (name, email, phone, is_active, created_at) VALUES (:n, :e, :p, TRUE, NOW())"),
                     {"n": name, "e": email, "p": phone},
                 )
 

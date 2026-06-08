@@ -17,6 +17,18 @@ export async function init() {
         if (t) openTournamentModal(t);
     });
     document.getElementById("btn-copy-summary").addEventListener("click", copySummary);
+    document.getElementById("btn-delete-tournament").addEventListener("click", async (e) => {
+        const id = parseInt(e.currentTarget.dataset.id);
+        if (!id || !confirm("Delete this tournament and all its data? This cannot be undone.")) return;
+        try {
+            await apiFetch(`/tournaments/${id}`, { method: "DELETE" });
+            closeDetail();
+            showToast("Tournament deleted");
+            await loadAll();
+        } catch (err) {
+            showToast(err.message, "error");
+        }
+    });
 
     await loadAll();
 }
@@ -45,6 +57,10 @@ async function refreshTournament(id) {
 
 // ── Rendering ─────────────────────────────────────────────────────────────────
 
+function _allPaid(t) {
+    return t.participants.length === 0 || t.participants.every(p => p.paid);
+}
+
 function renderTournaments() {
     const tbody = document.getElementById("tournament-tbody");
     if (!tournaments.length) {
@@ -56,19 +72,26 @@ function renderTournaments() {
         const paidCount = t.participants.filter(p => p.paid).length;
         const feePerMatch = totalMatches ? "€" + (t.total_fee / totalMatches).toFixed(2) : "—";
         const dateStr = t.date ? new Date(t.date + "T00:00:00").toLocaleDateString("en-GB") : "—";
+        const canDelete = _allPaid(t);
+        const deleteBtn = canDelete
+            ? `<button class="btn btn-sm btn-outline-danger" title="Delete tournament" onclick="event.stopPropagation(); window._deleteTournament(${t.id})">
+                 <i class="bi bi-trash"></i>
+               </button>`
+            : `<button class="btn btn-sm btn-outline-danger" disabled title="Cannot delete — outstanding payments remain">
+                 <i class="bi bi-trash"></i>
+               </button>`;
         return `
         <tr class="align-middle" style="cursor:pointer" onclick="window._viewTournament(${t.id})">
           <td class="fw-semibold">${t.name}</td>
           <td class="text-muted">${dateStr}</td>
           <td>${fmt.currency(t.total_fee)}</td>
           <td>${t.participants.length}</td>
-          <td>${paidCount}/${t.participants.length}</td>
-          <td>${feePerMatch}</td>
-          <td class="text-end">
-            <button class="btn btn-sm btn-outline-danger" onclick="event.stopPropagation(); window._deleteTournament(${t.id})">
-              <i class="bi bi-trash"></i>
-            </button>
+          <td>${paidCount === t.participants.length && t.participants.length > 0
+              ? `<span class="badge bg-success">${paidCount}/${t.participants.length} ✓</span>`
+              : `${paidCount}/${t.participants.length}`}
           </td>
+          <td>${feePerMatch}</td>
+          <td class="text-end" onclick="event.stopPropagation()">${deleteBtn}</td>
         </tr>`;
     }).join("");
 }
@@ -91,9 +114,13 @@ function showDetail(t) {
     const tbody = document.getElementById("participants-tbody");
     const tfoot = document.getElementById("participants-tfoot");
 
+    const delBtn = document.getElementById("btn-delete-tournament");
+    delBtn.dataset.id = t.id;
+
     if (!t.participants.length) {
         tbody.innerHTML = `<tr><td colspan="5" class="text-muted text-center py-3">No players added yet.</td></tr>`;
         tfoot.style.display = "none";
+        delBtn.classList.remove("d-none"); // no participants = safe to delete
         return;
     }
 
@@ -137,6 +164,14 @@ function showDetail(t) {
     document.getElementById("fee-per-match-label").textContent =
         `€${feePerMatch.toFixed(2)} per match (${fmt.currency(t.total_fee)} ÷ ${totalMatches} matches)`;
     tfoot.style.display = "";
+
+    const delBtn = document.getElementById("btn-delete-tournament");
+    if (_allPaid(t)) {
+        delBtn.classList.remove("d-none");
+        delBtn.dataset.id = t.id;
+    } else {
+        delBtn.classList.add("d-none");
+    }
 }
 
 function closeDetail() {

@@ -26,7 +26,8 @@ export async function init() {
     renderMembers(members);
     renderEquipment(equipment);
     renderFinance(finance);
-    renderEvents(upcoming, activeCount);
+    renderNextEvent(upcoming, activeCount);
+    renderSchedule(upcoming, activeCount);
     renderTasks(tasks);
 }
 
@@ -117,71 +118,149 @@ function renderEquipment(equipment) {
         `<p class="text-muted small">No equipment.</p>`;
 }
 
-function renderEvents(events, activeCount) {
-    const el = document.getElementById("home-events");
+function _homeAwayBadge(e) {
+    if (e.home_away === "home")
+        return `<span class="badge bg-warning text-dark"><i class="bi bi-house-fill me-1"></i>Home</span>`;
+    if (e.home_away === "away")
+        return `<span class="badge bg-secondary"><i class="bi bi-airplane-engines-fill me-1"></i>Away</span>`;
+    return "";
+}
+
+function _countDown(dateStr) {
+    const diffDays = Math.round((new Date(dateStr + "T12:00:00") - Date.now()) / 86400000);
+    if (diffDays === 0) return "Today";
+    if (diffDays === 1) return "Tomorrow";
+    return `In ${diffDays} days`;
+}
+
+function renderNextEvent(events, activeCount) {
+    const el = document.getElementById("home-next-event");
     if (!events.length) {
-        el.innerHTML = `<p class="text-muted small text-center py-3 mb-0">No upcoming events.</p>`;
+        el.innerHTML = `<div class="card p-4 text-center text-muted">
+            <i class="bi bi-calendar-x" style="font-size:2rem;opacity:.3"></i>
+            <div class="mt-2">No upcoming events scheduled.</div>
+        </div>`;
         return;
     }
 
-    const typeColor = { match: "bg-primary", training: "bg-success", other: "bg-secondary" };
-    const typeEmoji = { match: "🏏", training: "🎯", other: "📅" };
+    const e = events[0];
+    const total    = e.available_count + e.unavailable_count + e.maybe_count;
+    const noReply  = Math.max(0, activeCount - total);
+    const isMatch  = e.type === "match";
+    const typeIcon = isMatch ? "bi-cricket" : (e.type === "training" ? "bi-bullseye" : "bi-calendar-event");
 
-    el.innerHTML = `<div class="table-responsive"><table class="table table-hover mb-0">
-      <thead class="table-light">
-        <tr>
-          <th>Date</th><th>Event</th><th class="text-center">Available</th>
-          <th class="text-center">Unavailable</th><th class="text-center">Maybe</th><th class="text-center">No Reply</th>
-        </tr>
-      </thead>
-      <tbody>
-        ${events.map((e) => {
-            const total = e.available_count + e.unavailable_count + e.maybe_count;
-            const noReply = activeCount - total;
-            return `<tr style="cursor:pointer" onclick="location.hash='calendar'">
-              <td class="text-nowrap">${fmt.date(e.date)}</td>
-              <td>
-                <span class="badge ${typeColor[e.type] || "bg-secondary"} me-2">${typeEmoji[e.type] || ""} ${e.type}</span>
-                ${e.home_away === "home"
-                    ? `<span class="badge badge-prepare-ground me-2"><i class="bi bi-house-fill me-1"></i>Prepare Ground</span>`
-                    : e.home_away === "away"
-                    ? `<span class="badge bg-secondary me-2"><i class="bi bi-airplane-engines-fill me-1"></i>Away</span>`
-                    : ""}
-                <span class="fw-medium">${e.title}</span>
-                <div class="text-muted small mt-1 d-flex flex-wrap gap-2">
-                  ${e.match_type ? `<span><i class="bi bi-trophy me-1"></i>${e.match_type}</span>` : ""}
-                  ${e.match_time ? `<span><i class="bi bi-stopwatch me-1"></i>${e.match_time.substring(0, 5)}</span>` : ""}
-                  ${e.reporting_time ? `<span><i class="bi bi-clock me-1"></i>Report ${e.reporting_time.substring(0, 5)}</span>` : ""}
-                  ${e.location ? `<span><i class="bi bi-geo-alt me-1"></i>${e.location}</span>` : ""}
+    el.innerHTML = `
+    <div class="next-event-card p-4 mb-2" onclick="location.hash='calendar'" style="cursor:pointer">
+      <div class="next-event-label mb-2"><i class="bi bi-broadcast me-1"></i>${_countDown(e.date)} &mdash; Next Event</div>
+      <div class="d-flex align-items-start justify-content-between flex-wrap gap-3">
+        <div>
+          <h3 class="mb-1 fw-bold" style="color:#fff">${e.title}</h3>
+          <div class="d-flex flex-wrap gap-2 align-items-center mb-3">
+            <span class="badge ${isMatch ? "bg-warning text-dark" : "bg-success"} px-2 py-1">
+              <i class="bi ${typeIcon} me-1"></i>${e.type.charAt(0).toUpperCase() + e.type.slice(1)}
+            </span>
+            ${_homeAwayBadge(e)}
+            ${e.match_type ? `<span class="badge bg-light text-dark">${e.match_type}</span>` : ""}
+          </div>
+          <div class="d-flex flex-wrap gap-3" style="opacity:.9;font-size:.9rem">
+            <span><i class="bi bi-calendar3 me-1"></i>${fmt.date(e.date)}</span>
+            ${e.match_time     ? `<span><i class="bi bi-stopwatch me-1"></i>${e.match_time.substring(0,5)}</span>`     : ""}
+            ${e.reporting_time ? `<span><i class="bi bi-clock me-1"></i>Report ${e.reporting_time.substring(0,5)}</span>` : ""}
+            ${e.location       ? `<span><i class="bi bi-geo-alt me-1"></i>${e.location}</span>`                         : ""}
+          </div>
+          <div id="home-wx-next" class="mt-2" style="opacity:.85;font-size:.85rem"></div>
+        </div>
+        <div class="d-flex flex-wrap gap-2">
+          <div class="avail-pill" style="background:rgba(255,255,255,.15)">
+            <i class="bi bi-check-circle-fill text-success"></i> ${e.available_count} Available
+          </div>
+          <div class="avail-pill" style="background:rgba(255,255,255,.15)">
+            <i class="bi bi-x-circle-fill text-danger"></i> ${e.unavailable_count} Out
+          </div>
+          <div class="avail-pill" style="background:rgba(255,255,255,.15)">
+            <i class="bi bi-question-circle-fill text-warning"></i> ${e.maybe_count} Maybe
+          </div>
+          ${noReply ? `<div class="avail-pill" style="background:rgba(255,255,255,.1);opacity:.7">
+            <i class="bi bi-hourglass-split"></i> ${noReply} No reply
+          </div>` : ""}
+        </div>
+      </div>
+    </div>`;
+
+    // Weather for next event
+    const diffDays = Math.round((new Date(e.date + "T12:00:00") - Date.now()) / 86400000);
+    const wxEl = document.getElementById("home-wx-next");
+    if (wxEl) {
+        if (diffDays > 15) {
+            wxEl.innerHTML = `<i class="bi bi-cloud-slash me-1"></i>Forecast available closer to event`;
+        } else {
+            fetchWeather(e.date).then((w) => {
+                if (!w || !wxEl) return;
+                const { icon, color, label } = wmoInfo(w.code);
+                const swing = swingInfo(w);
+                wxEl.innerHTML = `<i class="bi ${icon} me-1" style="color:${color}" title="${label}"></i>${w.maxT}°C / ${w.minT}°C`
+                    + `&nbsp;&nbsp;<span class="badge ${swing.badgeClass}" title="${swing.reason}"><i class="bi bi-wind me-1"></i>${swing.level} swing</span>`;
+            });
+        }
+    }
+}
+
+function renderSchedule(events, activeCount) {
+    const el = document.getElementById("home-schedule");
+    const rest = events.slice(1, 8); // skip the first (shown as hero), show up to 7 more
+    if (!rest.length) {
+        el.innerHTML = `<p class="text-muted small text-center py-2 mb-0">No further events scheduled.</p>`;
+        return;
+    }
+
+    const typeRowClass = { match: "event-row-match", training: "event-row-training", other: "event-row-other" };
+    const typeEmoji    = { match: "🏏", training: "🎯", other: "📅" };
+
+    el.innerHTML = `<div class="d-flex flex-column gap-2">
+        ${rest.map(e => {
+            const total   = e.available_count + e.unavailable_count + e.maybe_count;
+            const noReply = Math.max(0, activeCount - total);
+            return `
+            <div class="event-row ${typeRowClass[e.type] || "event-row-other"}" onclick="location.hash='calendar'">
+              <div class="d-flex align-items-start justify-content-between flex-wrap gap-2">
+                <div>
+                  <div class="d-flex align-items-center gap-2 flex-wrap">
+                    <span class="fw-semibold">${typeEmoji[e.type] || "📅"} ${e.title}</span>
+                    ${_homeAwayBadge(e)}
+                    ${e.match_type ? `<span class="badge bg-light text-dark border" style="font-size:.65rem">${e.match_type}</span>` : ""}
+                  </div>
+                  <div class="text-muted small mt-1 d-flex flex-wrap gap-2">
+                    <span><i class="bi bi-calendar3 me-1"></i>${fmt.date(e.date)}</span>
+                    ${e.match_time     ? `<span><i class="bi bi-stopwatch me-1"></i>${e.match_time.substring(0,5)}</span>`       : ""}
+                    ${e.reporting_time ? `<span><i class="bi bi-clock me-1"></i>Report ${e.reporting_time.substring(0,5)}</span>` : ""}
+                    ${e.location       ? `<span><i class="bi bi-geo-alt me-1"></i>${e.location}</span>`                          : ""}
+                  </div>
+                  <div id="home-wx-${e.id}" class="text-muted small mt-1"></div>
                 </div>
-                <div id="home-wx-${e.id}" class="text-muted small mt-1"></div>
-              </td>
-              <td class="text-center"><span class="badge bg-success">${e.available_count}</span></td>
-              <td class="text-center"><span class="badge bg-danger">${e.unavailable_count}</span></td>
-              <td class="text-center"><span class="badge bg-warning text-dark">${e.maybe_count}</span></td>
-              <td class="text-center"><span class="badge bg-light text-muted border">${noReply < 0 ? 0 : noReply}</span></td>
-            </tr>`;
+                <div class="d-flex gap-1 flex-wrap align-items-center" style="font-size:.78rem">
+                  <span class="badge bg-success">${e.available_count} ✓</span>
+                  <span class="badge bg-danger">${e.unavailable_count} ✗</span>
+                  <span class="badge bg-warning text-dark">${e.maybe_count} ?</span>
+                  ${noReply ? `<span class="badge bg-light text-muted border">${noReply} —</span>` : ""}
+                </div>
+              </div>
+            </div>`;
         }).join("")}
-      </tbody>
-    </table></div>`;
+    </div>`;
 
     const todayMs = Date.now();
-    events.forEach((e) => {
+    rest.forEach(e => {
         const diffDays = Math.round((new Date(e.date + "T12:00:00") - todayMs) / 86400000);
         const cell = document.getElementById(`home-wx-${e.id}`);
-        if (!cell) return;
-        if (diffDays > 15) {
-            cell.innerHTML = `<span style="font-size:.7rem"><i class="bi bi-cloud-slash me-1"></i>Forecast available closer to event</span>`;
-            return;
-        }
-        fetchWeather(e.date).then((w) => {
+        if (!cell || diffDays > 15) return;
+        fetchWeather(e.date).then(w => {
             if (!w) return;
             const live = document.getElementById(`home-wx-${e.id}`);
             if (!live) return;
-            const { icon, color, label } = wmoInfo(w.code);
+            const { icon, color } = wmoInfo(w.code);
             const swing = swingInfo(w);
-            live.innerHTML = `<i class="bi ${icon} me-1" style="color:${color}" title="${label}"></i>${w.maxT}°C / ${w.minT}°C` +
-                `&nbsp;&nbsp;<span class="badge ${swing.badgeClass}" title="${swing.reason}"><i class="bi bi-wind me-1"></i>${swing.level} swing</span>`;
+            live.innerHTML = `<i class="bi ${icon} me-1" style="color:${color}"></i>${w.maxT}°C / ${w.minT}°C`
+                + `&nbsp;<span class="badge ${swing.badgeClass}"><i class="bi bi-wind me-1"></i>${swing.level} swing</span>`;
         });
     });
 }

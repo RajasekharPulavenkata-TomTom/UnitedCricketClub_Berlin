@@ -1,0 +1,32 @@
+<!-- Scoreboard (CricClubs embed) -->
+<style>
+  #scoreboard-iframe {
+    width: 100%;
+    border: none;
+    border-radius: 8px;
+    min-height: 80vh;
+    background: #f8f9fa;
+  }
+</style>
+
+<div class="d-flex flex-column gap-3">
+  <div class="d-flex align-items-center justify-content-between flex-wrap gap-2">
+    <h4 class="mb-0">📊 Scoreboard — ODCV 50 Overs 2026</h4>
+    <a href="https://cricclubs.com/OstdeutscherCricketVerbandeV/listMatches.do?clubId=1007777&teamName=ACB+2nd+XI&seriesName=ODCV+50+Overs+2026"
+       target="_blank" rel="noopener noreferrer"
+       class="btn btn-sm btn-outline-primary">
+      <i class="bi bi-box-arrow-up-right me-1"></i>Open in CricClubs
+    </a>
+  </div>
+  <div class="card p-0 overflow-hidden shadow-sm">
+    <iframe
+      id="scoreboard-iframe"
+      src="https://cricclubs.com/OstdeutscherCricketVerbandeV/listMatches.do?clubId=1007777&teamName=ACB+2nd+XI&seriesName=ODCV+50+Overs+2026"
+      title="ODCV 50 Overs 2026 — ACB 2nd XI Scoreboard"
+      loading="lazy"
+    ></iframe>
+  </div>
+  <p class="text-muted small mb-0">
+    <i class="bi bi-info-circle me-1"></i>Scores powered by <a href="https://cricclubs.com" target="_blank" rel="noopener noreferrer">CricClubs</a>. If the page doesn't load, use the "Open in CricClubs" button above.
+  </p>
+</div>

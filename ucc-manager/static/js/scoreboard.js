@@ -33,7 +33,7 @@ async function _load() {
     const year = document.getElementById("sb-year").value;
     const qs   = year ? `?year=${year}&_=${_SV}` : `?_=${_SV}`;
     try {
-        _results = await apiFetch(`/api/scoreboard${qs}`);
+        _results = await apiFetch(`/scoreboard${qs}`);
         _renderStats();
         _renderList();
     } catch (e) {
@@ -194,9 +194,9 @@ async function _save() {
     btn.disabled = true;
     try {
         if (id) {
-            await apiFetch(`/api/scoreboard/${id}`, { method: "PUT", body: JSON.stringify(body) });
+            await apiFetch(`/scoreboard/${id}`, { method: "PUT", body: JSON.stringify(body) });
         } else {
-            await apiFetch("/api/scoreboard", { method: "POST", body: JSON.stringify(body) });
+            await apiFetch("/scoreboard", { method: "POST", body: JSON.stringify(body) });
         }
         _modal().hide();
         await _load();
@@ -212,7 +212,7 @@ async function _deleteConfirm() {
     const btn = document.getElementById("btn-sb-delete-confirm");
     btn.disabled = true;
     try {
-        await apiFetch(`/api/scoreboard/${_deleteId}`, { method: "DELETE" });
+        await apiFetch(`/scoreboard/${_deleteId}`, { method: "DELETE" });
         _delModal().hide();
         _deleteId = null;
         await _load();

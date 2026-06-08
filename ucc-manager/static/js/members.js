@@ -18,12 +18,12 @@ export async function init() {
 
 async function load() {
     const tbody = document.getElementById("members-tbody");
-    tbody.innerHTML = `<tr><td colspan="8" class="text-center py-3"><div class="spinner-border spinner-border-sm"></div></td></tr>`;
+    tbody.innerHTML = `<tr><td colspan="12" class="text-center py-3"><div class="spinner-border spinner-border-sm"></div></td></tr>`;
     try {
         allMembers = await apiFetch("/members");
         render();
     } catch (e) {
-        tbody.innerHTML = `<tr><td colspan="8" class="text-danger text-center">${e.message}</td></tr>`;
+        tbody.innerHTML = `<tr><td colspan="12" class="text-danger text-center">${e.message}</td></tr>`;
     }
 }
 
@@ -34,12 +34,17 @@ function render() {
     const tbody = document.getElementById("members-tbody");
 
     let filtered = allMembers;
-    if (search) filtered = filtered.filter((m) => m.name.toLowerCase().includes(search) || (m.jersey_name || "").toLowerCase().includes(search));
+    if (search) filtered = filtered.filter((m) =>
+        m.name.toLowerCase().includes(search) ||
+        (m.jersey_name || "").toLowerCase().includes(search) ||
+        (m.email || "").toLowerCase().includes(search) ||
+        (m.phone || "").includes(search)
+    );
     if (activeOnly) filtered = filtered.filter((m) => m.is_active);
     if (ballType) filtered = filtered.filter((m) => m.ball_type === ballType);
 
     if (!filtered.length) {
-        tbody.innerHTML = `<tr><td colspan="10" class="text-center py-4 text-muted">No members found.</td></tr>`;
+        tbody.innerHTML = `<tr><td colspan="12" class="text-center py-4 text-muted">No members found.</td></tr>`;
         return;
     }
 
@@ -55,6 +60,8 @@ function render() {
           <td>
             <div class="fw-semibold">${escHtml(m.name)}</div>
           </td>
+          <td class="small">${m.email ? `<a href="mailto:${escHtml(m.email)}">${escHtml(m.email)}</a>` : "—"}</td>
+          <td class="small text-nowrap">${escHtml(m.phone || "—")}</td>
           <td>
             ${m.jersey_name ? `<span class="fw-semibold">${escHtml(m.jersey_name)}</span>` : ""}
             ${m.jersey_number ? `<span class="badge bg-secondary ms-1">#${escHtml(m.jersey_number)}</span>` : ""}
@@ -90,6 +97,8 @@ function openModal(member = null) {
     form.reset();
     if (member) {
         form.name.value = member.name;
+        form.email.value = member.email ?? "";
+        form.phone.value = member.phone ?? "";
         form.jersey_name.value = member.jersey_name ?? "";
         form.jersey_number.value = member.jersey_number ?? "";
         form.role.value = member.role ?? "";
@@ -107,6 +116,8 @@ async function onSubmit(e) {
     const form = e.target;
     const body = {
         name: form.name.value.trim(),
+        email: form.email.value.trim() || null,
+        phone: form.phone.value.trim() || null,
         jersey_name: form.jersey_name.value.trim() || null,
         jersey_number: form.jersey_number.value ? parseInt(form.jersey_number.value) : null,
         role: form.role.value || null,

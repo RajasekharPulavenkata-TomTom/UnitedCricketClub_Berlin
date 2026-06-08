@@ -37,6 +37,8 @@
           <tr>
             <th>#</th>
             <th>Name</th>
+            <th>Email</th>
+            <th>Phone</th>
             <th>Jersey</th>
             <th>Role</th>
             <th>Ball Type</th>
@@ -48,7 +50,7 @@
           </tr>
         </thead>
         <tbody id="members-tbody">
-          <tr><td colspan="10" class="text-center py-4 text-muted">Loading…</td></tr>
+          <tr><td colspan="12" class="text-center py-4 text-muted">Loading…</td></tr>
         </tbody>
       </table>
     </div>
@@ -80,6 +82,14 @@
                 <option value="Bat/WK">Bat/WK</option>
                 <option value="Bowler">Bowler</option>
               </select>
+            </div>
+            <div class="col-md-6">
+              <label class="form-label">Email</label>
+              <input type="email" class="form-control" name="email" placeholder="player@example.com" />
+            </div>
+            <div class="col-md-6">
+              <label class="form-label">Phone</label>
+              <input type="text" class="form-control" name="phone" placeholder="+1 xxx xxx xxxx" />
             </div>
             <div class="col-md-4">
               <label class="form-label">Ball Type</label>

@@ -16,6 +16,8 @@ class Member(Base):
     jersey_number = Column(Integer)
     role = Column(String(50))
     ball_type = Column(String(20))  # Tennis, Leather, Both
+    email = Column(String(200))
+    phone = Column(String(30))
     dcb_id = Column(String(20))
     cricheroes = Column(Boolean, nullable=False, default=False)
     cricclubs = Column(Boolean, nullable=False, default=False)

@@ -9,6 +9,8 @@ class MemberBase(BaseModel):
     jersey_number: Optional[int] = None
     role: Optional[str] = None
     ball_type: Optional[str] = None
+    email: Optional[str] = None
+    phone: Optional[str] = None
     dcb_id: Optional[str] = None
     cricheroes: bool = False
     cricclubs: bool = False
@@ -25,6 +27,8 @@ class MemberUpdate(BaseModel):
     jersey_number: Optional[int] = None
     role: Optional[str] = None
     ball_type: Optional[str] = None
+    email: Optional[str] = None
+    phone: Optional[str] = None
     dcb_id: Optional[str] = None
     cricheroes: Optional[bool] = None
     cricclubs: Optional[bool] = None

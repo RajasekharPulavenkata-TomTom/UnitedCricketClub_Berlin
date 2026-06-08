@@ -1,0 +1,87 @@
+<h3 class="page-header"><i class="bi bi-bank me-2"></i>Club Registration Fees</h3>
+
+<div class="row justify-content-center">
+  <div class="col-lg-7">
+
+    <div class="card mb-4 border-0 shadow-sm">
+      <div class="card-body p-4">
+        <h5 class="fw-bold mb-1">Annual Membership Fee</h5>
+        <p class="text-muted small mb-4">
+          Pay your registration and annual membership fee by bank transfer to the account below.
+          Use the exact reference format so your payment is correctly matched.
+        </p>
+
+        <!-- Bank details -->
+        <div class="mb-3">
+          <div class="text-muted small fw-semibold text-uppercase mb-1" style="letter-spacing:.06em">Account Holder</div>
+          <div class="fw-semibold fs-6">HELLERSDORFER ATHLETIK-CLUB BERLIN e. V.</div>
+        </div>
+
+        <div class="mb-3">
+          <div class="text-muted small fw-semibold text-uppercase mb-1" style="letter-spacing:.06em">IBAN</div>
+          <div class="d-flex align-items-center gap-2 flex-wrap">
+            <code class="fs-5 fw-bold letter-spacing-1" id="iban-display">DE98 1203 0000 1020 3463 16</code>
+            <button class="btn btn-sm btn-outline-secondary" onclick="copyIBAN()" id="copy-iban-btn" title="Copy IBAN">
+              <i class="bi bi-clipboard me-1"></i>Copy
+            </button>
+          </div>
+        </div>
+
+        <div class="mb-4">
+          <div class="text-muted small fw-semibold text-uppercase mb-1" style="letter-spacing:.06em">Payment Reference</div>
+          <div class="alert alert-warning py-2 px-3 mb-2 d-flex align-items-start gap-2">
+            <i class="bi bi-exclamation-triangle-fill text-warning mt-1 flex-shrink-0"></i>
+            <div>
+              <div class="fw-semibold small">Use this exact format — replace <em>YourName</em> with your full name</div>
+            </div>
+          </div>
+          <code class="d-block p-3 rounded" style="background:#f8f9fa;font-size:.95rem;line-height:1.6" id="ref-display">
+            Cricket, YourName, Anmeldung, Dezemberbeitrag, Jahresbeitrage 2026
+          </code>
+          <button class="btn btn-sm btn-outline-secondary mt-2" onclick="copyRef()" id="copy-ref-btn">
+            <i class="bi bi-clipboard me-1"></i>Copy Reference
+          </button>
+        </div>
+
+        <hr class="my-3" />
+
+        <div class="d-flex flex-wrap gap-3 text-muted small">
+          <div><i class="bi bi-info-circle me-1"></i><strong>Anmeldung</strong> — Registration fee</div>
+          <div><i class="bi bi-info-circle me-1"></i><strong>Dezemberbeitrag</strong> — December contribution</div>
+          <div><i class="bi bi-info-circle me-1"></i><strong>Jahresbeitrage 2026</strong> — Annual membership 2026</div>
+        </div>
+      </div>
+    </div>
+
+    <div class="alert alert-info small">
+      <i class="bi bi-envelope me-1"></i>
+      If you have questions about fees, reach out to your club manager.
+    </div>
+
+  </div>
+</div>
+
+<script>
+function copyIBAN() {
+    navigator.clipboard.writeText("DE98120300001020346316").then(() => {
+        const btn = document.getElementById("copy-iban-btn");
+        btn.innerHTML = '<i class="bi bi-check-lg me-1"></i>Copied!';
+        btn.classList.replace("btn-outline-secondary", "btn-success");
+        setTimeout(() => {
+            btn.innerHTML = '<i class="bi bi-clipboard me-1"></i>Copy';
+            btn.classList.replace("btn-success", "btn-outline-secondary");
+        }, 2000);
+    });
+}
+function copyRef() {
+    navigator.clipboard.writeText("Cricket, YourName, Anmeldung, Dezemberbeitrag, Jahresbeitrage 2026").then(() => {
+        const btn = document.getElementById("copy-ref-btn");
+        btn.innerHTML = '<i class="bi bi-check-lg me-1"></i>Copied!';
+        btn.classList.replace("btn-outline-secondary", "btn-success");
+        setTimeout(() => {
+            btn.innerHTML = '<i class="bi bi-clipboard me-1"></i>Copy Reference';
+            btn.classList.replace("btn-success", "btn-outline-secondary");
+        }, 2000);
+    });
+}
+</script>

@@ -204,6 +204,7 @@ const PAGES = {
     tasks:              { html: "/pages/tasks.html",               js: "/js/tasks.js"              },
     "tournament-fees":  { html: "/pages/tournament-fees.html",    js: "/js/tournament-fees.js"    },
     "match-fees":       { html: "/pages/match-fees.html",         js: "/js/match-fees.js"         },
+    "club-fees":        { html: "/pages/club-fees.html",          js: "/js/club-fees.js"          },
     "reporting":          { html: "/pages/reporting.html",           js: "/js/reporting.js"           },
     "practice-reporting": { html: "/pages/practice-reporting.html", js: "/js/practice-reporting.js"  },
     "field-editor":       { html: "/pages/field-editor.html",       js: "/js/field-editor.js"         },

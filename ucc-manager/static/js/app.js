@@ -137,7 +137,38 @@ function bootApp() {
 
     window.addEventListener("hashchange", router);
     router();
+    _loadSponsorsFooter();
 }
+
+async function _loadSponsorsFooter() {
+    try {
+        const sponsors = await apiFetch("/sponsors");
+        const active = sponsors.filter(s => s.is_active);
+        const footer  = document.getElementById("sponsors-footer");
+        const logos   = document.getElementById("sponsors-footer-logos");
+        if (!active.length) { footer.classList.add("d-none"); return; }
+        logos.innerHTML = active.map(s => {
+            const nameEsc = String(s.name ?? "").replace(/&/g,"&amp;").replace(/</g,"&lt;").replace(/>/g,"&gt;").replace(/"/g,"&quot;");
+            const logoHtml = s.logo_url
+                ? `<img src="${s.logo_url}" alt="${nameEsc}" style="max-height:48px;max-width:140px;object-fit:contain;display:block" onerror="this.style.display='none'">`
+                : "";
+            const card = `
+                <div class="d-flex flex-column align-items-center gap-1">
+                    ${logoHtml}
+                    <span class="fw-semibold small text-dark">${nameEsc}</span>
+                    ${s.website_url ? `<span class="text-muted" style="font-size:.7rem">${String(s.website_url).replace(/^https?:\/\//,"")}</span>` : ""}
+                </div>`;
+            return s.website_url
+                ? `<a href="${s.website_url}" target="_blank" rel="noopener noreferrer" class="text-decoration-none">${card}</a>`
+                : card;
+        }).join("");
+        footer.classList.remove("d-none");
+    } catch {
+        // silently skip if sponsors endpoint fails
+    }
+}
+
+window._refreshSponsorsFooter = _loadSponsorsFooter;
 
 // ── Boot ───────────────────────────────────────────────────────────────────────
 
@@ -176,7 +207,7 @@ const PAGES = {
     "reporting":          { html: "/pages/reporting.html",           js: "/js/reporting.js"           },
     "practice-reporting": { html: "/pages/practice-reporting.html", js: "/js/practice-reporting.js"  },
     "field-editor":       { html: "/pages/field-editor.html",       js: "/js/field-editor.js"         },
-    scoreboard:           { html: "/pages/scoreboard.html",          js: "/js/scoreboard.js"           },
+    "match-results":      { html: "/pages/scoreboard.html",          js: "/js/scoreboard.js"           },
     calendar:           { html: "/pages/calendar.html",            js: "/js/calendar.js"           },
     rules:              { html: "/pages/rules.html",               js: "/js/rules.js"              },
     history:            { html: "/pages/history.html",             js: "/js/history.js"            },
@@ -190,6 +221,7 @@ const PAGES = {
     violations:         { html: "/pages/violations.html",          js: "/js/violations.js"         },
     approvals:          { html: "/pages/approvals.html",           js: "/js/approvals.js"          },
     "user-management":  { html: "/pages/user-management.html",    js: "/js/user-management.js"    },
+    sponsors:           { html: "/pages/sponsors.html",            js: "/js/sponsors.js"           },
 };
 
 async function router() {

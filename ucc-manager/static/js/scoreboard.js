@@ -1,24 +1,278 @@
 import { apiFetch } from "/js/api.js";
 import { isAdmin } from "/js/auth.js";
 
-const _SV = Date.now();
-
 let _results = [];
 let _deleteId = null;
 const _modal    = () => bootstrap.Modal.getOrCreateInstance(document.getElementById("sbModal"));
 const _delModal = () => bootstrap.Modal.getOrCreateInstance(document.getElementById("sbDeleteModal"));
+const _scModal  = () => bootstrap.Modal.getOrCreateInstance(document.getElementById("sbScorecardModal"));
 
 export async function init() {
     if (isAdmin()) document.getElementById("btn-sb-add").classList.remove("d-none");
 
     _populateYears();
-    await _load();
 
-    document.getElementById("sb-year").addEventListener("change", _load);
+    document.getElementById("sb-year").addEventListener("change", _loadManual);
     document.getElementById("btn-sb-add").addEventListener("click", _openAdd);
     document.getElementById("btn-sb-save").addEventListener("click", _save);
     document.getElementById("btn-sb-delete-confirm").addEventListener("click", _deleteConfirm);
+    document.getElementById("btn-cc-refresh").addEventListener("click", _loadLive);
+
+    // Load both in parallel
+    _loadLive();
+    _loadManual();
 }
+
+// ── Tab switching ──────────────────────────────────────────────────────────────
+
+window._sbTab = function(tab) {
+    const isLive = tab === "live";
+    document.getElementById("tab-live").classList.toggle("d-none", !isLive);
+    document.getElementById("tab-manual").classList.toggle("d-none", isLive);
+    document.getElementById("tab-live-btn").classList.toggle("active", isLive);
+    document.getElementById("tab-manual-btn").classList.toggle("active", !isLive);
+};
+
+// ── CricClubs live ─────────────────────────────────────────────────────────────
+
+async function _loadLive() {
+    const btn = document.getElementById("btn-cc-refresh");
+    btn.disabled = true;
+    btn.innerHTML = `<span class="spinner-border spinner-border-sm me-1"></span>Loading…`;
+    document.getElementById("cc-results-list").innerHTML =
+        `<div class="text-center text-muted py-4"><div class="spinner-border spinner-border-sm mb-2"></div><br>Fetching CricClubs data…</div>`;
+    document.getElementById("cc-fixtures-list").innerHTML = "";
+
+    try {
+        const data = await apiFetch("/scoreboard/cricclubs");
+        _renderLiveStats(data.stats);
+        _renderLiveResults(data.results || []);
+        _renderLiveFixtures(data.fixtures || []);
+    } catch (e) {
+        document.getElementById("cc-results-list").innerHTML =
+            `<div class="alert alert-warning"><i class="bi bi-exclamation-triangle me-2"></i>Could not load CricClubs data: ${e.message}</div>`;
+    } finally {
+        btn.disabled = false;
+        btn.innerHTML = `<i class="bi bi-arrow-clockwise me-1"></i>Refresh Live`;
+    }
+}
+
+function _renderLiveStats(s) {
+    if (!s) return;
+    document.getElementById("cc-stat-played").textContent = s.played ?? "—";
+    document.getElementById("cc-stat-won").textContent    = s.won    ?? "—";
+    document.getElementById("cc-stat-lost").textContent   = s.lost   ?? "—";
+    document.getElementById("cc-stat-winpct").textContent = s.win_pct != null ? `${s.win_pct}%` : "—";
+}
+
+function _resultBadge(result) {
+    const map = {
+        won:          ["bg-success",  "Won"],
+        lost:         ["bg-danger",   "Lost"],
+        tied:         ["bg-warning text-dark", "Tied"],
+        "no-result":  ["bg-secondary","No Result"],
+    };
+    const [cls, label] = map[result] || ["bg-secondary", "—"];
+    return `<span class="badge ${cls}">${label}</span>`;
+}
+
+function _resultClass(result) {
+    const map = { won: "result-won", lost: "result-lost", tied: "result-tied", "no-result": "result-no-result" };
+    return map[result] || "";
+}
+
+function _fmtDate(raw) {
+    if (!raw) return "";
+    try {
+        // CricClubs format: MM/DD/YYYY
+        const [m, d, y] = raw.split("/");
+        return new Date(`${y}-${m}-${d}`).toLocaleDateString("en-GB", { day: "numeric", month: "short", year: "numeric" });
+    } catch {
+        return raw;
+    }
+}
+
+function _renderLiveResults(results) {
+    const heading = document.getElementById("cc-results-heading");
+    const list    = document.getElementById("cc-results-list");
+    if (!results.length) {
+        heading.classList.add("d-none");
+        list.innerHTML = `<div class="text-center text-muted py-4">
+            <i class="bi bi-trophy" style="font-size:2rem;opacity:.25"></i>
+            <p class="mt-2 mb-0">No completed matches found on CricClubs.</p>
+        </div>`;
+        return;
+    }
+    heading.classList.remove("d-none");
+    list.innerHTML = results.map(r => {
+        const scoreHtml = (r.our_score || r.opponent_score)
+            ? `<div class="d-flex align-items-center gap-2 flex-wrap mt-1">
+                 <span class="score-block">ACB ${r.our_score || "—"}</span>
+                 <span class="vs-separator">vs</span>
+                 <span class="score-block">${r.our_score ? r.opponent : "ACB"} ${r.opponent_score || "—"}</span>
+               </div>`
+            : "";
+        const scorecardBtn = r.match_id
+            ? `<button class="btn btn-xs btn-outline-primary btn-sm py-0 px-2" style="font-size:.72rem"
+                 onclick="window._sbScorecard(${r.match_id}, '${_escAttr(r.opponent)}', '${_escAttr(r.scorecard_url || '')}')">
+                 <i class="bi bi-clipboard-data me-1"></i>Scorecard
+               </button>`
+            : "";
+        return `
+        <div class="result-card ${_resultClass(r.result)} mb-2">
+          <div class="d-flex align-items-start justify-content-between gap-2 flex-wrap">
+            <div>
+              <div class="d-flex align-items-center gap-2 flex-wrap">
+                <span class="fw-semibold">vs ${_esc(r.opponent)}</span>
+                ${_resultBadge(r.result)}
+                ${r.league ? `<span class="league-tag">${_esc(r.league)}</span>` : ""}
+              </div>
+              <div class="text-muted small mt-1">
+                <i class="bi bi-calendar3 me-1"></i>${_fmtDate(r.date)}
+                ${r.venue ? `<span class="ms-2"><i class="bi bi-geo-alt me-1"></i>${_esc(r.venue)}</span>` : ""}
+              </div>
+              ${scoreHtml}
+            </div>
+            <div class="d-flex gap-1 flex-wrap align-items-start">
+              ${scorecardBtn}
+            </div>
+          </div>
+        </div>`;
+    }).join("");
+}
+
+function _renderLiveFixtures(fixtures) {
+    const heading = document.getElementById("cc-fixtures-heading");
+    const list    = document.getElementById("cc-fixtures-list");
+    if (!fixtures.length) {
+        heading.classList.add("d-none");
+        list.innerHTML = "";
+        return;
+    }
+    heading.classList.remove("d-none");
+    list.innerHTML = fixtures.map(f => `
+        <div class="fixture-card mb-2">
+          <div class="d-flex align-items-start justify-content-between gap-2 flex-wrap">
+            <div>
+              <div class="fw-semibold">vs ${_esc(f.opponent)}</div>
+              <div class="text-muted small mt-1">
+                <i class="bi bi-calendar3 me-1"></i>${_fmtDate(f.date)}${f.time ? ` · ${f.time}` : ""}
+                ${f.venue ? `<span class="ms-2"><i class="bi bi-geo-alt me-1"></i>${_esc(f.venue)}</span>` : ""}
+              </div>
+              ${f.league ? `<span class="league-tag mt-1 d-inline-block">${_esc(f.league)}</span>` : ""}
+            </div>
+            <span class="badge bg-primary">Upcoming</span>
+          </div>
+        </div>`).join("");
+}
+
+// ── Scorecard modal ────────────────────────────────────────────────────────────
+
+window._sbScorecard = async function(matchId, opponent, ccUrl) {
+    document.getElementById("sc-modal-title").innerHTML =
+        `<i class="bi bi-clipboard-data me-2"></i>Scorecard vs ${_esc(opponent)}`;
+    document.getElementById("sc-modal-body").innerHTML =
+        `<div class="text-center py-4"><div class="spinner-border"></div></div>`;
+    if (ccUrl) {
+        document.getElementById("sc-cc-link").href = ccUrl;
+        document.getElementById("sc-cc-link").classList.remove("d-none");
+    } else {
+        document.getElementById("sc-cc-link").classList.add("d-none");
+    }
+    _scModal().show();
+
+    try {
+        const sc = await apiFetch(`/scoreboard/cricclubs/${matchId}`);
+        document.getElementById("sc-modal-body").innerHTML = _renderScorecard(sc);
+    } catch (e) {
+        document.getElementById("sc-modal-body").innerHTML =
+            `<div class="alert alert-warning"><i class="bi bi-exclamation-triangle me-2"></i>Could not load scorecard: ${e.message}</div>`;
+    }
+};
+
+function _renderScorecard(sc) {
+    const resultBadge = _resultBadge(sc.result);
+    const header = `
+        <div class="d-flex align-items-center gap-2 flex-wrap mb-3">
+            ${resultBadge}
+            <span class="text-muted small"><i class="bi bi-calendar3 me-1"></i>${_fmtDate(sc.date)}</span>
+            ${sc.venue ? `<span class="text-muted small"><i class="bi bi-geo-alt me-1"></i>${_esc(sc.venue)}</span>` : ""}
+            ${sc.league ? `<span class="league-tag">${_esc(sc.league)}</span>` : ""}
+        </div>
+        <div class="d-flex align-items-center gap-3 mb-4 flex-wrap">
+            <div class="text-center px-3 py-2 rounded border ${sc.result === 'won' ? 'bg-success bg-opacity-10 border-success' : 'bg-light'}">
+                <div class="fw-bold fs-5">ACB 2nd XI</div>
+                <div class="fs-4 fw-bold">${sc.our_score || "—"}</div>
+            </div>
+            <div class="text-muted fw-semibold">vs</div>
+            <div class="text-center px-3 py-2 rounded border ${sc.result === 'lost' ? 'bg-danger bg-opacity-10 border-danger' : 'bg-light'}">
+                <div class="fw-bold fs-5">${_esc(sc.opponent || "Opponent")}</div>
+                <div class="fs-4 fw-bold">${sc.opponent_score || "—"}</div>
+            </div>
+        </div>`;
+
+    const battingTable = (title, rows) => {
+        if (!rows || !rows.length) return "";
+        const topScorer = rows.reduce((a, b) => (a.runs > b.runs ? a : b), rows[0]);
+        return `
+        <h6 class="fw-semibold mb-2 mt-3"><i class="bi bi-person-fill me-1"></i>${_esc(title)}</h6>
+        <div class="table-responsive">
+        <table class="table table-sm scorecard-table mb-0">
+          <thead class="table-light">
+            <tr><th>Batter</th><th class="text-end">R</th><th class="text-end">B</th><th class="text-end">4s</th><th class="text-end">6s</th><th class="text-end">SR</th><th>Dismissal</th></tr>
+          </thead>
+          <tbody>
+            ${rows.map(p => `
+            <tr ${p.name === topScorer.name && topScorer.runs > 0 ? 'class="table-warning"' : ''}>
+              <td>${_esc(p.name)}</td>
+              <td class="text-end fw-semibold">${p.runs}</td>
+              <td class="text-end text-muted">${p.balls || "—"}</td>
+              <td class="text-end">${p.fours || 0}</td>
+              <td class="text-end">${p.sixes || 0}</td>
+              <td class="text-end text-muted">${p.sr != null ? p.sr : "—"}</td>
+              <td class="text-muted small">${_esc(p.dismissal || "")}</td>
+            </tr>`).join("")}
+          </tbody>
+        </table>
+        </div>`;
+    };
+
+    const bowlingTable = (title, rows) => {
+        if (!rows || !rows.length) return "";
+        const topBowler = rows.reduce((a, b) => (a.wickets > b.wickets || (a.wickets === b.wickets && a.runs < b.runs) ? a : b), rows[0]);
+        return `
+        <h6 class="fw-semibold mb-2 mt-3"><i class="bi bi-arrow-right-circle me-1"></i>${_esc(title)}</h6>
+        <div class="table-responsive">
+        <table class="table table-sm scorecard-table mb-0">
+          <thead class="table-light">
+            <tr><th>Bowler</th><th class="text-end">O</th><th class="text-end">M</th><th class="text-end">R</th><th class="text-end">W</th><th class="text-end">Eco</th><th class="text-end">Wd</th><th class="text-end">NB</th></tr>
+          </thead>
+          <tbody>
+            ${rows.map(p => `
+            <tr ${p.name === topBowler.name && topBowler.wickets > 0 ? 'class="table-success"' : ''}>
+              <td>${_esc(p.name)}</td>
+              <td class="text-end">${p.overs}</td>
+              <td class="text-end text-muted">${p.maidens || 0}</td>
+              <td class="text-end">${p.runs}</td>
+              <td class="text-end fw-semibold">${p.wickets}</td>
+              <td class="text-end text-muted">${p.economy != null ? p.economy : "—"}</td>
+              <td class="text-end text-muted">${p.wides || 0}</td>
+              <td class="text-end text-muted">${p.noballs || 0}</td>
+            </tr>`).join("")}
+          </tbody>
+        </table>
+        </div>`;
+    };
+
+    return header
+        + battingTable("ACB 2nd XI — Batting", sc.our_batting)
+        + bowlingTable("ACB 2nd XI — Bowling", sc.our_bowling)
+        + `<hr class="my-3">`
+        + battingTable(`${_esc(sc.opponent || "Opponent")} — Batting`, sc.opp_batting)
+        + bowlingTable(`${_esc(sc.opponent || "Opponent")} — Bowling`, sc.opp_bowling);
+}
+
+// ── Manual records ─────────────────────────────────────────────────────────────
 
 function _populateYears() {
     const sel = document.getElementById("sb-year");
@@ -29,16 +283,16 @@ function _populateYears() {
     }
 }
 
-async function _load() {
+async function _loadManual() {
     const year = document.getElementById("sb-year").value;
-    const qs   = year ? `?year=${year}&_=${_SV}` : `?_=${_SV}`;
+    const qs   = year ? `?year=${year}` : "";
     try {
         _results = await apiFetch(`/scoreboard${qs}`);
         _renderStats();
         _renderList();
     } catch (e) {
         document.getElementById("sb-list").innerHTML =
-            `<div class="alert alert-danger">Failed to load scoreboard: ${e.message}</div>`;
+            `<div class="alert alert-danger">Failed to load records: ${e.message}</div>`;
     }
 }
 
@@ -52,22 +306,6 @@ function _renderStats() {
     document.getElementById("sb-stat-won").textContent    = won;
     document.getElementById("sb-stat-lost").textContent   = lost;
     document.getElementById("sb-stat-winpct").textContent = winPct !== null ? `${winPct}%` : "—";
-}
-
-function _resultBadge(result) {
-    const map = {
-        won:        ["bg-success",  "Won"],
-        lost:       ["bg-danger",   "Lost"],
-        tied:       ["bg-warning text-dark", "Tied"],
-        "no-result":["bg-secondary","No Result"],
-    };
-    const [cls, label] = map[result] || ["bg-secondary", "—"];
-    return `<span class="badge ${cls}">${label}</span>`;
-}
-
-function _resultClass(result) {
-    const map = { won: "result-won", lost: "result-lost", tied: "result-tied", "no-result": "result-no-result" };
-    return map[result] || "";
 }
 
 function _homeAwayBadge(ha) {
@@ -84,12 +322,12 @@ function _renderList() {
     if (!_results.length) {
         list.innerHTML = `<div class="text-center text-muted py-5">
             <i class="bi bi-trophy" style="font-size:2.5rem;opacity:.25"></i>
-            <p class="mt-3 mb-0">No results yet.${admin ? " Click <strong>Add Result</strong> to get started." : ""}</p>
+            <p class="mt-3 mb-0">No records yet.${admin ? " Click <strong>Add Manual</strong> to get started." : ""}</p>
         </div>`;
         return;
     }
 
-    const rows = _results.map(r => {
+    list.innerHTML = _results.map(r => {
         const dateStr = new Date(r.date + "T00:00:00").toLocaleDateString("en-GB", { day: "numeric", month: "short", year: "numeric" });
         const scoreHtml = (r.our_score || r.opponent_score)
             ? `<div class="d-flex align-items-center gap-2 flex-wrap mt-1">
@@ -102,7 +340,7 @@ function _renderList() {
         const scorecard  = r.cricclubs_url
             ? `<a href="${r.cricclubs_url}" target="_blank" rel="noopener noreferrer" class="btn btn-xs btn-outline-secondary btn-sm py-0 px-2" style="font-size:.72rem"><i class="bi bi-box-arrow-up-right me-1"></i>Scorecard</a>`
             : "";
-        const adminBtns  = isAdmin
+        const adminBtns  = admin
             ? `<button class="btn btn-sm btn-outline-secondary py-0 px-2" style="font-size:.72rem" onclick="window._sbEdit(${r.id})"><i class="bi bi-pencil"></i></button>
                <button class="btn btn-sm btn-outline-danger py-0 px-2" style="font-size:.72rem" onclick="window._sbDelete(${r.id},'${r.opponent.replace(/'/g, "\\'")}')"><i class="bi bi-trash"></i></button>`
             : "";
@@ -111,18 +349,18 @@ function _renderList() {
           <div class="d-flex align-items-start justify-content-between gap-2 flex-wrap">
             <div>
               <div class="d-flex align-items-center gap-2 flex-wrap">
-                <span class="fw-semibold">vs ${r.opponent}</span>
+                <span class="fw-semibold">vs ${_esc(r.opponent)}</span>
                 ${_resultBadge(r.result)}
                 ${_homeAwayBadge(r.home_away)}
                 ${r.match_type ? `<span class="badge bg-light text-dark border">${r.match_type}</span>` : ""}
               </div>
               <div class="text-muted small mt-1">
                 <i class="bi bi-calendar3 me-1"></i>${dateStr}
-                ${r.venue ? `<span class="ms-2"><i class="bi bi-geo-alt me-1"></i>${r.venue}</span>` : ""}
+                ${r.venue ? `<span class="ms-2"><i class="bi bi-geo-alt me-1"></i>${_esc(r.venue)}</span>` : ""}
               </div>
               ${scoreHtml}
               ${marginHtml}
-              ${r.notes ? `<div class="text-muted small mt-1 fst-italic">${r.notes}</div>` : ""}
+              ${r.notes ? `<div class="text-muted small mt-1 fst-italic">${_esc(r.notes)}</div>` : ""}
             </div>
             <div class="d-flex gap-1 flex-wrap align-items-start">
               ${scorecard}
@@ -131,8 +369,6 @@ function _renderList() {
           </div>
         </div>`;
     }).join("");
-
-    list.innerHTML = rows;
 }
 
 // ── Admin actions ─────────────────────────────────────────────────────────────
@@ -199,7 +435,7 @@ async function _save() {
             await apiFetch("/scoreboard", { method: "POST", body: JSON.stringify(body) });
         }
         _modal().hide();
-        await _load();
+        await _loadManual();
     } catch (e) {
         _showErr(e.message);
     } finally {
@@ -215,7 +451,7 @@ async function _deleteConfirm() {
         await apiFetch(`/scoreboard/${_deleteId}`, { method: "DELETE" });
         _delModal().hide();
         _deleteId = null;
-        await _load();
+        await _loadManual();
     } catch (e) {
         alert("Delete failed: " + e.message);
     } finally {
@@ -227,4 +463,14 @@ function _showErr(msg) {
     const el = document.getElementById("sb-modal-error");
     el.textContent = msg;
     el.classList.remove("d-none");
+}
+
+// ── Helpers ───────────────────────────────────────────────────────────────────
+
+function _esc(s) {
+    return String(s ?? "").replace(/&/g,"&amp;").replace(/</g,"&lt;").replace(/>/g,"&gt;").replace(/"/g,"&quot;");
+}
+
+function _escAttr(s) {
+    return String(s ?? "").replace(/'/g, "\\'").replace(/"/g, "&quot;");
 }

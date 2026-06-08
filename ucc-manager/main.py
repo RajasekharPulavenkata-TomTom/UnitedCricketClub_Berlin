@@ -6,7 +6,7 @@ from sqlalchemy import text, inspect
 from database import engine, Base
 import models  # registers all models before create_all
 from dependencies.auth import get_current_user
-from routers import accounting, inventory, members, events, audit, finance_pin, player_availability, tasks, tournament, match_fees, reporting, auth, approvals, polls, pain_points, violations, field_formations, ai_field, scoreboard
+from routers import accounting, inventory, members, events, audit, finance_pin, player_availability, tasks, tournament, match_fees, reporting, auth, approvals, polls, pain_points, violations, field_formations, ai_field, scoreboard, sponsors
 
 
 def _run_migrations():
@@ -141,12 +141,47 @@ def _run_migrations():
         conn.execute(text("CREATE INDEX IF NOT EXISTS ix_audit_logs_entity_type ON audit_logs (entity_type)"))
         conn.execute(text("CREATE INDEX IF NOT EXISTS ix_audit_logs_created_at ON audit_logs (created_at DESC)"))
         conn.execute(text("CREATE INDEX IF NOT EXISTS ix_users_member_id ON users (member_id)"))
+        # Seed The Biryani Club sponsor (only if table already existed — new installs seed after create_all)
+        if "sponsors" in existing_tables:
+            count = conn.execute(text("SELECT COUNT(*) FROM sponsors")).scalar()
+            if count == 0:
+                conn.execute(text("""
+                    INSERT INTO sponsors (name, logo_url, website_url, description, since_year, is_active, display_order)
+                    VALUES (
+                        'The Biryani Club',
+                        'https://thebiryani.club/images/tbc-logo.webp',
+                        'https://thebiryani.club/en/',
+                        'Authentic Indian Cuisine. No Compromises.',
+                        2025,
+                        TRUE,
+                        0
+                    )
+                """))
+
+
+def _seed_sponsors():
+    with engine.begin() as conn:
+        count = conn.execute(text("SELECT COUNT(*) FROM sponsors")).scalar()
+        if count == 0:
+            conn.execute(text("""
+                INSERT INTO sponsors (name, logo_url, website_url, description, since_year, is_active, display_order)
+                VALUES (
+                    'The Biryani Club',
+                    'https://thebiryani.club/images/tbc-logo.webp',
+                    'https://thebiryani.club/en/',
+                    'Authentic Indian Cuisine. No Compromises.',
+                    2025,
+                    TRUE,
+                    0
+                )
+            """))
 
 
 @asynccontextmanager
 async def lifespan(app: FastAPI):
     _run_migrations()
     Base.metadata.create_all(bind=engine)
+    _seed_sponsors()
     yield
 
 
@@ -181,5 +216,6 @@ app.include_router(violations.router,          dependencies=_auth)
 app.include_router(field_formations.router,    dependencies=_auth)
 app.include_router(ai_field.router,            dependencies=_auth)
 app.include_router(scoreboard.router,          dependencies=_auth)
+app.include_router(sponsors.router,            dependencies=_auth)
 
 app.mount("/", StaticFiles(directory="static", html=True), name="static")

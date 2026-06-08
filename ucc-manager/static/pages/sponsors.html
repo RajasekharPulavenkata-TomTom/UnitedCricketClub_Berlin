@@ -1,0 +1,94 @@
+<h3 class="page-header"><i class="bi bi-award me-2"></i>Official Sponsors</h3>
+
+<div class="d-flex align-items-center justify-content-between mb-4 flex-wrap gap-2">
+  <p class="text-muted mb-0">Organisations that support United Cricket Club.</p>
+  <button class="btn btn-success btn-sm d-none" id="btn-add-sponsor">
+    <i class="bi bi-plus-lg me-1"></i>Add Sponsor
+  </button>
+</div>
+
+<div id="sponsors-list">
+  <div class="text-center py-5">
+    <div class="spinner-border spinner-border-sm"></div>
+  </div>
+</div>
+
+<!-- Add / Edit modal -->
+<div class="modal fade" id="sponsorModal" tabindex="-1">
+  <div class="modal-dialog modal-dialog-centered" style="max-width:520px">
+    <div class="modal-content">
+      <div class="modal-header">
+        <h5 class="modal-title" id="sponsor-modal-title"><i class="bi bi-award me-2"></i>Add Sponsor</h5>
+        <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+      </div>
+      <div class="modal-body">
+        <form id="sponsor-form">
+          <input type="hidden" id="sponsor-id">
+          <div class="mb-3">
+            <label class="form-label fw-semibold">Sponsor Name <span class="text-danger">*</span></label>
+            <input type="text" id="sponsor-name" class="form-control" placeholder="e.g. Acme Sports GmbH" required>
+          </div>
+          <div class="mb-3">
+            <label class="form-label fw-semibold">Logo URL <span class="text-muted fw-normal small">(optional)</span></label>
+            <input type="url" id="sponsor-logo" class="form-control" placeholder="https://…/logo.png">
+            <div class="mt-2" id="sponsor-logo-preview"></div>
+          </div>
+          <div class="mb-3">
+            <label class="form-label fw-semibold">Website URL <span class="text-muted fw-normal small">(optional)</span></label>
+            <input type="url" id="sponsor-website" class="form-control" placeholder="https://sponsor.example.com">
+          </div>
+          <div class="mb-3">
+            <label class="form-label fw-semibold">Description <span class="text-muted fw-normal small">(optional)</span></label>
+            <textarea id="sponsor-description" class="form-control" rows="2" placeholder="Short description or tagline…"></textarea>
+          </div>
+          <div class="row g-2 mb-3">
+            <div class="col-6">
+              <label class="form-label fw-semibold">Sponsor Since <span class="text-muted fw-normal small">(year)</span></label>
+              <input type="number" id="sponsor-since" class="form-control" placeholder="e.g. 2024" min="2000" max="2099">
+            </div>
+            <div class="col-6">
+              <label class="form-label fw-semibold">Display Order</label>
+              <input type="number" id="sponsor-order" class="form-control" value="0" min="0">
+            </div>
+          </div>
+          <div class="form-check form-switch">
+            <input class="form-check-input" type="checkbox" id="sponsor-active" checked>
+            <label class="form-check-label fw-semibold" for="sponsor-active">Active (shown in footer)</label>
+          </div>
+        </form>
+        <div id="sponsor-modal-error" class="alert alert-danger py-2 small mt-3 d-none"></div>
+      </div>
+      <div class="modal-footer">
+        <button class="btn btn-secondary btn-sm" data-bs-dismiss="modal">Cancel</button>
+        <button id="btn-sponsor-save" class="btn btn-success btn-sm">
+          <i class="bi bi-floppy me-1"></i>Save
+        </button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- Delete confirm modal -->
+<div class="modal fade" id="sponsorDeleteModal" tabindex="-1">
+  <div class="modal-dialog modal-dialog-centered" style="max-width:360px">
+    <div class="modal-content">
+      <div class="modal-header">
+        <h5 class="modal-title text-danger"><i class="bi bi-trash me-2"></i>Remove Sponsor</h5>
+        <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+      </div>
+      <div class="modal-body">
+        <p class="mb-0">Remove <strong id="sponsor-delete-name"></strong> from the sponsors list?</p>
+      </div>
+      <div class="modal-footer">
+        <button class="btn btn-secondary btn-sm" data-bs-dismiss="modal">Cancel</button>
+        <button id="btn-sponsor-delete-confirm" class="btn btn-danger btn-sm">Remove</button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<style>
+.sponsor-card { border-radius: 12px; transition: box-shadow .15s; }
+.sponsor-card:hover { box-shadow: 0 4px 16px rgba(0,0,0,.1); }
+.sponsor-logo-img { max-height: 80px; max-width: 200px; object-fit: contain; }
+</style>

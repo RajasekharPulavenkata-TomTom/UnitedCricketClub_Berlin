@@ -16,5 +16,6 @@ from .pain_point import PainPoint
 from .violation import Violation
 from .field_formation import FieldFormation
 from .scoreboard import MatchResult
+from .sponsor import Sponsor
 
-__all__ = ["User", "Category", "Transaction", "EquipmentItem", "MaintenanceNote", "Member", "Event", "EventAvailability", "AuditLog", "ClubSetting", "PlayerAvailability", "EventSquad", "Task", "Tournament", "TournamentParticipant", "MatchFeePayment", "PlayerReporting", "Poll", "PollOption", "PollVote", "PollAnonymousVoter", "PainPoint", "Violation", "FieldFormation", "MatchResult"]
+__all__ = ["User", "Category", "Transaction", "EquipmentItem", "MaintenanceNote", "Member", "Event", "EventAvailability", "AuditLog", "ClubSetting", "PlayerAvailability", "EventSquad", "Task", "Tournament", "TournamentParticipant", "MatchFeePayment", "PlayerReporting", "Poll", "PollOption", "PollVote", "PollAnonymousVoter", "PainPoint", "Violation", "FieldFormation", "MatchResult", "Sponsor"]

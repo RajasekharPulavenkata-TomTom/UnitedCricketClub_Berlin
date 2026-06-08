@@ -1,32 +1,177 @@
-<!-- Scoreboard (CricClubs embed) -->
+<!-- Scoreboard -->
 <style>
-  #scoreboard-iframe {
-    width: 100%;
-    border: none;
-    border-radius: 8px;
-    min-height: 80vh;
-    background: #f8f9fa;
-  }
+  .result-won    { background: #d1e7dd; border-left: 4px solid #198754; }
+  .result-lost   { background: #f8d7da; border-left: 4px solid #dc3545; }
+  .result-tied   { background: #fff3cd; border-left: 4px solid #ffc107; }
+  .result-no-result { background: #e2e3e5; border-left: 4px solid #6c757d; }
+  .result-card   { border-radius: 8px; padding: 14px 16px; transition: box-shadow .15s; }
+  .result-card:hover { box-shadow: 0 2px 10px rgba(0,0,0,.12); }
+  .score-block   { font-size: 1.05rem; font-weight: 600; }
+  .vs-separator  { color: #6c757d; font-size: .75rem; font-weight: 500; letter-spacing:.04em; }
+  .stat-card     { border-radius: 10px; padding: 16px; text-align: center; }
 </style>
 
 <div class="d-flex flex-column gap-3">
+
+  <!-- Header -->
   <div class="d-flex align-items-center justify-content-between flex-wrap gap-2">
     <h4 class="mb-0">📊 Scoreboard — ACB 2nd XI</h4>
-    <a href="https://cricclubs.com/OstdeutscherCricketVerbandeV/viewTeam.do?teamId=1992&clubId=1007777"
-       target="_blank" rel="noopener noreferrer"
-       class="btn btn-sm btn-outline-primary">
-      <i class="bi bi-box-arrow-up-right me-1"></i>Open in CricClubs
-    </a>
+    <div class="d-flex gap-2 flex-wrap align-items-center">
+      <select id="sb-year" class="form-select form-select-sm" style="width:110px"></select>
+      <button id="btn-sb-add" class="btn btn-sm btn-success d-none">
+        <i class="bi bi-plus-lg me-1"></i>Add Result
+      </button>
+      <a href="https://cricclubs.com/OstdeutscherCricketVerbandeV/viewTeam.do?teamId=1992&clubId=1007777"
+         target="_blank" rel="noopener noreferrer" class="btn btn-sm btn-outline-secondary">
+        <i class="bi bi-box-arrow-up-right me-1"></i>CricClubs
+      </a>
+    </div>
   </div>
-  <div class="card p-0 overflow-hidden shadow-sm">
-    <iframe
-      id="scoreboard-iframe"
-      src="https://cricclubs.com/OstdeutscherCricketVerbandeV/viewTeam.do?teamId=1992&clubId=1007777"
-      title="ACB 2nd XI — CricClubs Team Page"
-      loading="lazy"
-    ></iframe>
+
+  <!-- Stats bar -->
+  <div class="row g-2" id="sb-stats-row">
+    <div class="col-6 col-md-3">
+      <div class="stat-card bg-light border">
+        <div class="fs-4 fw-bold" id="sb-stat-played">—</div>
+        <div class="text-muted small">Played</div>
+      </div>
+    </div>
+    <div class="col-6 col-md-3">
+      <div class="stat-card" style="background:#d1e7dd;border:1px solid #badbcc">
+        <div class="fs-4 fw-bold text-success" id="sb-stat-won">—</div>
+        <div class="text-muted small">Won</div>
+      </div>
+    </div>
+    <div class="col-6 col-md-3">
+      <div class="stat-card" style="background:#f8d7da;border:1px solid #f5c2c7">
+        <div class="fs-4 fw-bold text-danger" id="sb-stat-lost">—</div>
+        <div class="text-muted small">Lost</div>
+      </div>
+    </div>
+    <div class="col-6 col-md-3">
+      <div class="stat-card bg-light border">
+        <div class="fs-4 fw-bold" id="sb-stat-winpct">—</div>
+        <div class="text-muted small">Win %</div>
+      </div>
+    </div>
   </div>
-  <p class="text-muted small mb-0">
-    <i class="bi bi-info-circle me-1"></i>Scores powered by <a href="https://cricclubs.com" target="_blank" rel="noopener noreferrer">CricClubs</a>. If the page doesn't load, use the "Open in CricClubs" button above.
-  </p>
+
+  <!-- Results list -->
+  <div id="sb-list">
+    <div class="text-center text-muted py-5">
+      <div class="spinner-border spinner-border-sm mb-2"></div><br>Loading…
+    </div>
+  </div>
+
+</div>
+
+<!-- Add / Edit modal -->
+<div class="modal fade" id="sbModal" tabindex="-1">
+  <div class="modal-dialog modal-dialog-centered" style="max-width:500px">
+    <div class="modal-content">
+      <div class="modal-header">
+        <h5 class="modal-title" id="sb-modal-title"><i class="bi bi-trophy me-2"></i>Add Result</h5>
+        <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+      </div>
+      <div class="modal-body">
+        <form id="sb-form">
+          <input type="hidden" id="sb-id">
+          <div class="row g-2 mb-2">
+            <div class="col-6">
+              <label class="form-label fw-semibold small">Date <span class="text-danger">*</span></label>
+              <input type="date" id="sb-date" class="form-control form-control-sm" required>
+            </div>
+            <div class="col-6">
+              <label class="form-label fw-semibold small">Match Type</label>
+              <select id="sb-match-type" class="form-select form-select-sm">
+                <option value="">— Select —</option>
+                <option value="T10">T10</option>
+                <option value="T20">T20</option>
+                <option value="50-Overs">50-Overs</option>
+              </select>
+            </div>
+          </div>
+          <div class="row g-2 mb-2">
+            <div class="col-8">
+              <label class="form-label fw-semibold small">Opponent <span class="text-danger">*</span></label>
+              <input type="text" id="sb-opponent" class="form-control form-control-sm" placeholder="e.g. BSV Vikings" required>
+            </div>
+            <div class="col-4">
+              <label class="form-label fw-semibold small">Home / Away</label>
+              <select id="sb-home-away" class="form-select form-select-sm">
+                <option value="">—</option>
+                <option value="home">Home</option>
+                <option value="away">Away</option>
+                <option value="neutral">Neutral</option>
+              </select>
+            </div>
+          </div>
+          <div class="mb-2">
+            <label class="form-label fw-semibold small">Venue</label>
+            <input type="text" id="sb-venue" class="form-control form-control-sm" placeholder="e.g. Maifeld 1">
+          </div>
+          <div class="row g-2 mb-2">
+            <div class="col-6">
+              <label class="form-label fw-semibold small">Our Score</label>
+              <input type="text" id="sb-our-score" class="form-control form-control-sm" placeholder="e.g. 185/6 (20)">
+            </div>
+            <div class="col-6">
+              <label class="form-label fw-semibold small">Opponent Score</label>
+              <input type="text" id="sb-opp-score" class="form-control form-control-sm" placeholder="e.g. 142/8 (20)">
+            </div>
+          </div>
+          <div class="row g-2 mb-2">
+            <div class="col-6">
+              <label class="form-label fw-semibold small">Result</label>
+              <select id="sb-result" class="form-select form-select-sm">
+                <option value="">—</option>
+                <option value="won">Won</option>
+                <option value="lost">Lost</option>
+                <option value="tied">Tied</option>
+                <option value="no-result">No Result</option>
+              </select>
+            </div>
+            <div class="col-6">
+              <label class="form-label fw-semibold small">Margin</label>
+              <input type="text" id="sb-margin" class="form-control form-control-sm" placeholder="e.g. 43 runs">
+            </div>
+          </div>
+          <div class="mb-2">
+            <label class="form-label fw-semibold small">CricClubs Scorecard URL</label>
+            <input type="url" id="sb-url" class="form-control form-control-sm" placeholder="https://cricclubs.com/…">
+          </div>
+          <div class="mb-1">
+            <label class="form-label fw-semibold small">Notes</label>
+            <textarea id="sb-notes" class="form-control form-control-sm" rows="2" placeholder="Optional match notes…"></textarea>
+          </div>
+        </form>
+        <div id="sb-modal-error" class="alert alert-danger py-2 small mt-2 d-none"></div>
+      </div>
+      <div class="modal-footer">
+        <button class="btn btn-secondary btn-sm" data-bs-dismiss="modal">Cancel</button>
+        <button id="btn-sb-save" class="btn btn-success btn-sm">
+          <i class="bi bi-floppy me-1"></i>Save
+        </button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- Delete confirm modal -->
+<div class="modal fade" id="sbDeleteModal" tabindex="-1">
+  <div class="modal-dialog modal-dialog-centered" style="max-width:360px">
+    <div class="modal-content">
+      <div class="modal-header">
+        <h5 class="modal-title text-danger"><i class="bi bi-trash me-2"></i>Delete Result</h5>
+        <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+      </div>
+      <div class="modal-body">
+        <p class="mb-0">Delete the match result vs <strong id="sb-delete-name"></strong>? This cannot be undone.</p>
+      </div>
+      <div class="modal-footer">
+        <button class="btn btn-secondary btn-sm" data-bs-dismiss="modal">Cancel</button>
+        <button id="btn-sb-delete-confirm" class="btn btn-danger btn-sm">Delete</button>
+      </div>
+    </div>
+  </div>
 </div>

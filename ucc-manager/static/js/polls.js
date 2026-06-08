@@ -56,6 +56,9 @@ function pollCard(p) {
     const statusBadge = closed
         ? `<span class="badge bg-secondary"><i class="bi bi-lock me-1"></i>Closed</span>`
         : `<span class="badge bg-success"><i class="bi bi-circle-fill me-1" style="font-size:.5rem"></i>Open</span>`;
+    const anonBadge = p.is_anonymous
+        ? `<span class="badge bg-dark"><i class="bi bi-incognito me-1"></i>Anonymous</span>`
+        : `<span class="badge bg-light text-dark border"><i class="bi bi-eye me-1"></i>Public</span>`;
 
     const deadlineHtml = p.closes_at && !closed
         ? `<span class="text-muted small"><i class="bi bi-clock me-1"></i>Closes ${new Date(p.closes_at).toLocaleString("en-GB", { dateStyle: "medium", timeStyle: "short" })}</span>`
@@ -75,10 +78,11 @@ function pollCard(p) {
 
     let body;
     if (!p.has_voted && !closed) {
+        const voteHint = p.is_anonymous
+            ? `<i class="bi bi-incognito me-1"></i>Anonymous poll — nobody can see your choice.`
+            : `<i class="bi bi-eye me-1"></i>Public poll — results are revealed after you vote.`;
         body = `
-            <p class="text-muted small mb-3">
-                <i class="bi bi-shield-lock me-1"></i>Your vote is anonymous — results are revealed after you vote.
-            </p>
+            <p class="text-muted small mb-3">${voteHint}</p>
             <div class="d-flex flex-column gap-2" id="poll-opts-${p.id}">
                 ${p.options.map(o => `
                     <button type="button" class="poll-opt-btn"
@@ -99,7 +103,7 @@ function pollCard(p) {
         body = `
             <div class="mb-3 small ${p.has_voted && !closed ? "text-success" : "text-muted"}">
                 ${p.has_voted && !closed
-                    ? `<i class="bi bi-check-circle-fill me-1"></i>You voted — results revealed.`
+                    ? `<i class="bi bi-check-circle-fill me-1"></i>You voted — results revealed.${p.is_anonymous ? " Your choice is private." : ""}`
                     : `<i class="bi bi-lock me-1"></i>Poll closed — final results:`}
             </div>
             <div class="d-flex flex-column gap-3">
@@ -135,6 +139,7 @@ function pollCard(p) {
                     <h5 class="mb-1">${escHtml(p.title)}</h5>
                     <div class="d-flex flex-wrap gap-3 align-items-center">
                         ${statusBadge}
+                        ${anonBadge}
                         ${votesHtml}
                         ${createdHtml}
                         ${deadlineHtml}
@@ -282,12 +287,13 @@ window._pollSubmit = async () => {
         return;
     }
 
-    const closes_at = closesAtRaw ? new Date(closesAtRaw).toISOString() : null;
+    const closes_at   = closesAtRaw ? new Date(closesAtRaw).toISOString() : null;
+    const is_anonymous = document.getElementById("poll-is-anonymous")?.checked ?? false;
 
     try {
         const created = await apiFetch("/polls", {
             method: "POST",
-            body: JSON.stringify({ title, description, closes_at, options }),
+            body: JSON.stringify({ title, description, closes_at, is_anonymous, options }),
         });
         polls.unshift(created);
         bootstrap.Modal.getInstance(document.getElementById("createPollModal"))?.hide();
@@ -304,7 +310,20 @@ window._pollSubmit = async () => {
     }
 };
 
-// Reset options list when modal is shown
+// Reset options list and anon toggle when modal is shown
 document.addEventListener("shown.bs.modal", (e) => {
-    if (e.target.id === "createPollModal") _resetOptions();
+    if (e.target.id !== "createPollModal") return;
+    _resetOptions();
+    const chk = document.getElementById("poll-is-anonymous");
+    if (chk) chk.checked = false;
+    _updateAnonHint(false);
 });
+
+document.addEventListener("change", (e) => {
+    if (e.target.id === "poll-is-anonymous") _updateAnonHint(e.target.checked);
+});
+
+function _updateAnonHint(isAnon) {
+    document.getElementById("poll-anon-hint-on")?.classList.toggle("d-none", !isAnon);
+    document.getElementById("poll-anon-hint-off")?.classList.toggle("d-none", isAnon);
+}

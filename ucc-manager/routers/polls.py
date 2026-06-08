@@ -4,7 +4,7 @@ from fastapi import APIRouter, Depends, HTTPException
 from pydantic import BaseModel
 from sqlalchemy.orm import Session, selectinload
 from database import get_db
-from models.poll import Poll, PollOption, PollVote
+from models.poll import Poll, PollOption, PollVote, PollAnonymousVoter
 from models.auth import User
 from dependencies.auth import get_current_user
 
@@ -24,21 +24,27 @@ def _is_closed(poll: Poll) -> bool:
 
 
 def _poll_out(poll: Poll, current_user: User, creator_map: dict) -> dict:
-    """Build poll response from already-loaded relationships — no extra DB queries."""
     closed = _is_closed(poll)
-    votes = poll.votes  # pre-loaded via selectinload
-    user_vote = next((v for v in votes if v.user_id == current_user.id), None)
-    has_voted = user_vote is not None
-    reveal = has_voted or closed
+    votes  = poll.votes  # pre-loaded
+
+    if poll.is_anonymous:
+        has_voted         = any(v.user_id == current_user.id for v in poll.anonymous_voters)
+        voted_option_id   = None  # never revealed — that's the point
+    else:
+        user_vote         = next((v for v in votes if v.user_id == current_user.id), None)
+        has_voted         = user_vote is not None
+        voted_option_id   = user_vote.option_id if user_vote else None
+
+    reveal      = has_voted or closed
     total_votes = len(votes)
 
-    u = creator_map.get(poll.created_by_id)
+    u       = creator_map.get(poll.created_by_id)
     creator = (u.full_name or u.username) if u else None
 
     options = []
-    for opt in poll.options:  # pre-loaded via selectinload
+    for opt in poll.options:
         count = sum(1 for v in votes if v.option_id == opt.id) if reveal else None
-        pct = round(count / total_votes * 100) if (reveal and total_votes > 0 and count is not None) else 0
+        pct   = round(count / total_votes * 100) if (reveal and total_votes > 0 and count is not None) else 0
         options.append({
             "id":         opt.id,
             "text":       opt.text,
@@ -48,24 +54,29 @@ def _poll_out(poll: Poll, current_user: User, creator_map: dict) -> dict:
         })
 
     return {
-        "id":             poll.id,
-        "title":          poll.title,
-        "description":    poll.description,
-        "created_at":     poll.created_at.isoformat(),
-        "closes_at":      poll.closes_at.isoformat() if poll.closes_at else None,
-        "is_closed":      closed,
-        "has_voted":      has_voted,
-        "voted_option_id": user_vote.option_id if user_vote else None,
-        "total_votes":    total_votes,
-        "created_by":     creator,
-        "options":        options,
+        "id":              poll.id,
+        "title":           poll.title,
+        "description":     poll.description,
+        "is_anonymous":    poll.is_anonymous,
+        "created_at":      poll.created_at.isoformat(),
+        "closes_at":       poll.closes_at.isoformat() if poll.closes_at else None,
+        "is_closed":       closed,
+        "has_voted":       has_voted,
+        "voted_option_id": voted_option_id,
+        "total_votes":     total_votes,
+        "created_by":      creator,
+        "options":         options,
     }
 
 
 def _load_poll(db: Session, poll_id: int) -> Poll | None:
     return (
         db.query(Poll)
-        .options(selectinload(Poll.options), selectinload(Poll.votes))
+        .options(
+            selectinload(Poll.options),
+            selectinload(Poll.votes),
+            selectinload(Poll.anonymous_voters),
+        )
         .filter(Poll.id == poll_id)
         .first()
     )
@@ -84,10 +95,11 @@ class PollOptionCreate(BaseModel):
 
 
 class PollCreate(BaseModel):
-    title: str
-    description: Optional[str] = None
-    closes_at: Optional[datetime] = None
-    options: List[PollOptionCreate]
+    title:        str
+    description:  Optional[str] = None
+    closes_at:    Optional[datetime] = None
+    is_anonymous: bool = False
+    options:      List[PollOptionCreate]
 
 
 class VoteCast(BaseModel):
@@ -98,7 +110,11 @@ class VoteCast(BaseModel):
 def list_polls(db: Session = Depends(get_db), current_user: User = Depends(get_current_user)):
     polls = (
         db.query(Poll)
-        .options(selectinload(Poll.options), selectinload(Poll.votes))
+        .options(
+            selectinload(Poll.options),
+            selectinload(Poll.votes),
+            selectinload(Poll.anonymous_voters),
+        )
         .order_by(Poll.created_at.desc())
         .all()
     )
@@ -119,6 +135,7 @@ def create_poll(data: PollCreate, db: Session = Depends(get_db), current_user: U
         title=data.title.strip(),
         description=data.description,
         closes_at=data.closes_at,
+        is_anonymous=data.is_anonymous,
         created_by_id=current_user.id,
     )
     db.add(poll)
@@ -154,9 +171,23 @@ def cast_vote(poll_id: int, data: VoteCast, db: Session = Depends(get_db), curre
     ).first()
     if not option:
         raise HTTPException(status_code=404, detail="Option not found")
-    if db.query(PollVote).filter(PollVote.poll_id == poll_id, PollVote.user_id == current_user.id).first():
-        raise HTTPException(status_code=400, detail="You have already voted in this poll")
-    db.add(PollVote(poll_id=poll_id, option_id=data.option_id, user_id=current_user.id))
+
+    if poll.is_anonymous:
+        already = db.query(PollAnonymousVoter).filter(
+            PollAnonymousVoter.poll_id == poll_id,
+            PollAnonymousVoter.user_id == current_user.id,
+        ).first()
+        if already:
+            raise HTTPException(status_code=400, detail="You have already voted in this poll")
+        # Record who voted (no option link — preserves anonymity)
+        db.add(PollAnonymousVoter(poll_id=poll_id, user_id=current_user.id))
+        # Record the vote itself without a user link
+        db.add(PollVote(poll_id=poll_id, option_id=data.option_id, user_id=None))
+    else:
+        if db.query(PollVote).filter(PollVote.poll_id == poll_id, PollVote.user_id == current_user.id).first():
+            raise HTTPException(status_code=400, detail="You have already voted in this poll")
+        db.add(PollVote(poll_id=poll_id, option_id=data.option_id, user_id=current_user.id))
+
     db.commit()
     poll = _load_poll(db, poll_id)
     creators = _creator_map(db, [poll])

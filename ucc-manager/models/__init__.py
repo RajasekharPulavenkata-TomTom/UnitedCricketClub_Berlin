@@ -11,10 +11,10 @@ from .task import Task
 from .tournament import Tournament, TournamentParticipant
 from .match_fee import MatchFeePayment
 from .reporting import PlayerReporting
-from .poll import Poll, PollOption, PollVote
+from .poll import Poll, PollOption, PollVote, PollAnonymousVoter
 from .pain_point import PainPoint
 from .violation import Violation
 from .field_formation import FieldFormation
 from .scoreboard import MatchResult
 
-__all__ = ["User", "Category", "Transaction", "EquipmentItem", "MaintenanceNote", "Member", "Event", "EventAvailability", "AuditLog", "ClubSetting", "PlayerAvailability", "EventSquad", "Task", "Tournament", "TournamentParticipant", "MatchFeePayment", "PlayerReporting", "Poll", "PollOption", "PollVote", "PainPoint", "Violation", "FieldFormation", "MatchResult"]
+__all__ = ["User", "Category", "Transaction", "EquipmentItem", "MaintenanceNote", "Member", "Event", "EventAvailability", "AuditLog", "ClubSetting", "PlayerAvailability", "EventSquad", "Task", "Tournament", "TournamentParticipant", "MatchFeePayment", "PlayerReporting", "Poll", "PollOption", "PollVote", "PollAnonymousVoter", "PainPoint", "Violation", "FieldFormation", "MatchResult"]

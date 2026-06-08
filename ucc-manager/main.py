@@ -109,6 +109,29 @@ def _run_migrations():
                 conn.execute(text("ALTER TABLE audit_logs ADD COLUMN user_id INTEGER REFERENCES users(id)"))
             if "user_name" not in al_cols:
                 conn.execute(text("ALTER TABLE audit_logs ADD COLUMN user_name VARCHAR(150)"))
+        if "polls" in existing_tables:
+            poll_cols = _cols["polls"]
+            if "is_anonymous" not in poll_cols:
+                conn.execute(text("ALTER TABLE polls ADD COLUMN is_anonymous BOOLEAN NOT NULL DEFAULT FALSE"))
+        if "poll_votes" in existing_tables:
+            # Make user_id nullable to support anonymous votes
+            conn.execute(text("ALTER TABLE poll_votes ALTER COLUMN user_id DROP NOT NULL"))
+            # Drop old unique constraint and replace with partial index (excludes NULL user_ids)
+            conn.execute(text("ALTER TABLE poll_votes DROP CONSTRAINT IF EXISTS uq_poll_user_vote"))
+            conn.execute(text(
+                "CREATE UNIQUE INDEX IF NOT EXISTS uq_poll_user_vote "
+                "ON poll_votes(poll_id, user_id) WHERE user_id IS NOT NULL"
+            ))
+        if "poll_anonymous_voters" not in existing_tables:
+            conn.execute(text("""
+                CREATE TABLE poll_anonymous_voters (
+                    id SERIAL PRIMARY KEY,
+                    poll_id INTEGER NOT NULL REFERENCES polls(id) ON DELETE CASCADE,
+                    user_id INTEGER NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+                    voted_at TIMESTAMP DEFAULT NOW(),
+                    CONSTRAINT uq_anon_poll_user UNIQUE (poll_id, user_id)
+                )
+            """))
         # Performance indexes — PostgreSQL does not auto-index FK columns
         conn.execute(text("CREATE INDEX IF NOT EXISTS ix_transactions_category_id ON transactions (category_id)"))
         conn.execute(text("CREATE INDEX IF NOT EXISTS ix_transactions_date ON transactions (date DESC)"))

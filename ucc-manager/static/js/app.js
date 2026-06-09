@@ -1,5 +1,4 @@
 import { apiFetch } from "/js/api.js";
-import { ensureUnlocked, lock, showPinModal } from "/js/finance-pin.js";
 
 // ── Auth gate ──────────────────────────────────────────────────────────────────
 
@@ -190,8 +189,6 @@ if (localStorage.getItem("ucc_token")) {
 // but allows the browser to cache files across in-session navigations.
 const _SV = Date.now();
 
-const FINANCE_PAGES = new Set(["dashboard", "transactions", "categories", "reports"]);
-
 const PAGES = {
     home:               { html: "/pages/home.html",               js: "/js/home.js"               },
     dashboard:          { html: "/pages/dashboard.html",          js: "/js/dashboard.js"          },
@@ -239,15 +236,9 @@ async function router() {
     document.body.style.removeProperty("overflow");
     document.body.style.removeProperty("padding-right");
 
-    if (FINANCE_PAGES.has(hash)) {
-        const unlocked = await ensureUnlocked(container);
-        if (!unlocked) return;
-    }
-
     try {
         const html = await fetch(page.html + "?v=" + _SV).then((r) => r.text());
         container.innerHTML = html;
-        if (FINANCE_PAGES.has(hash)) injectFinanceToolbar(container);
         const mod = await import(page.js + "?v=" + _SV);
         if (mod.init) mod.init();
         apiFetch("/page-views", { method: "POST", body: JSON.stringify({ page: hash }) }).catch(() => {});
@@ -256,21 +247,3 @@ async function router() {
     }
 }
 
-function injectFinanceToolbar(container) {
-    const bar = document.createElement("div");
-    bar.className = "d-flex justify-content-end gap-2 mb-3 no-print";
-    bar.innerHTML = `
-        <button class="btn btn-sm btn-outline-secondary" id="fp-change-btn">
-            <i class="bi bi-key me-1"></i>PIN Settings
-        </button>
-        <button class="btn btn-sm btn-outline-danger" id="fp-lock-btn">
-            <i class="bi bi-lock me-1"></i>Lock Finance
-        </button>`;
-    container.prepend(bar);
-
-    document.getElementById("fp-lock-btn").addEventListener("click", () => {
-        lock();
-        location.reload();
-    });
-    document.getElementById("fp-change-btn").addEventListener("click", () => showPinModal());
-}

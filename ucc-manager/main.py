@@ -6,7 +6,7 @@ from sqlalchemy import text, inspect
 from database import engine, Base
 import models  # registers all models before create_all
 from dependencies.auth import get_current_user
-from routers import accounting, inventory, members, events, audit, finance_pin, player_availability, tasks, tournament, match_fees, reporting, auth, approvals, polls, pain_points, violations, field_formations, ai_field, scoreboard, sponsors, external_tournament
+from routers import accounting, inventory, members, events, audit, finance_pin, player_availability, tasks, tournament, match_fees, reporting, auth, approvals, polls, pain_points, violations, field_formations, ai_field, scoreboard, sponsors, external_tournament, internal_tournament
 
 
 def _run_migrations():
@@ -150,6 +150,8 @@ def _run_migrations():
         conn.execute(text("CREATE INDEX IF NOT EXISTS ix_users_member_id ON users (member_id)"))
         conn.execute(text("CREATE INDEX IF NOT EXISTS ix_ext_tournament_players_tournament_id ON external_tournament_players (tournament_id)"))
         conn.execute(text("CREATE INDEX IF NOT EXISTS ix_ext_tournament_players_member_id ON external_tournament_players (member_id)"))
+        conn.execute(text("CREATE INDEX IF NOT EXISTS ix_int_tournament_teams_tournament_id ON internal_tournament_teams (tournament_id)"))
+        conn.execute(text("CREATE INDEX IF NOT EXISTS ix_int_tournament_team_players_team_id ON internal_tournament_team_players (team_id)"))
         # Seed The Biryani Club sponsor (only if table already existed — new installs seed after create_all)
         if "sponsors" in existing_tables:
             count = conn.execute(text("SELECT COUNT(*) FROM sponsors")).scalar()
@@ -290,5 +292,6 @@ app.include_router(ai_field.router,            dependencies=_auth)
 app.include_router(scoreboard.router,          dependencies=_auth)
 app.include_router(sponsors.router,            dependencies=_auth)
 app.include_router(external_tournament.router, dependencies=_auth)
+app.include_router(internal_tournament.router, dependencies=_auth)
 
 app.mount("/", StaticFiles(directory="static", html=True), name="static")

@@ -6,7 +6,7 @@ from sqlalchemy import text, inspect
 from database import engine, Base
 import models  # registers all models before create_all
 from dependencies.auth import get_current_user
-from routers import accounting, inventory, members, events, audit, player_availability, tasks, reporting, auth, approvals, polls, pain_points, violations, field_formations, scoreboard, sponsors, external_tournament, internal_tournament, page_views
+from routers import accounting, inventory, members, events, audit, player_availability, tasks, reporting, auth, approvals, polls, pain_points, violations, field_formations, scoreboard, sponsors, external_tournament, internal_tournament, page_views, tournament_feedback
 
 
 def _run_migrations():
@@ -178,6 +178,20 @@ def _run_migrations():
         conn.execute(text("CREATE INDEX IF NOT EXISTS ix_page_views_visited_at ON page_views (visited_at DESC)"))
         conn.execute(text("CREATE INDEX IF NOT EXISTS ix_int_tournament_teams_tournament_id ON internal_tournament_teams (tournament_id)"))
         conn.execute(text("CREATE INDEX IF NOT EXISTS ix_int_tournament_team_players_team_id ON internal_tournament_team_players (team_id)"))
+        if "tournament_feedback" not in existing_tables:
+            conn.execute(text("""
+                CREATE TABLE tournament_feedback (
+                    id SERIAL PRIMARY KEY,
+                    tournament_type VARCHAR(10) NOT NULL,
+                    tournament_id INTEGER NOT NULL,
+                    feedback_type VARCHAR(10) NOT NULL,
+                    reviewer_id INTEGER REFERENCES members(id) ON DELETE SET NULL,
+                    reviewed_id INTEGER REFERENCES members(id) ON DELETE SET NULL,
+                    rating INTEGER,
+                    comment TEXT,
+                    created_at TIMESTAMPTZ DEFAULT NOW()
+                )
+            """))
         # Seed The Biryani Club sponsor (only if table already existed — new installs seed after create_all)
         if "sponsors" in existing_tables:
             count = conn.execute(text("SELECT COUNT(*) FROM sponsors")).scalar()
@@ -322,5 +336,6 @@ app.include_router(sponsors.router,            dependencies=_auth)
 app.include_router(external_tournament.router, dependencies=_auth)
 app.include_router(internal_tournament.router, dependencies=_auth)
 app.include_router(page_views.router,          dependencies=_auth)
+app.include_router(tournament_feedback.router, dependencies=_auth)
 
 app.mount("/", StaticFiles(directory="static", html=True), name="static")

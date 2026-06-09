@@ -1,6 +1,7 @@
 import { apiFetch, showToast, fmt } from "/js/api.js";
 
 let modal;
+let playerFbModal;
 let tournaments = [];
 let members = [];
 let selectedId = null;
@@ -17,6 +18,7 @@ function _canEdit(t)       {
 
 export async function init() {
     modal = new bootstrap.Modal(document.getElementById("extTournamentModal"));
+    playerFbModal = new bootstrap.Modal(document.getElementById("playerFbModal"));
 
     document.getElementById("btn-new-ext-tournament").addEventListener("click", () => openModal());
     document.getElementById("ext-tournament-form").addEventListener("submit", onSubmit);
@@ -33,6 +35,44 @@ export async function init() {
 
     document.querySelectorAll(".ext-status-btn").forEach(btn => {
         btn.addEventListener("click", () => onSetStatus(btn.dataset.status));
+    });
+
+    // Player feedback modal star picker
+    {
+        const picker = document.getElementById("pfb-star-picker");
+        const stars = picker.querySelectorAll(".star-btn");
+        playerFbModal._selected = 0;
+        stars.forEach(s => {
+            s.addEventListener("mouseover", () => {
+                stars.forEach((x, i) => x.classList.toggle("text-warning", i < parseInt(s.dataset.val)));
+            });
+            s.addEventListener("mouseout", () => {
+                stars.forEach((x, i) => x.classList.toggle("text-warning", i < playerFbModal._selected));
+            });
+            s.addEventListener("click", () => {
+                playerFbModal._selected = parseInt(s.dataset.val);
+                stars.forEach((x, i) => x.classList.toggle("text-warning", i < playerFbModal._selected));
+            });
+        });
+    }
+
+    document.getElementById("btn-pfb-save").addEventListener("click", async () => {
+        const memberId = parseInt(document.getElementById("pfb-member-id").value);
+        const rating = playerFbModal._selected || null;
+        const comment = document.getElementById("pfb-comment").value.trim() || null;
+        if (!memberId) return;
+        try {
+            await apiFetch(`/tournament-feedback/external/${selectedId}/players/${memberId}`, {
+                method: "PUT",
+                body: JSON.stringify({ rating, comment }),
+            });
+            showToast("Player review saved");
+            playerFbModal.hide();
+            const t = tournaments.find(t => t.id === selectedId);
+            if (t) renderFeedbackSection("external", t);
+        } catch (err) {
+            showToast(err.message, "error");
+        }
     });
 
     await loadAll();
@@ -237,6 +277,9 @@ function showDetail(t) {
     const delBtn = document.getElementById("btn-delete-ext-tournament");
     delBtn.classList.toggle("d-none", !canEdit || !_allPaid(t));
     delBtn.dataset.id = t.id;
+
+    // Feedback section loads async — does not block the rest of the detail panel
+    renderFeedbackSection("external", t);
 }
 
 function _statusBtnClass(status) {
@@ -413,6 +456,170 @@ window._extRemovePlayer = async (pid) => {
     } catch (err) {
         showToast(err.message, "error");
     }
+};
+
+// ── Tournament Feedback ───────────────────────────────────────────────────────
+
+async function renderFeedbackSection(tType, t) {
+    const el = document.getElementById(`${tType === "external" ? "ext" : "int"}-feedback-section`);
+    if (!el) return;
+    el.innerHTML = `<div class="text-center py-2"><div class="spinner-border spinner-border-sm"></div></div>`;
+
+    const isAdmin = _isAdmin();
+    const isCaptain = _user?.member_id != null && _user.member_id === t.captain_id;
+    const canSeePlayerReviews = isAdmin || isCaptain;
+
+    try {
+        const captainFb = await apiFetch(`/tournament-feedback/${tType}/${t.id}/captain`);
+        const playerFb = canSeePlayerReviews
+            ? await apiFetch(`/tournament-feedback/${tType}/${t.id}/players`)
+            : null;
+
+        el.innerHTML = _renderFeedbackHTML(t, tType, captainFb, playerFb, canSeePlayerReviews);
+        _bindFeedbackEvents(t, tType, el);
+    } catch (e) {
+        el.innerHTML = `<p class="text-danger small">${e.message}</p>`;
+    }
+}
+
+function _stars(rating, interactive = false, prefix = "") {
+    if (!interactive) {
+        if (!rating) return `<span class="text-muted small">No rating</span>`;
+        return Array.from({ length: 5 }, (_, i) =>
+            `<i class="bi bi-star${i < rating ? "-fill" : ""} text-warning"></i>`
+        ).join("");
+    }
+    // interactive star picker
+    return `<div class="d-flex gap-1 my-1" id="${prefix}star-picker">
+        ${Array.from({ length: 5 }, (_, i) =>
+            `<i class="bi bi-star-fill fs-5 star-btn text-muted" data-val="${i + 1}" style="cursor:pointer"></i>`
+        ).join("")}
+    </div>`;
+}
+
+function _renderFeedbackHTML(t, tType, captainFb, playerFb, canSeePlayerReviews) {
+    // ── Captain feedback section ──
+    const avgBlock = captainFb.count
+        ? `<span class="fw-semibold">${captainFb.avg_rating ?? "—"}</span> / 5
+           <span class="text-muted small ms-1">(${captainFb.count} review${captainFb.count !== 1 ? "s" : ""})</span>`
+        : `<span class="text-muted small">No reviews yet</span>`;
+
+    const commentsList = captainFb.comments.length
+        ? `<ul class="list-unstyled mt-2 mb-0">
+               ${captainFb.comments.map(c => `<li class="text-muted small mb-1"><i class="bi bi-chat-left-quote me-1"></i>${c}</li>`).join("")}
+           </ul>`
+        : "";
+
+    const submitBtn = `<button class="btn btn-sm btn-success mt-2" id="btn-submit-captain-fb">Submit Feedback</button>`;
+
+    const myFbBlock = _user?.member_id
+        ? `<div class="mt-3 border-top pt-3" id="captain-fb-form">
+               <div class="small fw-semibold mb-1">${captainFb.my_rating ? "Your rating (click to update):" : "Leave your rating:"}</div>
+               ${_stars(null, true, "captain-")}
+               <textarea class="form-control form-control-sm mt-2" id="captain-fb-comment" rows="2"
+                   placeholder="Optional comment…" maxlength="500">${captainFb.my_comment ?? ""}</textarea>
+               ${submitBtn}
+               ${captainFb.my_rating ? `<div class="text-muted small mt-1">Your current rating: ${_stars(captainFb.my_rating)}</div>` : ""}
+           </div>`
+        : `<p class="text-muted small mt-2">Link your account to a member profile to leave feedback.</p>`;
+
+    const captainSection = `
+        <div class="mb-4">
+            <h6 class="fw-semibold mb-2"><i class="bi bi-chat-square-heart me-1 text-danger"></i>Anonymous Captain Feedback</h6>
+            <div class="d-flex align-items-center gap-2">
+                ${captainFb.count ? _stars(Math.round(captainFb.avg_rating)) : ""}
+                ${avgBlock}
+            </div>
+            ${commentsList}
+            ${myFbBlock}
+        </div>`;
+
+    // ── Player reviews section ──
+    let playerSection = "";
+    if (canSeePlayerReviews && playerFb) {
+        const rows = playerFb.length
+            ? playerFb.map(p => `
+                <tr>
+                    <td class="fw-semibold">${p.member_name}</td>
+                    <td>${_stars(p.rating)}</td>
+                    <td class="text-muted small">${p.comment ?? "—"}</td>
+                    <td class="text-end">
+                        <button class="btn btn-sm btn-outline-secondary"
+                            onclick="window._openPlayerFbModal(${p.member_id}, '${p.member_name.replace(/'/g, "\\'")}', ${p.rating ?? "null"}, \`${(p.comment ?? "").replace(/`/g, "\\`")}\`)">
+                            <i class="bi bi-pencil"></i>
+                        </button>
+                    </td>
+                </tr>`).join("")
+            : `<tr><td colspan="4" class="text-muted text-center py-2">No players in this tournament.</td></tr>`;
+
+        playerSection = `
+            <div>
+                <h6 class="fw-semibold mb-2"><i class="bi bi-person-lines-fill me-1 text-primary"></i>Player Reviews (Captain Only)</h6>
+                <div class="table-responsive">
+                    <table class="table table-sm table-hover mb-0">
+                        <thead class="table-light">
+                            <tr><th>Player</th><th>Rating</th><th>Comment</th><th></th></tr>
+                        </thead>
+                        <tbody>${rows}</tbody>
+                    </table>
+                </div>
+            </div>`;
+    }
+
+    return captainSection + playerSection;
+}
+
+function _bindFeedbackEvents(t, tType, el) {
+    // Star picker interaction for captain feedback form
+    const picker = el.querySelector("#captain-star-picker");
+    if (picker) {
+        let selected = 0;
+        const stars = picker.querySelectorAll(".star-btn");
+        stars.forEach(s => {
+            s.addEventListener("mouseover", () => {
+                stars.forEach((x, i) =>
+                    x.classList.toggle("text-warning", i < parseInt(s.dataset.val)));
+            });
+            s.addEventListener("mouseout", () => {
+                stars.forEach((x, i) =>
+                    x.classList.toggle("text-warning", i < selected));
+            });
+            s.addEventListener("click", () => {
+                selected = parseInt(s.dataset.val);
+                stars.forEach((x, i) =>
+                    x.classList.toggle("text-warning", i < selected));
+            });
+        });
+
+        const submitBtn = el.querySelector("#btn-submit-captain-fb");
+        if (submitBtn) {
+            submitBtn.addEventListener("click", async () => {
+                if (!selected) { showToast("Please select a rating", "error"); return; }
+                const comment = el.querySelector("#captain-fb-comment")?.value.trim() || null;
+                try {
+                    await apiFetch(`/tournament-feedback/${tType}/${t.id}/captain`, {
+                        method: "POST",
+                        body: JSON.stringify({ rating: selected, comment }),
+                    });
+                    showToast("Feedback submitted");
+                    await renderFeedbackSection(tType, t);
+                } catch (e) {
+                    showToast(e.message, "error");
+                }
+            });
+        }
+    }
+}
+
+window._openPlayerFbModal = (memberId, memberName, currentRating, currentComment) => {
+    document.getElementById("pfb-modal-title").textContent = `Review: ${memberName}`;
+    document.getElementById("pfb-member-id").value = memberId;
+    document.getElementById("pfb-comment").value = currentComment || "";
+    const stars = document.querySelectorAll("#pfb-star-picker .star-btn");
+    const selected = currentRating || 0;
+    playerFbModal._selected = selected;
+    stars.forEach((s, i) => s.classList.toggle("text-warning", i < selected));
+    playerFbModal.show();
 };
 
 // ── Copy summary ──────────────────────────────────────────────────────────────

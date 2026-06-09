@@ -123,6 +123,43 @@
           </tfoot>
         </table>
       </div>
+
+      <!-- Feedback section -->
+      <hr class="my-3">
+      <div id="ext-feedback-section"></div>
+    </div>
+  </div>
+</div>
+
+<!-- Player Feedback Modal -->
+<div class="modal fade" id="playerFbModal" tabindex="-1">
+  <div class="modal-dialog modal-sm">
+    <div class="modal-content">
+      <div class="modal-header">
+        <h6 class="modal-title" id="pfb-modal-title">Player Review</h6>
+        <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+      </div>
+      <div class="modal-body">
+        <input type="hidden" id="pfb-member-id">
+        <div class="mb-3">
+          <label class="form-label small fw-semibold">Rating</label>
+          <div class="d-flex gap-1" id="pfb-star-picker">
+            <i class="bi bi-star-fill fs-5 star-btn text-muted" data-val="1" style="cursor:pointer"></i>
+            <i class="bi bi-star-fill fs-5 star-btn text-muted" data-val="2" style="cursor:pointer"></i>
+            <i class="bi bi-star-fill fs-5 star-btn text-muted" data-val="3" style="cursor:pointer"></i>
+            <i class="bi bi-star-fill fs-5 star-btn text-muted" data-val="4" style="cursor:pointer"></i>
+            <i class="bi bi-star-fill fs-5 star-btn text-muted" data-val="5" style="cursor:pointer"></i>
+          </div>
+        </div>
+        <div>
+          <label class="form-label small fw-semibold">Comment <span class="text-muted fw-normal">(optional)</span></label>
+          <textarea class="form-control form-control-sm" id="pfb-comment" rows="3" maxlength="500" placeholder="Your thoughts…"></textarea>
+        </div>
+      </div>
+      <div class="modal-footer">
+        <button type="button" class="btn btn-secondary btn-sm" data-bs-dismiss="modal">Cancel</button>
+        <button type="button" class="btn btn-success btn-sm" id="btn-pfb-save">Save Review</button>
+      </div>
     </div>
   </div>
 </div>

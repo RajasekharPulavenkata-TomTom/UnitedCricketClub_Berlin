@@ -6,7 +6,7 @@ from sqlalchemy import text, inspect
 from database import engine, Base
 import models  # registers all models before create_all
 from dependencies.auth import get_current_user
-from routers import accounting, inventory, members, events, audit, finance_pin, player_availability, tasks, tournament, match_fees, reporting, auth, approvals, polls, pain_points, violations, field_formations, ai_field, scoreboard, sponsors, external_tournament, internal_tournament
+from routers import accounting, inventory, members, events, audit, finance_pin, player_availability, tasks, tournament, match_fees, reporting, auth, approvals, polls, pain_points, violations, scoreboard, sponsors, external_tournament, internal_tournament
 
 
 def _run_migrations():
@@ -287,8 +287,6 @@ app.include_router(reporting.router,           dependencies=_auth)
 app.include_router(polls.router,               dependencies=_auth)
 app.include_router(pain_points.router,         dependencies=_auth)
 app.include_router(violations.router,          dependencies=_auth)
-app.include_router(field_formations.router,    dependencies=_auth)
-app.include_router(ai_field.router,            dependencies=_auth)
 app.include_router(scoreboard.router,          dependencies=_auth)
 app.include_router(sponsors.router,            dependencies=_auth)
 app.include_router(external_tournament.router, dependencies=_auth)

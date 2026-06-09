@@ -6,7 +6,7 @@ from models.member import Member
 from models.auth import User
 from schemas.member import MemberCreate, MemberUpdate, MemberOut
 from routers.audit import log
-from dependencies.auth import get_current_user
+from dependencies.auth import get_current_user, require_admin
 
 router = APIRouter(prefix="/api", tags=["members"])
 
@@ -58,10 +58,21 @@ def update_member(id: int, data: MemberUpdate, db: Session = Depends(get_db), cu
 
 
 @router.delete("/members/{id}", status_code=204)
-def delete_member(id: int, db: Session = Depends(get_db), current_user: User = Depends(get_current_user)):
+def deactivate_member(id: int, db: Session = Depends(get_db), current_user: User = Depends(get_current_user)):
     member = db.query(Member).filter(Member.id == id).first()
     if not member:
         raise HTTPException(status_code=404, detail="Member not found")
     member.is_active = False
     log(db, "archived", "member", id, f"Member '{member.name}' archived", user=current_user)
+    db.commit()
+
+
+@router.delete("/members/{id}/purge", status_code=204)
+def purge_member(id: int, db: Session = Depends(get_db), current_user: User = Depends(require_admin)):
+    member = db.query(Member).filter(Member.id == id).first()
+    if not member:
+        raise HTTPException(status_code=404, detail="Member not found")
+    name = member.name
+    db.delete(member)
+    log(db, "deleted", "member", id, f"Member '{name}' permanently deleted", user=current_user)
     db.commit()

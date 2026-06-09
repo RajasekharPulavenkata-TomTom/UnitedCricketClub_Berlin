@@ -1,4 +1,5 @@
 import { apiFetch, showToast, escHtml } from "/js/api.js";
+import { isAdmin } from "/js/auth.js";
 
 let modal;
 let editingId = null;
@@ -83,9 +84,10 @@ function render() {
             <button class="btn btn-sm btn-outline-secondary me-1" onclick="window._editMember(${m.id})">
               <i class="bi bi-pencil"></i>
             </button>
-            <button class="btn btn-sm btn-outline-${m.is_active ? "danger" : "success"}" onclick="window._toggleMember(${m.id}, ${m.is_active})" title="${m.is_active ? "Deactivate" : "Activate"}">
+            <button class="btn btn-sm btn-outline-${m.is_active ? "danger" : "success"} me-1" onclick="window._toggleMember(${m.id}, ${m.is_active})" title="${m.is_active ? "Deactivate" : "Activate"}">
               <i class="bi bi-person-${m.is_active ? "dash" : "check"}"></i>
             </button>
+            ${isAdmin() ? `<button class="btn btn-sm btn-outline-danger" onclick="window._deleteMember(${m.id}, '${escHtml(m.name)}')" title="Permanently delete player"><i class="bi bi-trash"></i></button>` : ""}
           </td>
         </tr>`).join("");
 }
@@ -164,6 +166,17 @@ window._toggleMember = async (id, isActive) => {
     try {
         await apiFetch(`/members/${id}`, { method: "PUT", body: JSON.stringify({ is_active: !isActive }) });
         showToast(`Member ${action.toLowerCase()}d`);
+        load();
+    } catch (e) {
+        showToast(e.message, "error");
+    }
+};
+
+window._deleteMember = async (id, name) => {
+    if (!confirm(`Permanently delete "${name}"?\n\nThis will remove all their availability, reporting, fee, and squad records. This cannot be undone.`)) return;
+    try {
+        await apiFetch(`/members/${id}/purge`, { method: "DELETE" });
+        showToast(`"${name}" permanently deleted`);
         load();
     } catch (e) {
         showToast(e.message, "error");

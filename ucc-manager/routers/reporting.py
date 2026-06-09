@@ -26,10 +26,15 @@ def _squad_ids(event_id: int, db: Session) -> list[int]:
 
 
 def _available_ids(event_id: int, db: Session) -> list[int]:
-    return [a.member_id for a in
-            db.query(EventAvailability)
-            .filter(EventAvailability.event_id == event_id,
-                    EventAvailability.status == "available").all()]
+    seen: set[int] = set()
+    result = []
+    for a in (db.query(EventAvailability)
+              .filter(EventAvailability.event_id == event_id,
+                      EventAvailability.status == "available").all()):
+        if a.member_id not in seen:
+            seen.add(a.member_id)
+            result.append(a.member_id)
+    return result
 
 
 @router.get("")

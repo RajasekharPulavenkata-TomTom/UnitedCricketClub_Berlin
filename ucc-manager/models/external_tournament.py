@@ -32,10 +32,11 @@ class ExternalTournament(Base):
 class ExternalTournamentPlayer(Base):
     __tablename__ = "external_tournament_players"
 
-    id            = Column(Integer, primary_key=True, autoincrement=True)
-    tournament_id = Column(Integer, ForeignKey("external_tournaments.id", ondelete="CASCADE"), nullable=False)
-    member_id     = Column(Integer, ForeignKey("members.id", ondelete="CASCADE"), nullable=False)
-    paid          = Column(Boolean, default=False, nullable=False)
+    id             = Column(Integer, primary_key=True, autoincrement=True)
+    tournament_id  = Column(Integer, ForeignKey("external_tournaments.id", ondelete="CASCADE"), nullable=False)
+    member_id      = Column(Integer, ForeignKey("members.id", ondelete="CASCADE"), nullable=False)
+    matches_played = Column(Integer, default=1, nullable=False)
+    paid           = Column(Boolean, default=False, nullable=False)
 
     tournament = relationship("ExternalTournament", back_populates="players")
     member     = relationship("Member")

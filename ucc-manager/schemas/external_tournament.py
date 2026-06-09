@@ -11,12 +11,19 @@ class ExtMemberRef(BaseModel):
 
 class ExtParticipantCreate(BaseModel):
     member_id: int
+    matches_played: int = 1
+
+
+class ExtParticipantUpdate(BaseModel):
+    matches_played: Optional[int] = None
 
 
 class ExtParticipantOut(BaseModel):
     id: int
     member_id: int
+    matches_played: int
     paid: bool
+    fee_share: Optional[float] = None
     member: ExtMemberRef
     model_config = {"from_attributes": True}
 

@@ -6,7 +6,7 @@ from sqlalchemy import text, inspect
 from database import engine, Base
 import models  # registers all models before create_all
 from dependencies.auth import get_current_user
-from routers import accounting, inventory, members, events, audit, finance_pin, player_availability, tasks, tournament, match_fees, reporting, auth, approvals, polls, pain_points, violations, field_formations, scoreboard, sponsors, external_tournament, internal_tournament
+from routers import accounting, inventory, members, events, audit, finance_pin, player_availability, tasks, match_fees, reporting, auth, approvals, polls, pain_points, violations, field_formations, scoreboard, sponsors, external_tournament, internal_tournament
 
 
 def _run_migrations():
@@ -150,6 +150,10 @@ def _run_migrations():
         conn.execute(text("CREATE INDEX IF NOT EXISTS ix_users_member_id ON users (member_id)"))
         conn.execute(text("CREATE INDEX IF NOT EXISTS ix_ext_tournament_players_tournament_id ON external_tournament_players (tournament_id)"))
         conn.execute(text("CREATE INDEX IF NOT EXISTS ix_ext_tournament_players_member_id ON external_tournament_players (member_id)"))
+        if "external_tournament_players" in existing_tables:
+            etp_cols = _cols.get("external_tournament_players", set())
+            if "matches_played" not in etp_cols:
+                conn.execute(text("ALTER TABLE external_tournament_players ADD COLUMN matches_played INTEGER NOT NULL DEFAULT 1"))
         conn.execute(text("CREATE INDEX IF NOT EXISTS ix_int_tournament_teams_tournament_id ON internal_tournament_teams (tournament_id)"))
         conn.execute(text("CREATE INDEX IF NOT EXISTS ix_int_tournament_team_players_team_id ON internal_tournament_team_players (team_id)"))
         # Seed The Biryani Club sponsor (only if table already existed — new installs seed after create_all)
@@ -281,7 +285,6 @@ app.include_router(audit.router,               dependencies=_auth)
 app.include_router(finance_pin.router,         dependencies=_auth)
 app.include_router(player_availability.router, dependencies=_auth)
 app.include_router(tasks.router,               dependencies=_auth)
-app.include_router(tournament.router,          dependencies=_auth)
 app.include_router(match_fees.router,          dependencies=_auth)
 app.include_router(reporting.router,           dependencies=_auth)
 app.include_router(polls.router,               dependencies=_auth)

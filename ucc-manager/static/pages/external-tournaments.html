@@ -2,7 +2,7 @@
 <div class="container-fluid py-3">
 
   <div class="d-flex align-items-center justify-content-between mb-3 flex-wrap gap-2">
-    <h4 class="mb-0">🏆 External Tournaments</h4>
+    <h4 class="mb-0">🌍 External Tournaments</h4>
     <button class="btn btn-success btn-sm" id="btn-new-ext-tournament">
       <i class="bi bi-plus-lg me-1"></i>New Tournament
     </button>
@@ -17,7 +17,7 @@
             <th>Name</th>
             <th>Dates</th>
             <th>Format</th>
-            <th>Venue</th>
+            <th>Total Fee</th>
             <th>Players</th>
             <th>Status</th>
             <th>Result</th>
@@ -33,6 +33,9 @@
     <div class="card-header d-flex align-items-center justify-content-between flex-wrap gap-2">
       <span class="fw-semibold fs-5" id="ext-detail-title"></span>
       <div class="d-flex gap-2 flex-wrap">
+        <button class="btn btn-sm btn-outline-secondary" id="btn-ext-copy-summary">
+          <i class="bi bi-clipboard me-1"></i>Copy Summary
+        </button>
         <button class="btn btn-sm btn-outline-secondary" id="btn-edit-ext-tournament">
           <i class="bi bi-pencil me-1"></i>Edit
         </button>
@@ -52,7 +55,7 @@
       <!-- Result field -->
       <div class="mb-3" id="ext-result-row" style="display:none">
         <label class="form-label fw-semibold">Overall Result</label>
-        <div class="input-group">
+        <div class="input-group" style="max-width:440px">
           <input type="text" class="form-control" id="ext-result-input" placeholder="e.g. Champions, Runner-up, Group stage exit…" maxlength="100">
           <button class="btn btn-outline-primary" id="btn-save-result">Save</button>
         </div>
@@ -68,10 +71,18 @@
         </div>
       </div>
 
-      <!-- Players section -->
-      <h6 class="fw-semibold mb-2">Players</h6>
-      <div class="d-flex gap-2 mb-3 flex-wrap">
-        <select class="form-select form-select-sm" id="ext-add-member-select" style="max-width:240px"></select>
+      <!-- Players + fee section -->
+      <h6 class="fw-semibold mb-2">Players & Fee Split</h6>
+      <div class="d-flex gap-2 mb-3 flex-wrap align-items-end">
+        <div>
+          <label class="form-label small mb-1">Player</label>
+          <select class="form-select form-select-sm" id="ext-add-member-select" style="min-width:200px"></select>
+        </div>
+        <div>
+          <label class="form-label small mb-1">Matches</label>
+          <input type="number" class="form-control form-control-sm" id="ext-add-matches-input"
+            value="1" min="1" style="width:80px">
+        </div>
         <button class="btn btn-sm btn-outline-success" id="btn-ext-add-player">
           <i class="bi bi-plus-lg me-1"></i>Add Player
         </button>
@@ -82,15 +93,27 @@
           <thead class="table-light">
             <tr>
               <th>Player</th>
+              <th class="text-center">Matches</th>
+              <th class="text-end">Fee Share</th>
               <th class="text-center">Paid</th>
               <th class="text-end">Remove</th>
             </tr>
           </thead>
           <tbody id="ext-players-tbody"></tbody>
+          <tfoot id="ext-players-tfoot" style="display:none">
+            <tr class="table-light fw-semibold">
+              <td>Total</td>
+              <td class="text-center" id="ext-total-matches"></td>
+              <td class="text-end" id="ext-total-fee-display"></td>
+              <td class="text-center" id="ext-paid-summary"></td>
+              <td></td>
+            </tr>
+            <tr>
+              <td colspan="5" class="text-muted small" id="ext-fee-per-match-label"></td>
+            </tr>
+          </tfoot>
         </table>
       </div>
-
-      <div class="text-muted small mt-2" id="ext-paid-summary"></div>
     </div>
   </div>
 </div>
@@ -143,7 +166,7 @@
               <input type="date" class="form-control" name="registration_deadline">
             </div>
             <div class="col-md-6">
-              <label class="form-label">Registration Fee (€)</label>
+              <label class="form-label">Total Fee (€) <span class="text-muted small">— split among players</span></label>
               <input type="number" class="form-control" name="registration_fee" min="0" step="0.01" placeholder="0.00">
             </div>
             <div class="col-md-6">

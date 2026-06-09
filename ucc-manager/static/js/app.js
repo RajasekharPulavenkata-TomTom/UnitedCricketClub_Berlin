@@ -202,7 +202,6 @@ const PAGES = {
     maintenance:        { html: "/pages/maintenance.html",         js: "/js/maintenance.js"        },
     members:            { html: "/pages/members.html",             js: "/js/members.js"            },
     tasks:              { html: "/pages/tasks.html",               js: "/js/tasks.js"              },
-    "tournament-fees":  { html: "/pages/tournament-fees.html",    js: "/js/tournament-fees.js"    },
     "match-fees":       { html: "/pages/match-fees.html",         js: "/js/match-fees.js"         },
     "club-fees":        { html: "/pages/club-fees.html",          js: "/js/club-fees.js"          },
     "reporting":          { html: "/pages/reporting.html",           js: "/js/reporting.js"           },

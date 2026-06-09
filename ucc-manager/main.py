@@ -185,7 +185,7 @@ def _seed_sponsors():
 
 
 _SEED_MEMBERS = [
-    ("Raja Sekhar Pula Venkata",  "REDACTED",          "REDACTED"),
+    ("Raja Sekhar Pula Venkata", "REDACTED",           "REDACTED"),
     ("Anish Arora",               "REDACTED",           "REDACTED"),
     ("Nilesh Chaudhari",          "REDACTED",             "REDACTED"),
     ("Bubai",                     "REDACTED",         "REDACTED"),

@@ -8,13 +8,12 @@ export async function init() {
         return { year: m.getFullYear(), month: m.getMonth() + 1 };
     });
 
-    const [members, equipment, finance, tasks, matchResults, matchFees, pageStats, auditLog, ...eventPages] = await Promise.all([
+    const [members, equipment, finance, tasks, matchResults, pageStats, auditLog, ...eventPages] = await Promise.all([
         apiFetch("/members"),
         apiFetch("/equipment?active_only=true"),
         apiFetch("/reports/dashboard"),
         apiFetch("/tasks"),
         apiFetch(`/scoreboard?year=${now.getFullYear()}`),
-        apiFetch("/match-fees"),
         apiFetch("/page-views/stats"),
         apiFetch("/history?limit=8"),
         ...months.map((m) => apiFetch(`/events?year=${m.year}&month=${m.month}`)),
@@ -32,7 +31,6 @@ export async function init() {
     renderEquipment(equipment);
     renderFinance(finance);
     renderSeasonRecord(matchResults);
-    renderFeesOutstanding(matchFees);
     renderRecentResults(matchResults);
     renderNextEvent(upcoming, activeCount);
     renderSchedule(upcoming, activeCount);
@@ -142,16 +140,6 @@ function renderSeasonRecord(results) {
     document.getElementById("home-season-sub").textContent = played ? `${played} matches this season` : "No results yet";
 }
 
-function renderFeesOutstanding(matchFees) {
-    const total = matchFees.reduce((s, e) => s + (e.outstanding || 0), 0);
-    const events = matchFees.filter(e => (e.outstanding || 0) > 0).length;
-
-    const el = document.getElementById("home-fees-outstanding");
-    el.textContent = fmt.currency(total);
-    el.className   = `fw-bold fs-5 ${total > 0 ? "text-danger" : "text-success"}`;
-    document.getElementById("home-fees-sub").textContent =
-        total > 0 ? `Across ${events} event${events !== 1 ? "s" : ""}` : "All collected";
-}
 
 function renderRecentResults(results) {
     const el = document.getElementById("home-match-results");

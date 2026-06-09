@@ -156,8 +156,13 @@ def purge_user(id: int, current_user: User = Depends(require_root), db: Session 
     user = db.query(User).filter(User.id == id).first()
     if not user:
         raise HTTPException(status_code=404, detail="User not found")
-    # Nullify FKs that don't have ON DELETE SET NULL at DB level
-    db.execute(text("UPDATE poll_votes SET user_id = NULL WHERE user_id = :id"), {"id": id})
-    db.execute(text("UPDATE polls SET created_by_id = NULL WHERE created_by_id = :id"), {"id": id})
+    # Nullify all FK references that lack ON DELETE SET NULL at DB level
+    for stmt in [
+        "UPDATE audit_logs      SET user_id        = NULL WHERE user_id        = :id",
+        "UPDATE transactions    SET created_by_id  = NULL WHERE created_by_id  = :id",
+        "UPDATE poll_votes      SET user_id        = NULL WHERE user_id        = :id",
+        "UPDATE polls           SET created_by_id  = NULL WHERE created_by_id  = :id",
+    ]:
+        db.execute(text(stmt), {"id": id})
     db.delete(user)
     db.commit()

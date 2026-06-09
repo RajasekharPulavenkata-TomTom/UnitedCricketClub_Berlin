@@ -209,6 +209,7 @@ const PAGES = {
     "practice-reporting": { html: "/pages/practice-reporting.html", js: "/js/practice-reporting.js"  },
     "field-editor":       { html: "/pages/field-editor.html",       js: "/js/field-editor.js"         },
     "match-results":      { html: "/pages/scoreboard.html",          js: "/js/scoreboard.js"           },
+    "external-tournaments": { html: "/pages/external-tournaments.html", js: "/js/external-tournaments.js" },
     calendar:           { html: "/pages/calendar.html",            js: "/js/calendar.js"           },
     rules:              { html: "/pages/rules.html",               js: "/js/rules.js"              },
     history:            { html: "/pages/history.html",             js: "/js/history.js"            },

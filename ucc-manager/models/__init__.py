@@ -17,5 +17,6 @@ from .violation import Violation
 from .field_formation import FieldFormation
 from .scoreboard import MatchResult
 from .sponsor import Sponsor
+from .external_tournament import ExternalTournament, ExternalTournamentPlayer
 
-__all__ = ["User", "Category", "Transaction", "EquipmentItem", "MaintenanceNote", "Member", "Event", "EventAvailability", "AuditLog", "ClubSetting", "PlayerAvailability", "EventSquad", "Task", "Tournament", "TournamentParticipant", "MatchFeePayment", "PlayerReporting", "Poll", "PollOption", "PollVote", "PollAnonymousVoter", "PainPoint", "Violation", "FieldFormation", "MatchResult", "Sponsor"]
+__all__ = ["User", "Category", "Transaction", "EquipmentItem", "MaintenanceNote", "Member", "Event", "EventAvailability", "AuditLog", "ClubSetting", "PlayerAvailability", "EventSquad", "Task", "Tournament", "TournamentParticipant", "MatchFeePayment", "PlayerReporting", "Poll", "PollOption", "PollVote", "PollAnonymousVoter", "PainPoint", "Violation", "FieldFormation", "MatchResult", "Sponsor", "ExternalTournament", "ExternalTournamentPlayer"]

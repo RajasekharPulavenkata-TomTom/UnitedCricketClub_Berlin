@@ -1,0 +1,166 @@
+<!-- External Tournaments -->
+<div class="container-fluid py-3">
+
+  <div class="d-flex align-items-center justify-content-between mb-3 flex-wrap gap-2">
+    <h4 class="mb-0">🏆 External Tournaments</h4>
+    <button class="btn btn-success btn-sm" id="btn-new-ext-tournament">
+      <i class="bi bi-plus-lg me-1"></i>New Tournament
+    </button>
+  </div>
+
+  <!-- Tournament list -->
+  <div class="card mb-4">
+    <div class="table-responsive">
+      <table class="table table-hover mb-0 align-middle">
+        <thead class="table-light">
+          <tr>
+            <th>Name</th>
+            <th>Dates</th>
+            <th>Format</th>
+            <th>Venue</th>
+            <th>Players</th>
+            <th>Status</th>
+            <th>Result</th>
+          </tr>
+        </thead>
+        <tbody id="ext-tournament-tbody"></tbody>
+      </table>
+    </div>
+  </div>
+
+  <!-- Detail panel -->
+  <div id="ext-tournament-detail" class="card" style="display:none">
+    <div class="card-header d-flex align-items-center justify-content-between flex-wrap gap-2">
+      <span class="fw-semibold fs-5" id="ext-detail-title"></span>
+      <div class="d-flex gap-2 flex-wrap">
+        <button class="btn btn-sm btn-outline-secondary" id="btn-edit-ext-tournament">
+          <i class="bi bi-pencil me-1"></i>Edit
+        </button>
+        <button class="btn btn-sm btn-outline-danger d-none" id="btn-delete-ext-tournament">
+          <i class="bi bi-trash me-1"></i>Delete
+        </button>
+        <button class="btn btn-sm btn-outline-secondary" id="btn-close-ext-detail">
+          <i class="bi bi-x-lg"></i>
+        </button>
+      </div>
+    </div>
+    <div class="card-body">
+
+      <!-- Meta row -->
+      <div class="row g-3 mb-3" id="ext-detail-meta"></div>
+
+      <!-- Result field -->
+      <div class="mb-3" id="ext-result-row" style="display:none">
+        <label class="form-label fw-semibold">Overall Result</label>
+        <div class="input-group">
+          <input type="text" class="form-control" id="ext-result-input" placeholder="e.g. Champions, Runner-up, Group stage exit…" maxlength="100">
+          <button class="btn btn-outline-primary" id="btn-save-result">Save</button>
+        </div>
+      </div>
+
+      <!-- Status control -->
+      <div class="mb-4">
+        <label class="form-label fw-semibold">Status</label>
+        <div class="d-flex gap-2 flex-wrap">
+          <button class="btn btn-sm ext-status-btn" data-status="upcoming">Upcoming</button>
+          <button class="btn btn-sm ext-status-btn" data-status="ongoing">Ongoing</button>
+          <button class="btn btn-sm ext-status-btn" data-status="completed">Completed</button>
+        </div>
+      </div>
+
+      <!-- Players section -->
+      <h6 class="fw-semibold mb-2">Players</h6>
+      <div class="d-flex gap-2 mb-3 flex-wrap">
+        <select class="form-select form-select-sm" id="ext-add-member-select" style="max-width:240px"></select>
+        <button class="btn btn-sm btn-outline-success" id="btn-ext-add-player">
+          <i class="bi bi-plus-lg me-1"></i>Add Player
+        </button>
+      </div>
+
+      <div class="table-responsive">
+        <table class="table table-sm mb-0">
+          <thead class="table-light">
+            <tr>
+              <th>Player</th>
+              <th class="text-center">Paid</th>
+              <th class="text-end">Remove</th>
+            </tr>
+          </thead>
+          <tbody id="ext-players-tbody"></tbody>
+        </table>
+      </div>
+
+      <div class="text-muted small mt-2" id="ext-paid-summary"></div>
+    </div>
+  </div>
+</div>
+
+<!-- Create / Edit Modal -->
+<div class="modal fade" id="extTournamentModal" tabindex="-1">
+  <div class="modal-dialog modal-lg">
+    <div class="modal-content">
+      <div class="modal-header">
+        <h5 class="modal-title" id="ext-modal-title">New Tournament</h5>
+        <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+      </div>
+      <form id="ext-tournament-form">
+        <div class="modal-body">
+          <div class="row g-3">
+            <div class="col-12">
+              <label class="form-label">Tournament Name <span class="text-danger">*</span></label>
+              <input type="text" class="form-control" name="name" required maxlength="150">
+            </div>
+            <div class="col-md-6">
+              <label class="form-label">Organiser</label>
+              <input type="text" class="form-control" name="organiser" maxlength="100">
+            </div>
+            <div class="col-md-6">
+              <label class="form-label">Format</label>
+              <select class="form-select" name="format">
+                <option value="">— Select —</option>
+                <option>T20</option>
+                <option>T10</option>
+                <option>ODI</option>
+                <option>8 Overs</option>
+                <option>6 Overs</option>
+                <option>Other</option>
+              </select>
+            </div>
+            <div class="col-12">
+              <label class="form-label">Venue</label>
+              <input type="text" class="form-control" name="venue" maxlength="150">
+            </div>
+            <div class="col-md-4">
+              <label class="form-label">Start Date <span class="text-danger">*</span></label>
+              <input type="date" class="form-control" name="start_date" required>
+            </div>
+            <div class="col-md-4">
+              <label class="form-label">End Date</label>
+              <input type="date" class="form-control" name="end_date">
+            </div>
+            <div class="col-md-4">
+              <label class="form-label">Registration Deadline</label>
+              <input type="date" class="form-control" name="registration_deadline">
+            </div>
+            <div class="col-md-6">
+              <label class="form-label">Registration Fee (€)</label>
+              <input type="number" class="form-control" name="registration_fee" min="0" step="0.01" placeholder="0.00">
+            </div>
+            <div class="col-md-6">
+              <label class="form-label">Website / Info URL</label>
+              <input type="url" class="form-control" name="website_url" maxlength="500" placeholder="https://…">
+            </div>
+            <div class="col-12">
+              <label class="form-label">Notes</label>
+              <textarea class="form-control" name="notes" rows="2" maxlength="1000"></textarea>
+            </div>
+          </div>
+        </div>
+        <div class="modal-footer">
+          <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+          <button type="submit" class="btn btn-success" id="ext-save-btn">Save Tournament</button>
+        </div>
+      </form>
+    </div>
+  </div>
+</div>

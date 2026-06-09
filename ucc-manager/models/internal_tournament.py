@@ -19,6 +19,7 @@ class InternalTournament(Base):
     end_date   = Column(Date)
     status     = Column(String(20), default="upcoming")  # upcoming, ongoing, completed
     champion   = Column(String(100))
+    captain_id = Column(Integer, ForeignKey("members.id", ondelete="SET NULL"), nullable=True)
     notes      = Column(Text)
     created_at = Column(DateTime, default=_now)
 
@@ -31,6 +32,7 @@ class InternalTournamentTeam(Base):
     id            = Column(Integer, primary_key=True, autoincrement=True)
     tournament_id = Column(Integer, ForeignKey("internal_tournaments.id", ondelete="CASCADE"), nullable=False)
     name          = Column(String(100), nullable=False)
+    captain_id    = Column(Integer, ForeignKey("members.id", ondelete="SET NULL"), nullable=True)
 
     tournament = relationship("InternalTournament", back_populates="teams")
     players    = relationship("InternalTournamentTeamPlayer", back_populates="team", cascade="all, delete-orphan")

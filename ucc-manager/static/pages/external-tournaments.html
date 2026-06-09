@@ -52,6 +52,15 @@
       <!-- Meta row -->
       <div class="row g-3 mb-3" id="ext-detail-meta"></div>
 
+      <!-- Admin-only: Captain assignment -->
+      <div class="mb-3" id="ext-captain-section" style="display:none">
+        <label class="form-label fw-semibold"><i class="bi bi-crown-fill text-warning me-1"></i>Captain</label>
+        <div class="d-flex gap-2 align-items-center flex-wrap">
+          <select class="form-select form-select-sm" id="ext-captain-select" style="max-width:260px"></select>
+          <button class="btn btn-sm btn-outline-primary" id="btn-ext-save-captain">Save</button>
+        </div>
+      </div>
+
       <!-- Result field -->
       <div class="mb-3" id="ext-result-row" style="display:none">
         <label class="form-label fw-semibold">Overall Result</label>
@@ -73,7 +82,7 @@
 
       <!-- Players + fee section -->
       <h6 class="fw-semibold mb-2">Players & Fee Split</h6>
-      <div class="d-flex gap-2 mb-3 flex-wrap align-items-end">
+      <div class="d-flex gap-2 mb-3 flex-wrap align-items-end ext-add-player-row">
         <div>
           <label class="form-label small mb-1">Player</label>
           <select class="form-select form-select-sm" id="ext-add-member-select" style="min-width:200px"></select>
@@ -81,7 +90,7 @@
         <div>
           <label class="form-label small mb-1">Matches</label>
           <input type="number" class="form-control form-control-sm" id="ext-add-matches-input"
-            value="1" min="1" style="width:80px">
+            value="1" min="0" style="width:80px">
         </div>
         <button class="btn btn-sm btn-outline-success" id="btn-ext-add-player">
           <i class="bi bi-plus-lg me-1"></i>Add Player
@@ -96,7 +105,7 @@
               <th class="text-center">Matches</th>
               <th class="text-end">Fee Share</th>
               <th class="text-center">Paid</th>
-              <th class="text-end">Remove</th>
+              <th class="text-end" id="ext-col-remove"></th>
             </tr>
           </thead>
           <tbody id="ext-players-tbody"></tbody>

@@ -26,7 +26,7 @@ function initAuth() {
                 return;
             }
             localStorage.setItem("ucc_token", data.access_token);
-            localStorage.setItem("ucc_user", JSON.stringify({ username: data.username, role: data.role, id: data.user_id }));
+            localStorage.setItem("ucc_user", JSON.stringify({ username: data.username, role: data.role, id: data.user_id, member_id: data.member_id ?? null }));
             authModal.hide();
             bootApp();
         } catch {
@@ -250,6 +250,7 @@ async function router() {
         if (FINANCE_PAGES.has(hash)) injectFinanceToolbar(container);
         const mod = await import(page.js + "?v=" + _SV);
         if (mod.init) mod.init();
+        apiFetch("/page-views", { method: "POST", body: JSON.stringify({ page: hash }) }).catch(() => {});
     } catch (e) {
         container.innerHTML = `<div class="alert alert-danger">Failed to load page: ${e.message}</div>`;
     }

@@ -24,6 +24,7 @@ class ExternalTournament(Base):
     result                = Column(String(100))
     website_url           = Column(String(500))
     notes                 = Column(Text)
+    captain_id            = Column(Integer, ForeignKey("members.id", ondelete="SET NULL"), nullable=True)
     created_at            = Column(DateTime, default=_now)
 
     players = relationship("ExternalTournamentPlayer", back_populates="tournament", cascade="all, delete-orphan")

@@ -49,6 +49,15 @@
       <!-- Meta row -->
       <div class="row g-3 mb-3" id="int-detail-meta"></div>
 
+      <!-- Admin-only: Captain assignment -->
+      <div class="mb-3" id="int-captain-section" style="display:none">
+        <label class="form-label fw-semibold"><i class="bi bi-crown-fill text-warning me-1"></i>Tournament Captain</label>
+        <div class="d-flex gap-2 align-items-center flex-wrap">
+          <select class="form-select form-select-sm" id="int-captain-select" style="max-width:260px"></select>
+          <button class="btn btn-sm btn-outline-primary" id="btn-int-save-captain">Save</button>
+        </div>
+      </div>
+
       <!-- Status control -->
       <div class="mb-3">
         <label class="form-label fw-semibold">Status</label>
@@ -69,7 +78,7 @@
       </div>
 
       <!-- Add team -->
-      <div class="d-flex align-items-center justify-content-between mb-2 flex-wrap gap-2">
+      <div id="int-add-team-row" class="d-flex align-items-center justify-content-between mb-2 flex-wrap gap-2">
         <h6 class="fw-semibold mb-0">Teams</h6>
         <div class="d-flex gap-2">
           <input type="text" class="form-control form-control-sm" id="int-team-name-input"

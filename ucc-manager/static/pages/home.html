@@ -21,10 +21,15 @@
   .event-row-match    { border-left: 4px solid #0d6efd; background: #f0f5ff; }
   .event-row-training { border-left: 4px solid #198754; background: #f0faf4; }
   .event-row-other    { border-left: 4px solid #6c757d; background: #f8f9fa; }
-  .stat-strip .stat-item { flex: 1; min-width: 100px; }
+  .stat-card { flex: 1; min-width: 130px; cursor: pointer; transition: box-shadow .15s; }
+  .stat-card:hover .card { box-shadow: 0 4px 14px rgba(0,0,0,.1); }
+  .result-badge-won  { background: #d1e7dd; color: #0a3622; }
+  .result-badge-lost { background: #f8d7da; color: #58151c; }
+  .result-badge-tied { background: #fff3cd; color: #664d03; }
+  .result-badge-nr   { background: #e2e3e5; color: #41464b; }
 </style>
 
-<!-- ── Founding Day banner (rendered by home.js if within 30 days) ─────────── -->
+<!-- ── Founding Day banner ────────────────────────────────────────────────── -->
 <div id="home-founding-day"></div>
 
 <!-- ── Next event hero ──────────────────────────────────────────────────────── -->
@@ -43,40 +48,54 @@
   </div>
 </div>
 
-<!-- ── Compact stat strip ──────────────────────────────────────────────────── -->
-<div class="d-flex flex-wrap gap-2 mb-4 stat-strip">
-  <a href="#members" class="text-decoration-none stat-item">
+<!-- ── Quick stats strip ───────────────────────────────────────────────────── -->
+<div class="d-flex flex-wrap gap-2 mb-4">
+  <a href="#members" class="text-decoration-none stat-card">
     <div class="card px-3 py-2 h-100">
       <div class="text-muted small"><i class="bi bi-people me-1"></i>Players</div>
       <div class="fw-bold fs-5 text-dark" id="home-total-members">—</div>
       <div class="text-muted" style="font-size:.72rem" id="home-active-members"></div>
     </div>
   </a>
-  <a href="#equipment" class="text-decoration-none stat-item">
-    <div class="card px-3 py-2 h-100">
-      <div class="text-muted small"><i class="bi bi-box-seam me-1"></i>Kit Items</div>
-      <div class="fw-bold fs-5 text-dark" id="home-total-equipment">—</div>
-      <div class="text-muted" style="font-size:.72rem" id="home-available-equipment"></div>
-    </div>
-  </a>
-  <a href="#dashboard" class="text-decoration-none stat-item">
+  <a href="#dashboard" class="text-decoration-none stat-card">
     <div class="card px-3 py-2 h-100">
       <div class="text-muted small"><i class="bi bi-cash-coin me-1"></i>Balance</div>
       <div class="fw-bold fs-5" id="home-balance">—</div>
       <div class="text-muted" style="font-size:.72rem" id="home-balance-sub"></div>
     </div>
   </a>
-  <a href="#tasks" class="text-decoration-none stat-item">
+  <a href="#match-results" class="text-decoration-none stat-card">
+    <div class="card px-3 py-2 h-100">
+      <div class="text-muted small"><i class="bi bi-trophy me-1"></i>Season Record</div>
+      <div class="fw-bold fs-5 text-dark" id="home-season-record">—</div>
+      <div class="text-muted" style="font-size:.72rem" id="home-season-sub"></div>
+    </div>
+  </a>
+  <a href="#match-fees" class="text-decoration-none stat-card">
+    <div class="card px-3 py-2 h-100">
+      <div class="text-muted small"><i class="bi bi-exclamation-circle me-1"></i>Fees Outstanding</div>
+      <div class="fw-bold fs-5" id="home-fees-outstanding">—</div>
+      <div class="text-muted" style="font-size:.72rem" id="home-fees-sub"></div>
+    </div>
+  </a>
+  <a href="#tasks" class="text-decoration-none stat-card">
     <div class="card px-3 py-2 h-100">
       <div class="text-muted small"><i class="bi bi-check2-square me-1"></i>Open Tasks</div>
       <div class="fw-bold fs-5 text-dark" id="home-open-tasks">—</div>
       <div class="text-muted" style="font-size:.72rem" id="home-tasks-sub"></div>
     </div>
   </a>
+  <a href="#equipment" class="text-decoration-none stat-card">
+    <div class="card px-3 py-2 h-100">
+      <div class="text-muted small"><i class="bi bi-box-seam me-1"></i>Kit Items</div>
+      <div class="fw-bold fs-5 text-dark" id="home-total-equipment">—</div>
+      <div class="text-muted" style="font-size:.72rem" id="home-available-equipment"></div>
+    </div>
+  </a>
 </div>
 
-<!-- ── Squad + Kit + Finance + Tasks ──────────────────────────────────────── -->
-<div class="row g-3">
+<!-- ── Detail cards ────────────────────────────────────────────────────────── -->
+<div class="row g-3 mb-3">
   <div class="col-lg-3">
     <div class="card h-100">
       <div class="card-header bg-white fw-semibold">👕 Squad</div>
@@ -87,8 +106,11 @@
   </div>
   <div class="col-lg-3">
     <div class="card h-100">
-      <div class="card-header bg-white fw-semibold">🎽 Kit & Equipment</div>
-      <div class="card-body" id="home-equipment-breakdown">
+      <div class="card-header bg-white fw-semibold d-flex justify-content-between align-items-center">
+        <span>🏆 Match Results</span>
+        <a href="#match-results" class="btn btn-sm btn-outline-success">All</a>
+      </div>
+      <div class="card-body p-0" id="home-match-results">
         <div class="text-center py-3"><div class="spinner-border spinner-border-sm"></div></div>
       </div>
     </div>
@@ -111,6 +133,30 @@
         <a href="#tasks" class="btn btn-sm btn-outline-success">All</a>
       </div>
       <div class="card-body p-0" id="home-tasks-list">
+        <div class="text-center py-3"><div class="spinner-border spinner-border-sm"></div></div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ── Usage stats ──────────────────────────────────────────────────────────── -->
+<div class="row g-3">
+  <div class="col-lg-6">
+    <div class="card h-100">
+      <div class="card-header bg-white fw-semibold d-flex justify-content-between align-items-center">
+        <span><i class="bi bi-bar-chart-line me-2"></i>Most Used Pages <span class="text-muted fw-normal small">(last 30 days)</span></span>
+      </div>
+      <div class="card-body" id="home-page-stats">
+        <div class="text-center py-3"><div class="spinner-border spinner-border-sm"></div></div>
+      </div>
+    </div>
+  </div>
+  <div class="col-lg-6">
+    <div class="card h-100">
+      <div class="card-header bg-white fw-semibold">
+        <i class="bi bi-activity me-2"></i>Recent Activity
+      </div>
+      <div class="card-body p-0" id="home-activity">
         <div class="text-center py-3"><div class="spinner-border spinner-border-sm"></div></div>
       </div>
     </div>

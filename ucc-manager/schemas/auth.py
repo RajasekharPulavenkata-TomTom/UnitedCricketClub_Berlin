@@ -16,6 +16,7 @@ class TokenOut(BaseModel):
     role: str
     username: str
     user_id: int
+    member_id: Optional[int] = None
 
 
 class UserCreate(BaseModel):

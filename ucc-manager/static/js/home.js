@@ -8,11 +8,15 @@ export async function init() {
         return { year: m.getFullYear(), month: m.getMonth() + 1 };
     });
 
-    const [members, equipment, finance, tasks, ...eventPages] = await Promise.all([
+    const [members, equipment, finance, tasks, matchResults, matchFees, pageStats, auditLog, ...eventPages] = await Promise.all([
         apiFetch("/members"),
         apiFetch("/equipment?active_only=true"),
         apiFetch("/reports/dashboard"),
         apiFetch("/tasks"),
+        apiFetch(`/scoreboard?year=${now.getFullYear()}`),
+        apiFetch("/match-fees"),
+        apiFetch("/page-views/stats"),
+        apiFetch("/history?limit=8"),
         ...months.map((m) => apiFetch(`/events?year=${m.year}&month=${m.month}`)),
     ]);
 
@@ -27,9 +31,14 @@ export async function init() {
     renderMembers(members);
     renderEquipment(equipment);
     renderFinance(finance);
+    renderSeasonRecord(matchResults);
+    renderFeesOutstanding(matchFees);
+    renderRecentResults(matchResults);
     renderNextEvent(upcoming, activeCount);
     renderSchedule(upcoming, activeCount);
     renderTasks(tasks);
+    renderPageStats(pageStats);
+    renderRecentActivity(auditLog);
 }
 
 function renderFoundingDay() {
@@ -117,33 +126,65 @@ function regRow(icon, label, count, total) {
 function renderEquipment(equipment) {
     const totalItems = equipment.reduce((s, e) => s + e.quantity_total, 0);
     const totalAvail = equipment.reduce((s, e) => s + e.quantity_available, 0);
-
     document.getElementById("home-total-equipment").textContent = totalItems;
     document.getElementById("home-available-equipment").textContent = `${totalAvail} available`;
+}
 
-    const byType = {};
-    equipment.forEach((e) => {
-        if (!byType[e.type]) byType[e.type] = { total: 0, available: 0 };
-        byType[e.type].total     += e.quantity_total;
-        byType[e.type].available += e.quantity_available;
-    });
+function renderSeasonRecord(results) {
+    const year = new Date().getFullYear();
+    const season = results.filter(r => r.date && r.date.startsWith(String(year)));
+    const won    = season.filter(r => r.result === "won").length;
+    const lost   = season.filter(r => r.result === "lost").length;
+    const tied   = season.filter(r => r.result === "tied").length;
+    const played = season.filter(r => r.result).length;
 
-    const rows = Object.entries(byType)
-        .sort((a, b) => b[1].total - a[1].total)
-        .map(([type, { total, available }]) => {
-            const out = total - available;
-            return `
-              <div class="d-flex align-items-center justify-content-between mb-2">
-                <span class="text-capitalize small">${type}</span>
-                <div class="d-flex gap-1 align-items-center">
-                  <span class="badge bg-success">${available} avail</span>
-                  ${out > 0 ? `<span class="badge bg-secondary">${out} out</span>` : ""}
-                </div>
-              </div>`;
-        }).join("");
+    document.getElementById("home-season-record").textContent = played ? `${won}W ${lost}L${tied ? ` ${tied}T` : ""}` : "—";
+    document.getElementById("home-season-sub").textContent = played ? `${played} matches this season` : "No results yet";
+}
 
-    document.getElementById("home-equipment-breakdown").innerHTML = rows ||
-        `<p class="text-muted small">No equipment.</p>`;
+function renderFeesOutstanding(matchFees) {
+    const total = matchFees.reduce((s, e) => s + (e.outstanding || 0), 0);
+    const events = matchFees.filter(e => (e.outstanding || 0) > 0).length;
+
+    const el = document.getElementById("home-fees-outstanding");
+    el.textContent = fmt.currency(total);
+    el.className   = `fw-bold fs-5 ${total > 0 ? "text-danger" : "text-success"}`;
+    document.getElementById("home-fees-sub").textContent =
+        total > 0 ? `Across ${events} event${events !== 1 ? "s" : ""}` : "All collected";
+}
+
+function renderRecentResults(results) {
+    const el = document.getElementById("home-match-results");
+    if (!el) return;
+
+    const recent = [...results]
+        .filter(r => r.result)
+        .sort((a, b) => b.date.localeCompare(a.date))
+        .slice(0, 5);
+
+    if (!recent.length) {
+        el.innerHTML = `<p class="text-muted small text-center py-3 mb-0">No results recorded.</p>`;
+        return;
+    }
+
+    const badgeClass = { won: "result-badge-won", lost: "result-badge-lost", tied: "result-badge-tied", "no-result": "result-badge-nr" };
+    const badgeLabel = { won: "Won", lost: "Lost", tied: "Tied", "no-result": "N/R" };
+
+    el.innerHTML = `<ul class="list-group list-group-flush">
+        ${recent.map(r => `
+          <li class="list-group-item d-flex justify-content-between align-items-start px-3 py-2">
+            <div>
+              <div class="small fw-semibold">${r.opponent}</div>
+              <div class="text-muted" style="font-size:.75rem">
+                ${fmt.date(r.date)}${r.match_type ? ` · ${r.match_type}` : ""}
+                ${r.margin ? ` · ${r.margin}` : ""}
+              </div>
+            </div>
+            <span class="badge ${badgeClass[r.result] || "result-badge-nr"}" style="font-size:.75rem">
+              ${badgeLabel[r.result] || r.result}
+            </span>
+          </li>`).join("")}
+    </ul>`;
 }
 
 function _homeAwayBadge(e) {
@@ -331,6 +372,102 @@ function renderTasks(tasks) {
               </div>
             </li>`;
         }).join("")}
+    </ul>`;
+}
+
+const _PAGE_LABEL = {
+    home:                   "Home",
+    dashboard:              "Finance Dashboard",
+    transactions:           "Transactions",
+    categories:             "Categories",
+    reports:                "Reports",
+    equipment:              "Equipment",
+    maintenance:            "Maintenance",
+    members:                "Members",
+    tasks:                  "Tasks",
+    "match-fees":           "Match Fees",
+    "club-fees":            "Club Fees",
+    reporting:              "Match Reporting",
+    "practice-reporting":   "Practice Reporting",
+    "field-editor":         "Field Editor",
+    "match-results":        "Match Results",
+    "external-tournaments": "External Tournaments",
+    "internal-tournaments": "Internal Tournaments",
+    calendar:               "Calendar",
+    rules:                  "Rules",
+    history:                "Club History",
+    polls:                  "Polls",
+    "pain-points":          "Pain Points",
+    violations:             "Violations",
+    approvals:              "Approvals",
+    "user-management":      "User Management",
+    sponsors:               "Sponsors",
+};
+
+function renderPageStats(stats) {
+    const el = document.getElementById("home-page-stats");
+    if (!el) return;
+    if (!stats.length) {
+        el.innerHTML = `<p class="text-muted small text-center py-2">No page views recorded yet.</p>`;
+        return;
+    }
+    const max = stats[0].count;
+    el.innerHTML = `<div class="d-flex flex-column gap-2">
+        ${stats.map(s => {
+            const label = _PAGE_LABEL[s.page] || s.page;
+            const barPct = max ? Math.round(s.count / max * 100) : 0;
+            return `
+            <div>
+              <div class="d-flex justify-content-between align-items-center mb-1">
+                <span class="small">${label}</span>
+                <span class="text-muted small">${s.count} visit${s.count !== 1 ? "s" : ""}</span>
+              </div>
+              <div class="progress" style="height:8px">
+                <div class="progress-bar bg-primary" style="width:${barPct}%"></div>
+              </div>
+            </div>`;
+        }).join("")}
+    </div>`;
+}
+
+function _ago(isoStr) {
+    const diff = Date.now() - new Date(isoStr).getTime();
+    const mins = Math.floor(diff / 60000);
+    if (mins < 1) return "just now";
+    if (mins < 60) return `${mins}m ago`;
+    const hrs = Math.floor(mins / 60);
+    if (hrs < 24) return `${hrs}h ago`;
+    const days = Math.floor(hrs / 24);
+    return `${days}d ago`;
+}
+
+function renderRecentActivity(logs) {
+    const el = document.getElementById("home-activity");
+    if (!el) return;
+    if (!logs.length) {
+        el.innerHTML = `<p class="text-muted small text-center py-3 mb-0">No activity recorded yet.</p>`;
+        return;
+    }
+    const iconClass = {
+        create: "bi-plus-circle-fill text-success",
+        update: "bi-pencil-fill text-primary",
+        delete: "bi-trash-fill text-danger",
+    };
+    el.innerHTML = `<ul class="list-group list-group-flush">
+        ${logs.map(l => `
+          <li class="list-group-item px-3 py-2">
+            <div class="d-flex align-items-start gap-2">
+              <i class="bi ${iconClass[l.action] || "bi-circle-fill text-secondary"} mt-1" style="flex-shrink:0"></i>
+              <div class="flex-grow-1 overflow-hidden">
+                <div class="small text-truncate">${l.description || `${l.action} ${l.entity_type}`}</div>
+                <div class="text-muted d-flex gap-2" style="font-size:.72rem">
+                  <span>${l.user_name || "System"}</span>
+                  <span>·</span>
+                  <span>${_ago(l.created_at)}</span>
+                </div>
+              </div>
+            </div>
+          </li>`).join("")}
     </ul>`;
 }
 

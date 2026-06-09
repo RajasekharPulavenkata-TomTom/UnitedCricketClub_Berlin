@@ -6,6 +6,16 @@ let members = [];
 let selectedId = null;
 let addPlayerTeamId = null;
 
+let _user = null;
+try { _user = JSON.parse(localStorage.getItem("ucc_user") || "null"); } catch { /**/ }
+
+function _isAdmin()    { return _user?.role === "admin" || _user?.role === "root"; }
+function _canEdit(t)   {
+    if (_isAdmin()) return true;
+    if (t.captain_id == null) return true;
+    return _user?.member_id != null && _user.member_id === t.captain_id;
+}
+
 export async function init() {
     modal = new bootstrap.Modal(document.getElementById("intTournamentModal"));
     addPlayerModal = new bootstrap.Modal(document.getElementById("intAddPlayerModal"));
@@ -21,6 +31,7 @@ export async function init() {
     document.getElementById("btn-int-add-team").addEventListener("click", onAddTeam);
     document.getElementById("btn-save-champion").addEventListener("click", onSaveChampion);
     document.getElementById("btn-int-confirm-add-player").addEventListener("click", onConfirmAddPlayer);
+    document.getElementById("btn-int-save-captain").addEventListener("click", onSaveIntCaptain);
 
     document.querySelectorAll(".int-status-btn").forEach(btn => {
         btn.addEventListener("click", () => onSetStatus(btn.dataset.status));
@@ -97,21 +108,41 @@ function showDetail(t) {
     panel.style.display = "";
     panel.scrollIntoView({ behavior: "smooth", block: "nearest" });
 
+    const canEdit = _canEdit(t);
+    const isAdmin = _isAdmin();
+
     document.getElementById("int-detail-title").textContent = t.name;
+    document.getElementById("btn-edit-int-tournament").classList.toggle("d-none", !canEdit);
 
     // Meta
+    const captainName = t.captain_id ? members.find(m => m.id === t.captain_id)?.name : null;
     const meta = [
         t.format ? `<div class="col-auto"><span class="text-muted small">Format</span><br><strong>${t.format}</strong></div>` : "",
         t.venue  ? `<div class="col-auto"><span class="text-muted small">Venue</span><br><strong>${t.venue}</strong></div>` : "",
         `<div class="col-auto"><span class="text-muted small">Dates</span><br><strong>${t.end_date ? _fmtDate(t.start_date) + " – " + _fmtDate(t.end_date) : _fmtDate(t.start_date)}</strong></div>`,
+        captainName ? `<div class="col-auto"><span class="text-muted small">Captain</span><br><strong><i class="bi bi-crown-fill text-warning me-1"></i>${captainName}</strong></div>` : "",
         t.notes ? `<div class="col-12"><span class="text-muted small">Notes</span><br>${t.notes}</div>` : "",
     ].filter(Boolean).join("");
     document.getElementById("int-detail-meta").innerHTML = meta || `<div class="col-12 text-muted">No additional details.</div>`;
+
+    // Admin-only captain select
+    const captainSection = document.getElementById("int-captain-section");
+    if (isAdmin) {
+        captainSection.style.display = "";
+        const capSel = document.getElementById("int-captain-select");
+        capSel.innerHTML = '<option value="">— None —</option>' +
+            members.filter(m => m.is_active).map(m =>
+                `<option value="${m.id}" ${m.id === t.captain_id ? "selected" : ""}>${m.name}</option>`
+            ).join("");
+    } else {
+        captainSection.style.display = "none";
+    }
 
     // Status buttons
     document.querySelectorAll(".int-status-btn").forEach(btn => {
         const active = btn.dataset.status === t.status;
         btn.className = `btn btn-sm int-status-btn ${active ? _statusBtnClass(t.status) : "btn-outline-secondary"}`;
+        btn.disabled = !canEdit;
     });
 
     // Champion field
@@ -119,21 +150,26 @@ function showDetail(t) {
     if (t.status === "completed" || t.champion) {
         championRow.style.display = "";
         document.getElementById("int-champion-input").value = t.champion || "";
+        document.getElementById("int-champion-input").disabled = !canEdit;
+        document.getElementById("btn-save-champion").disabled = !canEdit;
     } else {
         championRow.style.display = "none";
     }
 
-    // Teams
-    renderTeams(t);
+    // Add team row
+    const addTeamRow = document.getElementById("int-add-team-row");
+    if (addTeamRow) addTeamRow.style.display = canEdit ? "" : "none";
 
-    // Delete button — only when no teams (or tournament is empty)
+    // Teams
+    renderTeams(t, canEdit);
+
+    // Delete button — only for captain/admin, only when no teams
     const delBtn = document.getElementById("btn-delete-int-tournament");
-    delBtn.classList.toggle("d-none", t.teams.length > 0);
+    delBtn.classList.toggle("d-none", !canEdit || t.teams.length > 0);
     delBtn.dataset.id = t.id;
 }
 
-function renderTeams(t) {
-    // Collect all assigned member IDs across all teams
+function renderTeams(t, canEdit = true) {
     const assignedIds = new Set(
         t.teams.flatMap(team => team.players.map(p => p.member_id))
     );
@@ -141,32 +177,42 @@ function renderTeams(t) {
 
     const container = document.getElementById("int-teams-container");
     if (!t.teams.length) {
-        container.innerHTML = `<p class="text-muted">No teams yet. Add a team above.</p>`;
+        container.innerHTML = `<p class="text-muted">No teams yet.${canEdit ? " Add a team above." : ""}</p>`;
         return;
     }
 
     container.innerHTML = t.teams.map(team => {
+        const captainName = team.captain_id
+            ? team.players.find(p => p.member_id === team.captain_id)?.member?.name
+            : null;
+
         const rows = team.players.length
             ? team.players.slice().sort((a, b) => a.member.name.localeCompare(b.member.name))
-                .map(p => `
+                .map(p => {
+                    const isCaptain = team.captain_id === p.member_id;
+                    const captainBtn = canEdit
+                        ? `<button class="btn btn-sm ${isCaptain ? "btn-warning" : "btn-outline-secondary"}"
+                             onclick="window._intSetCaptain(${team.id}, ${p.member_id})"
+                             title="${isCaptain ? "Remove as captain" : "Set as captain"}">
+                             <i class="bi bi-crown${isCaptain ? "-fill" : ""}"></i>
+                           </button>`
+                        : isCaptain ? `<i class="bi bi-crown-fill text-warning" title="Captain"></i>` : "";
+                    const removeBtn = canEdit
+                        ? `<button class="btn btn-sm btn-outline-danger"
+                             onclick="window._intRemovePlayer(${team.id}, ${p.id})">
+                             <i class="bi bi-trash"></i>
+                           </button>`
+                        : "";
+                    return `
                 <tr>
                   <td>${p.member.name}</td>
-                  <td class="text-end">
-                    <button class="btn btn-sm btn-outline-danger"
-                      onclick="window._intRemovePlayer(${team.id}, ${p.id})">
-                      <i class="bi bi-trash"></i>
-                    </button>
-                  </td>
-                </tr>`).join("")
-            : `<tr><td colspan="2" class="text-muted text-center small py-2">No players yet.</td></tr>`;
+                  <td class="text-center">${captainBtn}</td>
+                  <td class="text-end">${removeBtn}</td>
+                </tr>`;
+                }).join("")
+            : `<tr><td colspan="3" class="text-muted text-center small py-2">No players yet.</td></tr>`;
 
-        return `
-        <div class="card mb-3">
-          <div class="card-header d-flex align-items-center justify-content-between py-2">
-            <span class="fw-semibold">${team.name}
-              <span class="badge bg-light text-dark ms-1">${team.players.length}</span>
-            </span>
-            <div class="d-flex gap-2">
+        const actionBtns = canEdit ? `
               <button class="btn btn-sm btn-outline-success"
                 onclick="window._intOpenAddPlayer(${team.id}, '${team.name.replace(/'/g, "\\'")}')"
                 ${!available.length ? "disabled title='All players assigned'" : ""}>
@@ -175,11 +221,26 @@ function renderTeams(t) {
               <button class="btn btn-sm btn-outline-danger"
                 onclick="window._intRemoveTeam(${team.id})">
                 <i class="bi bi-trash"></i>
-              </button>
-            </div>
+              </button>` : "";
+
+        return `
+        <div class="card mb-3">
+          <div class="card-header d-flex align-items-center justify-content-between py-2">
+            <span class="fw-semibold">${team.name}
+              <span class="badge bg-light text-dark ms-1">${team.players.length}</span>
+              ${captainName ? `<span class="ms-2 small text-muted"><i class="bi bi-crown-fill text-warning me-1"></i>${captainName}</span>` : ""}
+            </span>
+            <div class="d-flex gap-2">${actionBtns}</div>
           </div>
           <div class="card-body p-0">
             <table class="table table-sm mb-0">
+              <thead class="table-light">
+                <tr>
+                  <th>Player</th>
+                  <th class="text-center">Captain</th>
+                  <th class="text-end">${canEdit ? "Remove" : ""}</th>
+                </tr>
+              </thead>
               <tbody>${rows}</tbody>
             </table>
           </div>
@@ -267,6 +328,20 @@ async function onSetStatus(status) {
     }
 }
 
+async function onSaveIntCaptain() {
+    const captain_id = parseInt(document.getElementById("int-captain-select").value) || null;
+    try {
+        await apiFetch(`/int-tournaments/${selectedId}/captain`, {
+            method: "PATCH",
+            body: JSON.stringify({ captain_id }),
+        });
+        showToast(captain_id ? "Captain assigned" : "Captain cleared");
+        await refreshTournament(selectedId);
+    } catch (err) {
+        showToast(err.message, "error");
+    }
+}
+
 async function onSaveChampion() {
     if (!selectedId) return;
     const champion = document.getElementById("int-champion-input").value.trim() || null;
@@ -339,6 +414,21 @@ async function onConfirmAddPlayer() {
         showToast(err.message, "error");
     }
 }
+
+window._intSetCaptain = async (teamId, memberId) => {
+    const t = tournaments.find(t => t.id === selectedId);
+    const team = t?.teams.find(team => team.id === teamId);
+    const captain_id = team?.captain_id === memberId ? null : memberId;
+    try {
+        await apiFetch(`/int-tournaments/${selectedId}/teams/${teamId}/captain`, {
+            method: "PATCH",
+            body: JSON.stringify({ captain_id }),
+        });
+        await refreshTournament(selectedId);
+    } catch (err) {
+        showToast(err.message, "error");
+    }
+};
 
 window._intRemovePlayer = async (tid, pid) => {
     if (!confirm("Remove this player from the team?")) return;

@@ -5,6 +5,16 @@ let tournaments = [];
 let members = [];
 let selectedId = null;
 
+let _user = null;
+try { _user = JSON.parse(localStorage.getItem("ucc_user") || "null"); } catch { /**/ }
+
+function _isAdmin()        { return _user?.role === "admin" || _user?.role === "root"; }
+function _canEdit(t)       {
+    if (_isAdmin()) return true;
+    if (t.captain_id == null) return true;        // no captain set — open to all
+    return _user?.member_id != null && _user.member_id === t.captain_id;
+}
+
 export async function init() {
     modal = new bootstrap.Modal(document.getElementById("extTournamentModal"));
 
@@ -19,6 +29,7 @@ export async function init() {
     document.getElementById("btn-ext-add-player").addEventListener("click", onAddPlayer);
     document.getElementById("btn-save-result").addEventListener("click", onSaveResult);
     document.getElementById("btn-ext-copy-summary").addEventListener("click", copySummary);
+    document.getElementById("btn-ext-save-captain").addEventListener("click", onSaveCaptain);
 
     document.querySelectorAll(".ext-status-btn").forEach(btn => {
         btn.addEventListener("click", () => onSetStatus(btn.dataset.status));
@@ -97,24 +108,45 @@ function showDetail(t) {
     panel.style.display = "";
     panel.scrollIntoView({ behavior: "smooth", block: "nearest" });
 
+    const canEdit = _canEdit(t);
+    const isAdmin = _isAdmin();
+
     document.getElementById("ext-detail-title").textContent = t.name;
 
+    // Header buttons
+    document.getElementById("btn-edit-ext-tournament").classList.toggle("d-none", !canEdit);
+    document.getElementById("btn-ext-copy-summary").classList.toggle("d-none", false);
+
     // Meta row
+    const captainName = t.captain_id ? t.players.find(p => p.member_id === t.captain_id)?.member?.name : null;
     const meta = [
         t.organiser ? `<div class="col-auto"><span class="text-muted small">Organiser</span><br><strong>${t.organiser}</strong></div>` : "",
         t.format    ? `<div class="col-auto"><span class="text-muted small">Format</span><br><strong>${t.format}</strong></div>` : "",
         t.venue     ? `<div class="col-auto"><span class="text-muted small">Venue</span><br><strong>${t.venue}</strong></div>` : "",
         `<div class="col-auto"><span class="text-muted small">Dates</span><br><strong>${t.end_date ? _fmtDate(t.start_date) + " – " + _fmtDate(t.end_date) : _fmtDate(t.start_date)}</strong></div>`,
+        captainName ? `<div class="col-auto"><span class="text-muted small">Captain</span><br><strong><i class="bi bi-crown-fill text-warning me-1"></i>${captainName}</strong></div>` : "",
         t.registration_deadline ? `<div class="col-auto"><span class="text-muted small">Reg. Deadline</span><br><strong>${_fmtDate(t.registration_deadline)}</strong></div>` : "",
         t.website_url ? `<div class="col-auto"><span class="text-muted small">Website</span><br><a href="${t.website_url}" target="_blank" rel="noopener">Link <i class="bi bi-box-arrow-up-right"></i></a></div>` : "",
         t.notes ? `<div class="col-12"><span class="text-muted small">Notes</span><br>${t.notes}</div>` : "",
     ].filter(Boolean).join("");
     document.getElementById("ext-detail-meta").innerHTML = meta || `<div class="col-12 text-muted">No additional details.</div>`;
 
+    // Admin-only captain select
+    const captainSection = document.getElementById("ext-captain-section");
+    if (isAdmin) {
+        captainSection.style.display = "";
+        const capSel = document.getElementById("ext-captain-select");
+        capSel.innerHTML = '<option value="">— None —</option>' +
+            t.players.map(p => `<option value="${p.member_id}" ${p.member_id === t.captain_id ? "selected" : ""}>${p.member.name}</option>`).join("");
+    } else {
+        captainSection.style.display = "none";
+    }
+
     // Status buttons
     document.querySelectorAll(".ext-status-btn").forEach(btn => {
         const active = btn.dataset.status === t.status;
         btn.className = `btn btn-sm ext-status-btn ${active ? _statusBtnClass(t.status) : "btn-outline-secondary"}`;
+        btn.disabled = !canEdit;
     });
 
     // Result field
@@ -122,9 +154,15 @@ function showDetail(t) {
     if (t.status === "completed" || t.result) {
         resultRow.style.display = "";
         document.getElementById("ext-result-input").value = t.result || "";
+        document.getElementById("ext-result-input").disabled = !canEdit;
+        document.getElementById("btn-save-result").disabled = !canEdit;
     } else {
         resultRow.style.display = "none";
     }
+
+    // Add player row
+    const addPlayerRow = document.querySelector(".ext-add-player-row");
+    if (addPlayerRow) addPlayerRow.style.display = canEdit ? "" : "none";
 
     // Available members for add dropdown
     const addedIds = new Set(t.players.map(p => p.member_id));
@@ -135,6 +173,8 @@ function showDetail(t) {
     // Players table
     const tbody = document.getElementById("ext-players-tbody");
     const tfoot = document.getElementById("ext-players-tfoot");
+    const colRemove = document.getElementById("ext-col-remove");
+    if (colRemove) colRemove.textContent = canEdit ? "Remove" : "";
 
     if (!t.players.length) {
         tbody.innerHTML = `<tr><td colspan="5" class="text-muted text-center py-3">No players added yet.</td></tr>`;
@@ -145,30 +185,41 @@ function showDetail(t) {
         const feePerMatch = totalMatches ? totalFee / totalMatches : 0;
         const paidCount = t.players.filter(p => p.paid).length;
 
-        tbody.innerHTML = t.players.map(p => `
+        tbody.innerHTML = t.players.map(p => {
+            const isCaptain = t.captain_id === p.member_id;
+            const nameCell = `${p.member.name}${isCaptain ? ' <i class="bi bi-crown-fill text-warning ms-1" title="Captain"></i>' : ""}`;
+
+            const matchesCell = canEdit
+                ? `<input type="number" min="0" value="${p.matches_played}"
+                     class="form-control form-control-sm d-inline-block text-center matches-inline"
+                     style="width:65px;border:1px solid transparent;background:transparent"
+                     onfocus="this.style.borderColor='#dee2e6'"
+                     onblur="this.style.borderColor='transparent'; window._extInlineEditMatches(${p.id}, this)"
+                     onkeydown="if(event.key==='Enter'){this.blur()}" />`
+                : p.matches_played;
+
+            const paidCell = canEdit
+                ? `<button class="btn btn-sm ${p.paid ? "btn-success" : "btn-outline-secondary"}"
+                     onclick="window._extTogglePaid(${p.id})" title="${p.paid ? "Mark unpaid" : "Mark paid"}">
+                     <i class="bi ${p.paid ? "bi-check-circle-fill" : "bi-circle"}"></i>
+                   </button>`
+                : `<span class="badge ${p.paid ? "bg-success" : "bg-secondary"}">${p.paid ? "Paid" : "Unpaid"}</span>`;
+
+            const removeCell = canEdit
+                ? `<button class="btn btn-sm btn-outline-danger" onclick="window._extRemovePlayer(${p.id})">
+                     <i class="bi bi-trash"></i>
+                   </button>`
+                : "";
+
+            return `
           <tr class="align-middle ${p.paid ? "table-success" : ""}">
-            <td>${p.member.name}</td>
-            <td class="text-center">
-              <input type="number" min="1" value="${p.matches_played}"
-                class="form-control form-control-sm d-inline-block text-center matches-inline"
-                style="width:65px;border:1px solid transparent;background:transparent"
-                onfocus="this.style.borderColor='#dee2e6'"
-                onblur="this.style.borderColor='transparent'; window._extInlineEditMatches(${p.id}, this)"
-                onkeydown="if(event.key==='Enter'){this.blur()}" />
-            </td>
+            <td>${nameCell}</td>
+            <td class="text-center">${matchesCell}</td>
             <td class="text-end fw-semibold">${fmt.currency(p.fee_share ?? 0)}</td>
-            <td class="text-center">
-              <button class="btn btn-sm ${p.paid ? "btn-success" : "btn-outline-secondary"}"
-                onclick="window._extTogglePaid(${p.id})" title="${p.paid ? "Mark unpaid" : "Mark paid"}">
-                <i class="bi ${p.paid ? "bi-check-circle-fill" : "bi-circle"}"></i>
-              </button>
-            </td>
-            <td class="text-end">
-              <button class="btn btn-sm btn-outline-danger" onclick="window._extRemovePlayer(${p.id})">
-                <i class="bi bi-trash"></i>
-              </button>
-            </td>
-          </tr>`).join("");
+            <td class="text-center">${paidCell}</td>
+            <td class="text-end">${removeCell}</td>
+          </tr>`;
+        }).join("");
 
         document.getElementById("ext-total-matches").textContent = totalMatches;
         document.getElementById("ext-total-fee-display").textContent = fmt.currency(totalFee);
@@ -180,9 +231,9 @@ function showDetail(t) {
         tfoot.style.display = "";
     }
 
-    // Delete button
+    // Delete button — only for captain/admin, only when all paid
     const delBtn = document.getElementById("btn-delete-ext-tournament");
-    delBtn.classList.toggle("d-none", !_allPaid(t));
+    delBtn.classList.toggle("d-none", !canEdit || !_allPaid(t));
     delBtn.dataset.id = t.id;
 }
 
@@ -291,8 +342,8 @@ async function onSaveResult() {
 async function onAddPlayer() {
     const member_id     = parseInt(document.getElementById("ext-add-member-select").value);
     const matches_played = parseInt(document.getElementById("ext-add-matches-input").value);
-    if (!member_id || !matches_played || matches_played < 1) {
-        showToast("Select a player and enter matches played", "error");
+    if (!member_id || isNaN(matches_played) || matches_played < 0) {
+        showToast("Select a player and enter a valid number of matches", "error");
         return;
     }
     try {
@@ -316,7 +367,7 @@ window._extInlineEditMatches = async (pid, input) => {
     const matches_played = parseInt(input.value);
     const t = tournaments.find(t => t.id === selectedId);
     const p = t?.players.find(p => p.id === pid);
-    if (!matches_played || matches_played < 1 || matches_played === p?.matches_played) return;
+    if (isNaN(matches_played) || matches_played < 0 || matches_played === p?.matches_played) return;
     try {
         await apiFetch(`/ext-tournaments/${selectedId}/players/${pid}`, {
             method: "PUT",
@@ -337,6 +388,20 @@ window._extTogglePaid = async (pid) => {
         showToast(err.message, "error");
     }
 };
+
+async function onSaveCaptain() {
+    const captain_id = parseInt(document.getElementById("ext-captain-select").value) || null;
+    try {
+        await apiFetch(`/ext-tournaments/${selectedId}/captain`, {
+            method: "PATCH",
+            body: JSON.stringify({ captain_id }),
+        });
+        showToast(captain_id ? "Captain assigned" : "Captain cleared");
+        await refreshTournament(selectedId);
+    } catch (err) {
+        showToast(err.message, "error");
+    }
+}
 
 window._extRemovePlayer = async (pid) => {
     if (!confirm("Remove this player from the tournament?")) return;

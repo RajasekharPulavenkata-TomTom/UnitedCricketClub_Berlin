@@ -70,6 +70,7 @@ class ExtTournamentOut(BaseModel):
     result: Optional[str] = None
     website_url: Optional[str] = None
     notes: Optional[str] = None
+    captain_id: Optional[int] = None
     created_at: datetime
     players: List[ExtParticipantOut] = []
     model_config = {"from_attributes": True}

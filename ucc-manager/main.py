@@ -6,7 +6,7 @@ from sqlalchemy import text, inspect
 from database import engine, Base
 import models  # registers all models before create_all
 from dependencies.auth import get_current_user
-from routers import accounting, inventory, members, events, audit, finance_pin, player_availability, tasks, match_fees, reporting, auth, approvals, polls, pain_points, violations, field_formations, scoreboard, sponsors, external_tournament, internal_tournament
+from routers import accounting, inventory, members, events, audit, finance_pin, player_availability, tasks, match_fees, reporting, auth, approvals, polls, pain_points, violations, field_formations, scoreboard, sponsors, external_tournament, internal_tournament, page_views
 
 
 def _run_migrations():
@@ -156,6 +156,28 @@ def _run_migrations():
             etp_cols = _cols.get("external_tournament_players", set())
             if "matches_played" not in etp_cols:
                 conn.execute(text("ALTER TABLE external_tournament_players ADD COLUMN matches_played INTEGER NOT NULL DEFAULT 1"))
+        if "external_tournaments" in existing_tables:
+            et_cols = _cols.get("external_tournaments", set())
+            if "captain_id" not in et_cols:
+                conn.execute(text("ALTER TABLE external_tournaments ADD COLUMN captain_id INTEGER REFERENCES members(id) ON DELETE SET NULL"))
+        if "internal_tournament_teams" in existing_tables:
+            itt_cols = _cols.get("internal_tournament_teams", set())
+            if "captain_id" not in itt_cols:
+                conn.execute(text("ALTER TABLE internal_tournament_teams ADD COLUMN captain_id INTEGER REFERENCES members(id) ON DELETE SET NULL"))
+        if "internal_tournaments" in existing_tables:
+            it_cols = _cols.get("internal_tournaments", set())
+            if "captain_id" not in it_cols:
+                conn.execute(text("ALTER TABLE internal_tournaments ADD COLUMN captain_id INTEGER REFERENCES members(id) ON DELETE SET NULL"))
+        conn.execute(text("""
+            CREATE TABLE IF NOT EXISTS page_views (
+                id SERIAL PRIMARY KEY,
+                page VARCHAR(100) NOT NULL,
+                user_id INTEGER REFERENCES users(id) ON DELETE SET NULL,
+                visited_at TIMESTAMP DEFAULT NOW()
+            )
+        """))
+        conn.execute(text("CREATE INDEX IF NOT EXISTS ix_page_views_page ON page_views (page)"))
+        conn.execute(text("CREATE INDEX IF NOT EXISTS ix_page_views_visited_at ON page_views (visited_at DESC)"))
         conn.execute(text("CREATE INDEX IF NOT EXISTS ix_int_tournament_teams_tournament_id ON internal_tournament_teams (tournament_id)"))
         conn.execute(text("CREATE INDEX IF NOT EXISTS ix_int_tournament_team_players_team_id ON internal_tournament_team_players (team_id)"))
         # Seed The Biryani Club sponsor (only if table already existed — new installs seed after create_all)
@@ -303,5 +325,6 @@ app.include_router(scoreboard.router,          dependencies=_auth)
 app.include_router(sponsors.router,            dependencies=_auth)
 app.include_router(external_tournament.router, dependencies=_auth)
 app.include_router(internal_tournament.router, dependencies=_auth)
+app.include_router(page_views.router,          dependencies=_auth)
 
 app.mount("/", StaticFiles(directory="static", html=True), name="static")

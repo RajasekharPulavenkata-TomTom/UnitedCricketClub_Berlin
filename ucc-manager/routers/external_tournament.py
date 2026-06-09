@@ -1,12 +1,29 @@
-from typing import List
+from typing import List, Optional
 from fastapi import APIRouter, Depends, HTTPException
+from pydantic import BaseModel
 from sqlalchemy.orm import Session, selectinload
 from database import get_db
+from dependencies.auth import get_current_user
+from models.auth import User
 from models.external_tournament import ExternalTournament, ExternalTournamentPlayer
 from schemas.external_tournament import (
     ExtTournamentCreate, ExtTournamentUpdate, ExtTournamentOut,
     ExtParticipantCreate, ExtParticipantUpdate,
 )
+
+
+class CaptainSet(BaseModel):
+    captain_id: Optional[int] = None
+
+
+def _require_captain_or_admin(user: User, captain_id) -> None:
+    if user.role in ("admin", "root"):
+        return
+    if captain_id is None:
+        return  # No captain set — any logged-in user can edit
+    if user.member_id == captain_id:
+        return
+    raise HTTPException(status_code=403, detail="Only the captain or an admin can perform this action")
 
 router = APIRouter(prefix="/api/ext-tournaments", tags=["ext-tournaments"])
 
@@ -55,8 +72,9 @@ def get_tournament(id: int, db: Session = Depends(get_db)):
 
 
 @router.put("/{id}", response_model=ExtTournamentOut)
-def update_tournament(id: int, body: ExtTournamentUpdate, db: Session = Depends(get_db)):
+def update_tournament(id: int, body: ExtTournamentUpdate, db: Session = Depends(get_db), user: User = Depends(get_current_user)):
     t = _get_or_404(db, id)
+    _require_captain_or_admin(user, t.captain_id)
     for field, value in body.model_dump(exclude_none=True).items():
         setattr(t, field, value)
     db.commit()
@@ -64,14 +82,29 @@ def update_tournament(id: int, body: ExtTournamentUpdate, db: Session = Depends(
 
 
 @router.delete("/{id}", status_code=204)
-def delete_tournament(id: int, db: Session = Depends(get_db)):
-    db.delete(_get_or_404(db, id))
+def delete_tournament(id: int, db: Session = Depends(get_db), user: User = Depends(get_current_user)):
+    t = _get_or_404(db, id)
+    _require_captain_or_admin(user, t.captain_id)
+    db.delete(t)
     db.commit()
 
 
-@router.post("/{id}/players", response_model=ExtTournamentOut, status_code=201)
-def add_player(id: int, body: ExtParticipantCreate, db: Session = Depends(get_db)):
+@router.patch("/{id}/captain", response_model=ExtTournamentOut)
+def set_captain(id: int, body: CaptainSet, db: Session = Depends(get_db), user: User = Depends(get_current_user)):
+    if user.role not in ("admin", "root"):
+        raise HTTPException(status_code=403, detail="Only an admin can assign the captain")
     t = _get_or_404(db, id)
+    if body.captain_id is not None and not any(p.member_id == body.captain_id for p in t.players):
+        raise HTTPException(status_code=400, detail="Captain must be a tournament player")
+    t.captain_id = body.captain_id
+    db.commit()
+    return _enrich(_get_or_404(db, id))
+
+
+@router.post("/{id}/players", response_model=ExtTournamentOut, status_code=201)
+def add_player(id: int, body: ExtParticipantCreate, db: Session = Depends(get_db), user: User = Depends(get_current_user)):
+    t = _get_or_404(db, id)
+    _require_captain_or_admin(user, t.captain_id)
     if any(p.member_id == body.member_id for p in t.players):
         raise HTTPException(status_code=400, detail="Player already in this tournament")
     db.add(ExternalTournamentPlayer(
@@ -84,8 +117,9 @@ def add_player(id: int, body: ExtParticipantCreate, db: Session = Depends(get_db
 
 
 @router.put("/{id}/players/{pid}", response_model=ExtTournamentOut)
-def update_player(id: int, pid: int, body: ExtParticipantUpdate, db: Session = Depends(get_db)):
+def update_player(id: int, pid: int, body: ExtParticipantUpdate, db: Session = Depends(get_db), user: User = Depends(get_current_user)):
     t = _get_or_404(db, id)
+    _require_captain_or_admin(user, t.captain_id)
     p = next((p for p in t.players if p.id == pid), None)
     if not p:
         raise HTTPException(status_code=404, detail="Player not found")
@@ -96,8 +130,9 @@ def update_player(id: int, pid: int, body: ExtParticipantUpdate, db: Session = D
 
 
 @router.patch("/{id}/players/{pid}/paid", response_model=ExtTournamentOut)
-def toggle_paid(id: int, pid: int, db: Session = Depends(get_db)):
+def toggle_paid(id: int, pid: int, db: Session = Depends(get_db), user: User = Depends(get_current_user)):
     t = _get_or_404(db, id)
+    _require_captain_or_admin(user, t.captain_id)
     p = next((p for p in t.players if p.id == pid), None)
     if not p:
         raise HTTPException(status_code=404, detail="Player not found")
@@ -107,8 +142,9 @@ def toggle_paid(id: int, pid: int, db: Session = Depends(get_db)):
 
 
 @router.delete("/{id}/players/{pid}", response_model=ExtTournamentOut)
-def remove_player(id: int, pid: int, db: Session = Depends(get_db)):
+def remove_player(id: int, pid: int, db: Session = Depends(get_db), user: User = Depends(get_current_user)):
     t = _get_or_404(db, id)
+    _require_captain_or_admin(user, t.captain_id)
     p = next((p for p in t.players if p.id == pid), None)
     if not p:
         raise HTTPException(status_code=404, detail="Player not found")

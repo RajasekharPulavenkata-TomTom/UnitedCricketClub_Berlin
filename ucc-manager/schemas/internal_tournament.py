@@ -27,6 +27,7 @@ class IntTeamCreate(BaseModel):
 class IntTeamOut(BaseModel):
     id: int
     name: str
+    captain_id: Optional[int] = None
     players: List[IntTeamPlayerOut] = []
     model_config = {"from_attributes": True}
 
@@ -60,6 +61,7 @@ class IntTournamentOut(BaseModel):
     end_date: Optional[Date] = None
     status: str
     champion: Optional[str] = None
+    captain_id: Optional[int] = None
     notes: Optional[str] = None
     created_at: datetime
     teams: List[IntTeamOut] = []

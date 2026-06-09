@@ -15,6 +15,8 @@ def _run_migrations():
     # Pre-fetch all columns in one pass — avoids repeated round-trips during migration checks
     _cols = {t: {c["name"] for c in inspector.get_columns(t)} for t in existing_tables}
     with engine.begin() as conn:
+        # Serialize migrations across workers — released automatically at transaction end
+        conn.execute(text("SELECT pg_advisory_xact_lock(88776655)"))
         # Rename legacy default usernames
         conn.execute(text("UPDATE users SET username='ucc_manager', full_name='UCC Manager' WHERE username='root'"))
         conn.execute(text("UPDATE users SET username='ucc_accouting_manager', full_name='UCC Accounting Manager' WHERE username='admin'"))
@@ -267,10 +269,16 @@ app = FastAPI(title="UCC Manager", lifespan=lifespan)
 app.add_middleware(GZipMiddleware, minimum_size=1000)
 
 @app.middleware("http")
-async def no_cache_api(request: Request, call_next):
+async def cache_control(request: Request, call_next):
     response = await call_next(request)
-    if request.url.path.startswith("/api/"):
+    path = request.url.path
+    if path.startswith("/api/"):
         response.headers["Cache-Control"] = "no-store"
+    elif path.endswith((".js", ".css", ".png", ".jpg", ".webp", ".ico", ".woff2", ".svg")):
+        # versioned via ?v= query param — safe to cache for a long time
+        response.headers["Cache-Control"] = "public, max-age=31536000, immutable"
+    elif path.endswith(".html") or path == "/":
+        response.headers["Cache-Control"] = "no-cache"
     return response
 
 _auth = [Depends(get_current_user)]

@@ -10,6 +10,8 @@ engine = create_engine(
     DATABASE_URL,
     pool_pre_ping=True,   # test connections before use; prevents stale-connection errors after idle periods
     pool_recycle=300,     # recycle connections every 5 min; prevents Fly.io network from silently closing them
+    pool_size=10,         # 5 per worker × 2 workers
+    max_overflow=20,
 )
 SessionLocal = sessionmaker(autocommit=False, autoflush=False, bind=engine)
 

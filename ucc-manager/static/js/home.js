@@ -23,12 +23,40 @@ export async function init() {
 
     const activeCount = members.filter((m) => m.is_active).length;
 
+    renderFoundingDay();
     renderMembers(members);
     renderEquipment(equipment);
     renderFinance(finance);
     renderNextEvent(upcoming, activeCount);
     renderSchedule(upcoming, activeCount);
     renderTasks(tasks);
+}
+
+function renderFoundingDay() {
+    const el = document.getElementById("home-founding-day");
+    if (!el) return;
+    const now = new Date();
+    const year = now.getFullYear();
+    const founding = new Date(year, 5, 30); // June 30 (month is 0-indexed)
+    const diffDays = Math.round((founding - now) / 86400000);
+
+    if (diffDays === 0) {
+        el.innerHTML = `
+        <div class="alert mb-4 p-4 text-center" style="background:linear-gradient(135deg,#ffd700,#ffb300);border:none;border-radius:14px">
+          <div style="font-size:2.5rem">🎂🏏🎉</div>
+          <h4 class="fw-bold mt-2 mb-1" style="color:#5a3a00">Happy Founding Day, UCC!</h4>
+          <p class="mb-0" style="color:#7a5200">United Cricket Club was founded on this day. Here's to many more seasons of great cricket!</p>
+        </div>`;
+    } else if (diffDays > 0 && diffDays <= 30) {
+        el.innerHTML = `
+        <div class="alert mb-4 d-flex align-items-center gap-3 py-3" style="background:#fff8e1;border:1px solid #ffe082;border-radius:12px">
+          <span style="font-size:1.8rem">🏏</span>
+          <div>
+            <div class="fw-semibold" style="color:#5a3a00">UCC Founding Day in <strong>${diffDays} day${diffDays > 1 ? "s" : ""}</strong></div>
+            <div class="text-muted small">United Cricket Club was founded on 30 June. Get ready to celebrate!</div>
+          </div>
+        </div>`;
+    }
 }
 
 function renderMembers(members) {

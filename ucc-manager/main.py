@@ -212,6 +212,23 @@ _SEED_MEMBERS = [
 ]
 
 
+def _seed_founding_events():
+    from datetime import date
+    current_year = date.today().year
+    with engine.begin() as conn:
+        for year in range(current_year, current_year + 5):
+            founding_date = f"{year}-06-30"
+            exists = conn.execute(
+                text("SELECT 1 FROM events WHERE date = :d AND title = 'UCC Founding Day' LIMIT 1"),
+                {"d": founding_date},
+            ).scalar()
+            if not exists:
+                conn.execute(
+                    text("INSERT INTO events (date, title, type, notes, created_at) VALUES (:d, 'UCC Founding Day', 'other', 'Annual celebration of UCC''s founding on 30 June.', NOW())"),
+                    {"d": founding_date},
+                )
+
+
 def _seed_members():
     with engine.begin() as conn:
         existing = {r[0] for r in conn.execute(text("SELECT name FROM members")).fetchall()}
@@ -234,6 +251,7 @@ async def lifespan(app: FastAPI):
     Base.metadata.create_all(bind=engine)
     _seed_sponsors()
     _seed_members()
+    _seed_founding_events()
     yield
 
 

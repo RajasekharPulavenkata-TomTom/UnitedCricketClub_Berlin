@@ -165,7 +165,6 @@ function showDetail(t) {
         `€${feePerMatch.toFixed(2)} per match (${fmt.currency(t.total_fee)} ÷ ${totalMatches} matches)`;
     tfoot.style.display = "";
 
-    const delBtn = document.getElementById("btn-delete-tournament");
     if (_allPaid(t)) {
         delBtn.classList.remove("d-none");
         delBtn.dataset.id = t.id;

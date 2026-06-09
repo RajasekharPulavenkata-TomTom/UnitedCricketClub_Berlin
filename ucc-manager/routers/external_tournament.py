@@ -94,8 +94,6 @@ def set_captain(id: int, body: CaptainSet, db: Session = Depends(get_db), user: 
     if user.role not in ("admin", "root"):
         raise HTTPException(status_code=403, detail="Only an admin can assign the captain")
     t = _get_or_404(db, id)
-    if body.captain_id is not None and not any(p.member_id == body.captain_id for p in t.players):
-        raise HTTPException(status_code=400, detail="Captain must be a tournament player")
     t.captain_id = body.captain_id
     db.commit()
     return _enrich(_get_or_404(db, id))

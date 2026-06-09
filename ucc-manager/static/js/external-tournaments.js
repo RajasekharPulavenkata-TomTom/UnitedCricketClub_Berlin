@@ -137,7 +137,9 @@ function showDetail(t) {
         captainSection.style.display = "";
         const capSel = document.getElementById("ext-captain-select");
         capSel.innerHTML = '<option value="">— None —</option>' +
-            t.players.map(p => `<option value="${p.member_id}" ${p.member_id === t.captain_id ? "selected" : ""}>${p.member.name}</option>`).join("");
+            members.filter(m => m.is_active).map(m =>
+                `<option value="${m.id}" ${m.id === t.captain_id ? "selected" : ""}>${m.name}</option>`
+            ).join("");
     } else {
         captainSection.style.display = "none";
     }

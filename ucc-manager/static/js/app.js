@@ -207,6 +207,7 @@ const PAGES = {
     "club-fees":        { html: "/pages/club-fees.html",          js: "/js/club-fees.js"          },
     "reporting":          { html: "/pages/reporting.html",           js: "/js/reporting.js"           },
     "practice-reporting": { html: "/pages/practice-reporting.html", js: "/js/practice-reporting.js"  },
+    "field-editor":       { html: "/pages/field-editor.html",       js: "/js/field-editor.js"         },
     "match-results":      { html: "/pages/scoreboard.html",          js: "/js/scoreboard.js"           },
     "external-tournaments": { html: "/pages/external-tournaments.html", js: "/js/external-tournaments.js" },
     "internal-tournaments": { html: "/pages/internal-tournaments.html", js: "/js/internal-tournaments.js" },

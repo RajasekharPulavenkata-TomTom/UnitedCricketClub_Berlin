@@ -1,5 +1,5 @@
 from datetime import datetime, timezone
-from sqlalchemy import Column, Integer, String, Text, Date, DateTime, ForeignKey, UniqueConstraint, Numeric, Time
+from sqlalchemy import Column, Integer, String, Text, Date, DateTime, ForeignKey, UniqueConstraint, Time
 from sqlalchemy.orm import relationship
 from database import Base
 
@@ -17,7 +17,6 @@ class Event(Base):
     type = Column(String(20), nullable=False, default="other")  # match, training, other
     location = Column(String(150))
     notes = Column(Text)
-    match_fee = Column(Numeric(10, 2))
     reporting_time = Column(Time)
     remarks = Column(Text)
     match_type = Column(String(20))   # T20, 40-Overs, 50-Overs, etc.

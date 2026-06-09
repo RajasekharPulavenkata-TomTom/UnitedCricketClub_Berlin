@@ -6,7 +6,7 @@ from sqlalchemy import text, inspect
 from database import engine, Base
 import models  # registers all models before create_all
 from dependencies.auth import get_current_user
-from routers import accounting, inventory, members, events, audit, player_availability, tasks, match_fees, reporting, auth, approvals, polls, pain_points, violations, field_formations, scoreboard, sponsors, external_tournament, internal_tournament, page_views
+from routers import accounting, inventory, members, events, audit, player_availability, tasks, reporting, auth, approvals, polls, pain_points, violations, field_formations, scoreboard, sponsors, external_tournament, internal_tournament, page_views
 
 
 def _run_migrations():
@@ -78,8 +78,6 @@ def _run_migrations():
                 conn.execute(text("ALTER TABLE event_squads ADD COLUMN batting_order INTEGER"))
         if "events" in existing_tables:
             cols = _cols["events"]
-            if "match_fee" not in cols:
-                conn.execute(text("ALTER TABLE events ADD COLUMN match_fee NUMERIC(10,2)"))
             if "reporting_time" not in cols:
                 conn.execute(text("ALTER TABLE events ADD COLUMN reporting_time TIME"))
             if "remarks" not in cols:
@@ -314,7 +312,6 @@ app.include_router(events.router,              dependencies=_auth)
 app.include_router(audit.router,               dependencies=_auth)
 app.include_router(player_availability.router, dependencies=_auth)
 app.include_router(tasks.router,               dependencies=_auth)
-app.include_router(match_fees.router,          dependencies=_auth)
 app.include_router(reporting.router,           dependencies=_auth)
 app.include_router(polls.router,               dependencies=_auth)
 app.include_router(pain_points.router,         dependencies=_auth)

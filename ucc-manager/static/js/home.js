@@ -373,7 +373,6 @@ const _PAGE_LABEL = {
     maintenance:            "Maintenance",
     members:                "Members",
     tasks:                  "Tasks",
-    "match-fees":           "Match Fees",
     "club-fees":            "Club Fees",
     reporting:              "Match Reporting",
     "practice-reporting":   "Practice Reporting",

@@ -9,7 +9,6 @@ from .player_availability import PlayerAvailability
 from .squad import EventSquad
 from .task import Task
 from .tournament import Tournament, TournamentParticipant
-from .match_fee import MatchFeePayment
 from .reporting import PlayerReporting
 from .poll import Poll, PollOption, PollVote, PollAnonymousVoter
 from .pain_point import PainPoint
@@ -21,4 +20,4 @@ from .external_tournament import ExternalTournament, ExternalTournamentPlayer
 from .internal_tournament import InternalTournament, InternalTournamentTeam, InternalTournamentTeamPlayer
 from .page_view import PageView
 
-__all__ = ["User", "Category", "Transaction", "EquipmentItem", "MaintenanceNote", "Member", "Event", "EventAvailability", "AuditLog", "ClubSetting", "PlayerAvailability", "EventSquad", "Task", "Tournament", "TournamentParticipant", "MatchFeePayment", "PlayerReporting", "Poll", "PollOption", "PollVote", "PollAnonymousVoter", "PainPoint", "Violation", "FieldFormation", "MatchResult", "Sponsor", "ExternalTournament", "ExternalTournamentPlayer", "InternalTournament", "InternalTournamentTeam", "InternalTournamentTeamPlayer", "PageView"]
+__all__ = ["User", "Category", "Transaction", "EquipmentItem", "MaintenanceNote", "Member", "Event", "EventAvailability", "AuditLog", "ClubSetting", "PlayerAvailability", "EventSquad", "Task", "Tournament", "TournamentParticipant", "PlayerReporting", "Poll", "PollOption", "PollVote", "PollAnonymousVoter", "PainPoint", "Violation", "FieldFormation", "MatchResult", "Sponsor", "ExternalTournament", "ExternalTournamentPlayer", "InternalTournament", "InternalTournamentTeam", "InternalTournamentTeamPlayer", "PageView"]

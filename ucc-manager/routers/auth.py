@@ -1,5 +1,6 @@
 from typing import List
 from fastapi import APIRouter, Depends, HTTPException
+from sqlalchemy import text
 from sqlalchemy.orm import Session
 from database import get_db
 from models.auth import User
@@ -138,11 +139,25 @@ def reset_password(id: int, data: PasswordReset, current_user: User = Depends(re
 
 
 @router.delete("/users/{id}", status_code=204)
-def delete_user(id: int, current_user: User = Depends(require_root), db: Session = Depends(get_db)):
+def deactivate_user(id: int, current_user: User = Depends(require_root), db: Session = Depends(get_db)):
+    if id == current_user.id:
+        raise HTTPException(status_code=400, detail="Cannot deactivate yourself")
+    user = db.query(User).filter(User.id == id).first()
+    if not user:
+        raise HTTPException(status_code=404, detail="User not found")
+    user.is_active = False
+    db.commit()
+
+
+@router.delete("/users/{id}/purge", status_code=204)
+def purge_user(id: int, current_user: User = Depends(require_root), db: Session = Depends(get_db)):
     if id == current_user.id:
         raise HTTPException(status_code=400, detail="Cannot delete yourself")
     user = db.query(User).filter(User.id == id).first()
     if not user:
         raise HTTPException(status_code=404, detail="User not found")
-    user.is_active = False
+    # Nullify FKs that don't have ON DELETE SET NULL at DB level
+    db.execute(text("UPDATE poll_votes SET user_id = NULL WHERE user_id = :id"), {"id": id})
+    db.execute(text("UPDATE polls SET created_by_id = NULL WHERE created_by_id = :id"), {"id": id})
+    db.delete(user)
     db.commit()

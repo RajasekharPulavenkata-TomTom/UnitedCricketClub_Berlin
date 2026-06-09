@@ -1,4 +1,5 @@
 import { apiFetch, fmt, showToast, escHtml } from "/js/api.js";
+import { getUserId } from "/js/auth.js";
 
 let addModal, editModal, pwdModal;
 let allUsers = [];
@@ -77,6 +78,7 @@ function render() {
             <button class="btn btn-sm btn-outline-secondary me-1" onclick="window._umEdit(${u.id})" title="Edit"><i class="bi bi-pencil"></i></button>
             <button class="btn btn-sm btn-outline-secondary me-1" onclick="window._umResetPwd(${u.id})" title="Reset Password"><i class="bi bi-key"></i></button>
             ${actions}
+            ${u.id !== getUserId() ? `<button class="btn btn-sm btn-outline-danger ms-1" onclick="window._umDelete(${u.id}, '${escHtml(u.username)}')" title="Permanently delete user"><i class="bi bi-trash"></i></button>` : ""}
           </td>
         </tr>`;
     }).join("");
@@ -202,6 +204,15 @@ window._umToggle = async (id, isActive) => {
     try {
         await apiFetch(`/auth/users/${id}`, { method: isActive ? "DELETE" : "PUT", body: isActive ? undefined : JSON.stringify({ is_active: true }) });
         showToast(`User ${action.toLowerCase()}d`);
+        load();
+    } catch (e) { showToast(e.message, "error"); }
+};
+
+window._umDelete = async (id, username) => {
+    if (!confirm(`Permanently delete user "${username}"?\n\nThis cannot be undone. All their data associations will be removed.`)) return;
+    try {
+        await apiFetch(`/auth/users/${id}/purge`, { method: "DELETE" });
+        showToast(`User "${username}" permanently deleted`);
         load();
     } catch (e) { showToast(e.message, "error"); }
 };

@@ -111,6 +111,10 @@ def update_user(id: int, data: UserUpdate, current_user: User = Depends(require_
         raise HTTPException(status_code=404, detail="User not found")
     if id == current_user.id and data.role and data.role != "root":
         raise HTTPException(status_code=400, detail="Cannot demote yourself")
+    if data.username:
+        clash = db.query(User).filter(User.username == data.username, User.id != id).first()
+        if clash:
+            raise HTTPException(status_code=409, detail="Username already taken")
     for field, value in data.model_dump(exclude_none=True).items():
         setattr(user, field, value)
     # Allow explicitly clearing member_id by sending null

@@ -120,6 +120,7 @@ async function onEdit(e) {
         await apiFetch(`/auth/users/${id}`, {
             method: "PUT",
             body: JSON.stringify({
+                username: form.username.value.trim(),
                 full_name: form.full_name.value.trim() || null,
                 role: form.role.value,
                 member_id,
@@ -158,6 +159,7 @@ window._umEdit = (id) => {
     if (!u) return;
     const form = document.getElementById("um-edit-form");
     form.id.value = u.id;
+    form.username.value = u.username;
     form.full_name.value = u.full_name || "";
     form.role.value = u.role;
     // Populate member dropdown

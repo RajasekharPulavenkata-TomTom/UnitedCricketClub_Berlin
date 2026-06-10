@@ -61,6 +61,9 @@ function initAuth() {
 
     window.addEventListener("ucc:logout", () => {
         document.getElementById("page-content").innerHTML = "";
+        document.getElementById("sidebar-user").textContent = "";
+        document.getElementById("sidebar-user-area").style.setProperty("display", "none", "important");
+        document.getElementById("nav-admin-section").style.display = "none";
         authModal.show();
         window._authTab("login");
     });
@@ -77,26 +80,38 @@ function bootApp() {
     let user = null;
     try { user = JSON.parse(localStorage.getItem("ucc_user") || "null"); } catch { localStorage.removeItem("ucc_user"); }
     if (user) {
-        document.getElementById("navbar-user").textContent = user.username;
-        document.getElementById("navbar-user-area").style.removeProperty("display");
+        document.getElementById("sidebar-user").textContent = user.username;
+        document.getElementById("sidebar-user-area").style.removeProperty("display");
         if (user.role === "admin" || user.role === "root") {
-            document.getElementById("nav-admin").style.display = "";
+            document.getElementById("nav-admin-section").style.display = "";
         }
     }
 
-    document.getElementById("navbar-logout").addEventListener("click", () => {
+    document.getElementById("sidebar-logout").addEventListener("click", () => {
         localStorage.removeItem("ucc_token");
         localStorage.removeItem("ucc_user");
-        document.getElementById("navbar-user").textContent = "";
-        document.getElementById("navbar-user-area").style.setProperty("display", "none", "important");
-        document.getElementById("nav-admin").style.display = "none";
+        document.getElementById("sidebar-user").textContent = "";
+        document.getElementById("sidebar-user-area").style.setProperty("display", "none", "important");
+        document.getElementById("nav-admin-section").style.display = "none";
         document.getElementById("page-content").innerHTML = "";
         authModal.show();
         window._authTab("login");
     }, { once: true });
 
+    // Sidebar toggle for mobile
+    const _sidebar = document.getElementById("ucc-sidebar");
+    const _overlay = document.getElementById("sidebar-overlay");
+    document.getElementById("sidebar-toggle")?.addEventListener("click", () => {
+        _sidebar.classList.toggle("sidebar-open");
+        _overlay.classList.toggle("overlay-open");
+    });
+    _overlay?.addEventListener("click", () => {
+        _sidebar.classList.remove("sidebar-open");
+        _overlay.classList.remove("overlay-open");
+    });
+
     const changePwdModal = new bootstrap.Modal(document.getElementById("changePwdModal"));
-    document.getElementById("navbar-change-pwd").addEventListener("click", () => {
+    document.getElementById("sidebar-change-pwd").addEventListener("click", () => {
         document.getElementById("change-pwd-form").reset();
         document.getElementById("change-pwd-error").classList.add("d-none");
         changePwdModal.show();
@@ -171,7 +186,7 @@ window._refreshSponsorsFooter = _loadSponsorsFooter;
 
 // ── Boot ───────────────────────────────────────────────────────────────────────
 
-document.getElementById("navbar-date").textContent = new Date().toLocaleDateString("en-GB", {
+document.getElementById("sidebar-date").textContent = new Date().toLocaleDateString("en-GB", {
     weekday: "long", year: "numeric", month: "long", day: "numeric",
 });
 
@@ -214,6 +229,7 @@ const PAGES = {
     "cricket-positions":{ html: "/pages/cricket-positions.html",   js: "/js/cricket-positions.js"  },
     "cricket-glossary": { html: "/pages/cricket-glossary.html",    js: "/js/cricket-glossary.js"   },
     "dl-calculator":    { html: "/pages/dl-calculator.html",       js: "/js/dl-calculator.js"      },
+    quiz:               { html: "/pages/quiz.html",                js: "/js/quiz.js"               },
     polls:              { html: "/pages/polls.html",               js: "/js/polls.js"              },
     "pain-points":      { html: "/pages/pain-points.html",         js: "/js/pain-points.js"        },
     violations:         { html: "/pages/violations.html",          js: "/js/violations.js"         },
@@ -226,14 +242,27 @@ async function router() {
     const hash = location.hash.replace("#", "") || "home";
     const page = PAGES[hash] || PAGES.dashboard;
     const container = document.getElementById("page-content");
-    container.innerHTML = `<div class="d-flex justify-content-center py-5"><div class="spinner-border text-success"></div></div>`;
 
-    // Clean up any Bootstrap modal state left over from the previous page
+    // Highlight active nav link
+    document.querySelectorAll(".ucc-nav-link[data-page]").forEach(a => {
+        a.classList.toggle("active", a.dataset.page === hash);
+    });
+
+    // Close mobile sidebar on navigation
+    document.getElementById("ucc-sidebar")?.classList.remove("sidebar-open");
+    document.getElementById("sidebar-overlay")?.classList.remove("overlay-open");
+
+    // Clean up BEFORE clearing the page — querySelectorAll returns nothing once innerHTML is replaced
+    // Native dialogs (e.g. av-dialog in calendar) must be closed before removal or the ::backdrop lingers
+    document.querySelectorAll("dialog[open]").forEach(d => d.close());
+    // Bootstrap modals — hide() so Bootstrap can clean up, then force-remove backdrop as safety net
     document.querySelectorAll(".modal.show").forEach(el => bootstrap.Modal.getInstance(el)?.hide());
     document.querySelectorAll(".modal-backdrop").forEach(el => el.remove());
     document.body.classList.remove("modal-open");
     document.body.style.removeProperty("overflow");
     document.body.style.removeProperty("padding-right");
+
+    container.innerHTML = `<div class="d-flex justify-content-center py-5"><div class="spinner-border text-success"></div></div>`;
 
     try {
         const html = await fetch(page.html + "?v=" + _SV).then((r) => r.text());

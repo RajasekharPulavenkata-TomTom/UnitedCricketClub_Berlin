@@ -383,6 +383,7 @@ const _PAGE_LABEL = {
     calendar:               "Calendar",
     rules:                  "Rules",
     history:                "Club History",
+    quiz:                   "Cricket Quiz",
     polls:                  "Polls",
     "pain-points":          "Pain Points",
     violations:             "Violations",

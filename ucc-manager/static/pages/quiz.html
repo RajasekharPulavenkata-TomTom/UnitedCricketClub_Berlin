@@ -1,0 +1,112 @@
+<style>
+  .quiz-wrap { max-width: 680px; margin: 0 auto; }
+
+  /* Start screen */
+  .quiz-hero {
+    background: linear-gradient(135deg, #112270 0%, #1a3a8b 60%, #1e4db7 100%);
+    border-radius: 16px;
+    color: #fff;
+    padding: 3rem 2rem;
+    text-align: center;
+  }
+  .quiz-hero h2 { font-size: 1.9rem; font-weight: 700; }
+  .quiz-hero p  { color: rgba(255,255,255,.7); }
+
+  /* Question card */
+  .quiz-question-card {
+    border-radius: 14px;
+    box-shadow: 0 4px 20px rgba(0,0,0,.1);
+    border: none;
+  }
+  .quiz-question-card .card-body { padding: 1.75rem; }
+
+  /* Progress bar */
+  .quiz-progress { height: 6px; border-radius: 3px; }
+
+  /* Option buttons */
+  .quiz-opt {
+    text-align: left;
+    padding: .7rem 1rem;
+    font-size: .95rem;
+    border-radius: 10px;
+    border: 2px solid #dee2e6;
+    background: #fff;
+    transition: border-color .12s, background .12s;
+  }
+  .quiz-opt:hover:not(:disabled)   { border-color: #1a3a8b; background: #f0f4ff; }
+  .quiz-opt.opt-correct             { border-color: #198754 !important; background: #d1fae5 !important; color: #065f46; font-weight: 600; }
+  .quiz-opt.opt-wrong               { border-color: #dc3545 !important; background: #fee2e2 !important; color: #991b1b; }
+  .quiz-opt:disabled                { cursor: default; opacity: 1; }
+
+  /* Difficulty badge colours */
+  .diff-easy   { background: #d1fae5; color: #065f46; }
+  .diff-medium { background: #fef3c7; color: #92400e; }
+  .diff-hard   { background: #fee2e2; color: #991b1b; }
+
+  /* Results */
+  .results-score { font-size: 4rem; font-weight: 800; color: #1a3a8b; }
+</style>
+
+<div class="quiz-wrap py-2">
+
+  <!-- ── Start ─────────────────────────────────────────────────────────────────── -->
+  <div id="quiz-start">
+    <div class="quiz-hero mb-4">
+      <div style="font-size:3.5rem">🏏</div>
+      <h2 class="mt-3 mb-1">Cricket Quiz</h2>
+      <p class="mb-4">10 random questions · Rules, players, history &amp; more</p>
+      <button class="btn btn-lg btn-warning fw-bold px-5" id="btn-start-quiz">
+        <i class="bi bi-play-fill me-2"></i>Start Quiz
+      </button>
+    </div>
+    <div class="text-center text-muted small" id="quiz-loading" style="display:none">
+      <div class="spinner-border spinner-border-sm me-2"></div>Loading questions…
+    </div>
+    <div id="quiz-start-error" class="alert alert-danger d-none"></div>
+  </div>
+
+  <!-- ── Question ──────────────────────────────────────────────────────────────── -->
+  <div id="quiz-question" class="d-none">
+    <div class="d-flex justify-content-between align-items-center mb-2">
+      <span class="text-muted small fw-semibold">Question <span id="q-num">1</span> <span class="text-muted fw-normal">/ <span id="q-total">10</span></span></span>
+      <span class="fw-bold" style="color:#1a3a8b">Score: <span id="q-score">0</span></span>
+    </div>
+    <div class="progress quiz-progress mb-3">
+      <div class="progress-bar" id="q-progress" style="width:0%;background:#1a3a8b;transition:width .3s"></div>
+    </div>
+
+    <div class="card quiz-question-card mb-3">
+      <div class="card-body">
+        <div class="d-flex align-items-center gap-2 mb-3">
+          <span class="badge rounded-pill px-3 py-1 small fw-semibold" id="q-difficulty-badge"></span>
+          <span class="text-muted small" id="q-category"></span>
+        </div>
+        <!-- Field diagram shown only for fielding-position questions -->
+        <div id="q-field" class="text-center mb-3 d-none"></div>
+        <p class="fw-semibold mb-0" style="font-size:1.05rem;line-height:1.5" id="q-text"></p>
+      </div>
+    </div>
+
+    <div class="d-grid gap-2" id="q-options"></div>
+    <!-- Revealed after answering a field question -->
+    <div id="q-field-label" class="text-center mt-3 d-none">
+      <span class="badge px-3 py-2" style="background:#f47920;font-size:.95rem">
+        📍 <span id="q-field-pos-name"></span>
+      </span>
+    </div>
+  </div>
+
+  <!-- ── Results ───────────────────────────────────────────────────────────────── -->
+  <div id="quiz-results" class="d-none">
+    <div class="quiz-hero text-center">
+      <div style="font-size:3.5rem" id="results-emoji"></div>
+      <div class="results-score mt-2" id="results-score" style="color:#f47920"></div>
+      <p class="fs-5 mb-1" id="results-label" style="color:rgba(255,255,255,.9)"></p>
+      <p class="mb-4" id="results-message" style="color:rgba(255,255,255,.6)"></p>
+      <button class="btn btn-warning btn-lg fw-bold px-5" id="btn-play-again">
+        <i class="bi bi-arrow-counterclockwise me-2"></i>Play Again
+      </button>
+    </div>
+  </div>
+
+</div>

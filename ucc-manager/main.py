@@ -6,7 +6,7 @@ from sqlalchemy import text, inspect
 from database import engine, Base
 import models  # registers all models before create_all
 from dependencies.auth import get_current_user
-from routers import accounting, inventory, members, events, audit, player_availability, tasks, reporting, auth, approvals, polls, pain_points, violations, field_formations, scoreboard, sponsors, external_tournament, internal_tournament, page_views, tournament_feedback
+from routers import accounting, inventory, members, events, audit, player_availability, tasks, reporting, auth, approvals, polls, pain_points, violations, field_formations, scoreboard, sponsors, external_tournament, internal_tournament, page_views, tournament_feedback, quiz
 
 
 def _run_migrations():
@@ -192,6 +192,32 @@ def _run_migrations():
                     created_at TIMESTAMPTZ DEFAULT NOW()
                 )
             """))
+        # Remove any non-cricket questions left over from the opentdb era
+        conn.execute(text("DELETE FROM quiz_questions WHERE category IS DISTINCT FROM 'Cricket'"))
+        if "quiz_questions" not in existing_tables:
+            conn.execute(text("""
+                CREATE TABLE quiz_questions (
+                    id SERIAL PRIMARY KEY,
+                    question TEXT NOT NULL,
+                    correct_answer TEXT NOT NULL,
+                    incorrect_answers JSONB NOT NULL,
+                    difficulty VARCHAR(10),
+                    category VARCHAR(100),
+                    question_type VARCHAR(20) DEFAULT 'text',
+                    field_position VARCHAR(50),
+                    fetched_at TIMESTAMPTZ DEFAULT NOW()
+                )
+            """))
+        elif "quiz_questions" in existing_tables:
+            qq_cols = _cols.get("quiz_questions", set())
+            if "question_type" not in qq_cols:
+                conn.execute(text("ALTER TABLE quiz_questions ADD COLUMN question_type VARCHAR(20) DEFAULT 'text'"))
+                conn.execute(text("ALTER TABLE quiz_questions ADD COLUMN field_position VARCHAR(50)"))
+                # Clear all questions so _seed_if_empty reseeds with the full bank (including field questions)
+                conn.execute(text("DELETE FROM quiz_questions"))
+        # Drop legacy orphan tables
+        conn.execute(text("DROP TABLE IF EXISTS assignments"))
+        conn.execute(text("DROP TABLE IF EXISTS notification_logs"))
         # Seed The Biryani Club sponsor (only if table already existed — new installs seed after create_all)
         if "sponsors" in existing_tables:
             count = conn.execute(text("SELECT COUNT(*) FROM sponsors")).scalar()
@@ -337,5 +363,6 @@ app.include_router(external_tournament.router, dependencies=_auth)
 app.include_router(internal_tournament.router, dependencies=_auth)
 app.include_router(page_views.router,          dependencies=_auth)
 app.include_router(tournament_feedback.router, dependencies=_auth)
+app.include_router(quiz.router,               dependencies=_auth)
 
 app.mount("/", StaticFiles(directory="static", html=True), name="static")

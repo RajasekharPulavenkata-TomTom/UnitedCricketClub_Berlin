@@ -1,0 +1,5 @@
+# Install with: pip install -r requirements-test.txt
+# Then for E2E: playwright install chromium
+
+pytest==8.3.4
+pytest-playwright==0.5.2

@@ -11,134 +11,119 @@
 </head>
 <body>
 
-<nav class="navbar navbar-expand-xl navbar-dark ucc-navbar no-print" id="main-nav">
-  <div class="container-fluid">
-    <a class="navbar-brand fw-bold d-flex align-items-center gap-2" href="#home">
-      <img src="/img/ucc-logo.png" alt="UCC" style="height:48px;width:48px;object-fit:contain;background:#fff;border-radius:50%;padding:3px" />
-      <span class="d-flex flex-column lh-1">
-        <span>United Cricket Club</span>
-        <span class="fw-normal text-white-50" id="navbar-date" style="font-size:0.7rem"></span>
-      </span>
+<!-- ── Sidebar ────────────────────────────────────────────────────────────────── -->
+<aside class="ucc-sidebar" id="ucc-sidebar">
+  <div class="ucc-sidebar-brand">
+    <a href="#home" class="d-flex align-items-center gap-2 text-decoration-none">
+      <img src="/img/ucc-logo.png" alt="UCC"
+           style="height:38px;width:38px;object-fit:contain;background:#fff;border-radius:50%;padding:3px;flex-shrink:0" />
+      <div>
+        <div class="fw-bold text-white lh-1" style="font-size:.93rem">United Cricket Club</div>
+        <div class="text-white-50 lh-1 mt-1" style="font-size:.63rem" id="sidebar-date"></div>
+      </div>
     </a>
-    <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbarNav">
-      <span class="navbar-toggler-icon"></span>
+  </div>
+
+  <nav class="ucc-sidebar-nav">
+    <a href="#home"    class="ucc-nav-link" data-page="home"><i class="bi bi-house-door"></i>Home</a>
+    <a href="#members" class="ucc-nav-link" data-page="members"><i class="bi bi-people"></i>Players</a>
+
+    <div class="ucc-nav-section-label">Matches</div>
+    <a href="#calendar"             class="ucc-nav-link ucc-nav-sub" data-page="calendar"><i class="bi bi-calendar3"></i>Calendar</a>
+    <a href="#reporting"            class="ucc-nav-link ucc-nav-sub" data-page="reporting"><i class="bi bi-clipboard-check"></i>Match Reporting</a>
+    <a href="#practice-reporting"   class="ucc-nav-link ucc-nav-sub" data-page="practice-reporting"><i class="bi bi-bullseye"></i>Practice Reporting</a>
+    <a href="#field-editor"         class="ucc-nav-link ucc-nav-sub" data-page="field-editor"><i class="bi bi-diagram-3"></i>Field Editor</a>
+    <a href="#match-results"        class="ucc-nav-link ucc-nav-sub" data-page="match-results"><i class="bi bi-trophy"></i>Team Results</a>
+    <a href="#external-tournaments" class="ucc-nav-link ucc-nav-sub" data-page="external-tournaments"><i class="bi bi-globe2"></i>External Tournaments</a>
+    <a href="#internal-tournaments" class="ucc-nav-link ucc-nav-sub" data-page="internal-tournaments"><i class="bi bi-building"></i>Internal Tournaments</a>
+
+    <div class="ucc-nav-section-label">Management</div>
+    <a href="#dashboard"   class="ucc-nav-link ucc-nav-sub" data-page="dashboard"><i class="bi bi-speedometer2"></i>Finance Dashboard</a>
+    <a href="#transactions" class="ucc-nav-link ucc-nav-sub" data-page="transactions"><i class="bi bi-list-ul"></i>Transactions</a>
+    <a href="#categories"  class="ucc-nav-link ucc-nav-sub" data-page="categories"><i class="bi bi-tags"></i>Categories</a>
+    <a href="#reports"     class="ucc-nav-link ucc-nav-sub" data-page="reports"><i class="bi bi-bar-chart-line"></i>Reports</a>
+    <a href="#equipment"   class="ucc-nav-link ucc-nav-sub" data-page="equipment"><i class="bi bi-box-seam"></i>Kit &amp; Equipment</a>
+    <a href="#maintenance" class="ucc-nav-link ucc-nav-sub" data-page="maintenance"><i class="bi bi-tools"></i>Maintenance</a>
+    <a href="#club-fees"   class="ucc-nav-link ucc-nav-sub" data-page="club-fees"><i class="bi bi-bank"></i>Club Registration</a>
+
+    <div class="ucc-nav-section-label">Club</div>
+    <a href="#tasks"       class="ucc-nav-link ucc-nav-sub" data-page="tasks"><i class="bi bi-check2-square"></i>Tasks</a>
+    <a href="#polls"       class="ucc-nav-link ucc-nav-sub" data-page="polls"><i class="bi bi-ui-checks-grid"></i>Polls</a>
+    <a href="#pain-points" class="ucc-nav-link ucc-nav-sub" data-page="pain-points"><i class="bi bi-exclamation-circle"></i>Pain Points</a>
+    <a href="#violations"  class="ucc-nav-link ucc-nav-sub" data-page="violations"><i class="bi bi-shield-exclamation"></i>Violations</a>
+    <a href="#rules"       class="ucc-nav-link ucc-nav-sub" data-page="rules"><i class="bi bi-journal-text"></i>Rules</a>
+    <a href="#history"     class="ucc-nav-link ucc-nav-sub" data-page="history"><i class="bi bi-clock-history"></i>History</a>
+    <a href="#sponsors"    class="ucc-nav-link ucc-nav-sub" data-page="sponsors"><i class="bi bi-award"></i>Sponsors</a>
+
+    <div id="nav-admin-section" style="display:none">
+      <div class="ucc-nav-section-label">Admin</div>
+      <a href="#approvals"       class="ucc-nav-link ucc-nav-sub" data-page="approvals"><i class="bi bi-person-check"></i>Approvals</a>
+      <a href="#user-management" class="ucc-nav-link ucc-nav-sub" data-page="user-management"><i class="bi bi-people-fill"></i>User Management</a>
+    </div>
+
+    <div class="ucc-nav-section-label">About Cricket</div>
+    <a href="#quiz"              class="ucc-nav-link ucc-nav-sub" data-page="quiz"><i class="bi bi-patch-question"></i>Cricket Quiz</a>
+    <a href="#cricket-rules"     class="ucc-nav-link ucc-nav-sub" data-page="cricket-rules"><i class="bi bi-book"></i>Rules of Cricket</a>
+    <a href="#cricket-formats"   class="ucc-nav-link ucc-nav-sub" data-page="cricket-formats"><i class="bi bi-calendar2-check"></i>Formats</a>
+    <a href="#cricket-positions" class="ucc-nav-link ucc-nav-sub" data-page="cricket-positions"><i class="bi bi-diagram-3-fill"></i>Fielding Positions</a>
+    <a href="#cricket-glossary"  class="ucc-nav-link ucc-nav-sub" data-page="cricket-glossary"><i class="bi bi-book-half"></i>Glossary</a>
+    <a href="#dl-calculator"     class="ucc-nav-link ucc-nav-sub" data-page="dl-calculator"><i class="bi bi-calculator"></i>D/L Calculator</a>
+  </nav>
+
+  <div class="ucc-sidebar-footer">
+    <div id="sidebar-user-area" style="display:none">
+      <div class="d-flex align-items-center gap-2 mb-2">
+        <i class="bi bi-person-circle text-white-50 fs-5"></i>
+        <span class="text-white small text-truncate" id="sidebar-user"></span>
+      </div>
+      <div class="d-flex gap-1">
+        <button class="btn btn-outline-light btn-sm flex-grow-1" id="sidebar-change-pwd" title="Change Password">
+          <i class="bi bi-key me-1"></i>Password
+        </button>
+        <button class="btn btn-outline-light btn-sm" id="sidebar-logout" title="Logout">
+          <i class="bi bi-box-arrow-right"></i>
+        </button>
+      </div>
+    </div>
+    <a href="https://unitedcricketclub.de/" target="_blank" rel="noopener noreferrer"
+       class="btn btn-outline-light btn-sm w-100 mt-2 d-flex align-items-center justify-content-center gap-1">
+      <i class="bi bi-globe"></i>Official Website
+      <i class="bi bi-box-arrow-up-right" style="font-size:.7rem"></i>
+    </a>
+  </div>
+</aside>
+
+<!-- Mobile overlay -->
+<div class="ucc-sidebar-overlay" id="sidebar-overlay"></div>
+
+<!-- ── Main ──────────────────────────────────────────────────────────────────── -->
+<div class="ucc-main" id="ucc-main">
+  <header class="ucc-topbar no-print">
+    <button class="ucc-sidebar-toggle" id="sidebar-toggle" aria-label="Toggle navigation">
+      <i class="bi bi-list"></i>
     </button>
-    <div class="collapse navbar-collapse" id="navbarNav">
-      <ul class="navbar-nav me-auto">
-        <li class="nav-item">
-          <a class="nav-link" href="#members">👕 Players</a>
-        </li>
-        <li class="nav-item dropdown">
-          <a class="nav-link dropdown-toggle" href="#" role="button" data-bs-toggle="dropdown">
-            🏏 Matches
-          </a>
-          <ul class="dropdown-menu">
-            <li><a class="dropdown-item" href="#calendar">🗓️ View Calendar</a></li>
-            <li><a class="dropdown-item" href="#reporting">🏆 Match Reporting</a></li>
-            <li><a class="dropdown-item" href="#practice-reporting">🎯 Practice Reporting</a></li>
-            <li><a class="dropdown-item" href="#field-editor">🌿 Field Editor</a></li>
-            <li><a class="dropdown-item" href="#match-results">📊 Team Results</a></li>
-            <li><a class="dropdown-item" href="#external-tournaments">🌍 External Tournaments</a></li>
-            <li><a class="dropdown-item" href="#internal-tournaments">🏟️ Internal Tournaments</a></li>
-          </ul>
-        </li>
-        <li class="nav-item dropdown">
-          <a class="nav-link dropdown-toggle" href="#" role="button" data-bs-toggle="dropdown">
-            <i class="bi bi-briefcase me-1"></i>Management
-          </a>
-          <ul class="dropdown-menu">
-            <li><h6 class="dropdown-header">Accounting</h6></li>
-            <li><a class="dropdown-item" href="#dashboard"><i class="bi bi-speedometer2 me-2"></i>Dashboard</a></li>
-            <li><a class="dropdown-item" href="#transactions"><i class="bi bi-list-ul me-2"></i>Transactions</a></li>
-            <li><a class="dropdown-item" href="#categories"><i class="bi bi-tags me-2"></i>Categories</a></li>
-            <li><a class="dropdown-item" href="#reports"><i class="bi bi-bar-chart-line me-2"></i>Reports</a></li>
-            <li><hr class="dropdown-divider"></li>
-            <li><h6 class="dropdown-header">Inventory</h6></li>
-            <li><a class="dropdown-item" href="#equipment">🎽 Kit & Equipment</a></li>
-            <li><a class="dropdown-item" href="#maintenance"><i class="bi bi-tools me-2"></i>Maintenance</a></li>
-            <li><hr class="dropdown-divider"></li>
-            <li><h6 class="dropdown-header">Fees</h6></li>
-            <li><a class="dropdown-item" href="#club-fees"><i class="bi bi-bank me-2"></i>Club Registration</a></li>
-          </ul>
-        </li>
-        <li class="nav-item dropdown">
-          <a class="nav-link dropdown-toggle" href="#" role="button" data-bs-toggle="dropdown">
-            <i class="bi bi-people-fill me-1"></i>Club
-          </a>
-          <ul class="dropdown-menu">
-            <li><a class="dropdown-item" href="#tasks"><i class="bi bi-check2-square me-2"></i>Tasks</a></li>
-            <li><a class="dropdown-item" href="#polls"><i class="bi bi-ui-checks-grid me-2"></i>Polls</a></li>
-            <li><a class="dropdown-item" href="#pain-points"><i class="bi bi-exclamation-circle me-2"></i>Pain Points</a></li>
-            <li><a class="dropdown-item" href="#violations"><i class="bi bi-shield-exclamation me-2"></i>Violations</a></li>
-            <li><hr class="dropdown-divider"></li>
-            <li><h6 class="dropdown-header">Club Info</h6></li>
-            <li><a class="dropdown-item" href="#rules"><i class="bi bi-journal-text me-2"></i>Rules</a></li>
-            <li><a class="dropdown-item" href="#history"><i class="bi bi-clock-history me-2"></i>History</a></li>
-            <li><a class="dropdown-item" href="#sponsors"><i class="bi bi-award me-2"></i>Sponsors</a></li>
-          </ul>
-        </li>
-        <li class="nav-item dropdown" id="nav-admin" style="display:none">
-          <a class="nav-link dropdown-toggle" href="#" role="button" data-bs-toggle="dropdown">
-            <i class="bi bi-shield-lock me-1"></i>Admin
-          </a>
-          <ul class="dropdown-menu">
-            <li><a class="dropdown-item" href="#approvals"><i class="bi bi-person-check me-2"></i>Approvals</a></li>
-            <li><a class="dropdown-item" href="#user-management"><i class="bi bi-people-fill me-2"></i>User Management</a></li>
-          </ul>
-        </li>
-        <li class="nav-item dropdown">
-          <a class="nav-link dropdown-toggle" href="#" role="button" data-bs-toggle="dropdown">
-            <i class="bi bi-cricket me-1"></i>About Cricket
-          </a>
-          <ul class="dropdown-menu">
-            <li><a class="dropdown-item" href="#cricket-rules"><i class="bi bi-book me-2"></i>Rules of Cricket</a></li>
-            <li><a class="dropdown-item" href="#cricket-formats"><i class="bi bi-calendar2-check me-2"></i>Formats</a></li>
-            <li><a class="dropdown-item" href="#cricket-positions"><i class="bi bi-diagram-3 me-2"></i>Fielding Positions</a></li>
-            <li><a class="dropdown-item" href="#cricket-glossary"><i class="bi bi-book-half me-2"></i>Glossary</a></li>
-            <li><hr class="dropdown-divider"></li>
-            <li><a class="dropdown-item" href="#dl-calculator"><i class="bi bi-calculator me-2"></i>D/L Calculator</a></li>
-          </ul>
-        </li>
-      </ul>
-      <div class="d-flex align-items-center gap-2 ms-auto ps-3">
-        <div class="d-flex align-items-center gap-2" id="navbar-user-area" style="display:none!important">
-          <span class="text-white-50 small d-none d-xl-inline" id="navbar-user"></span>
-          <button class="btn btn-outline-light btn-sm" id="navbar-change-pwd" title="Change Password">
-            <i class="bi bi-key"></i>
-          </button>
-          <button class="btn btn-outline-light btn-sm" id="navbar-logout">
-            <i class="bi bi-box-arrow-right me-1"></i>Logout
-          </button>
-        </div>
-        <a href="https://unitedcricketclub.de/" target="_blank" rel="noopener noreferrer"
-           class="btn btn-outline-light btn-sm d-flex align-items-center gap-1">
-          <i class="bi bi-globe"></i> Official Website
-          <i class="bi bi-box-arrow-up-right" style="font-size:.7rem"></i>
-        </a>
+  </header>
+
+  <div class="container-fluid py-3 px-3 px-md-4">
+    <div id="page-content">
+      <div class="d-flex justify-content-center align-items-center" style="height:60vh">
+        <div class="spinner-border text-primary" role="status"></div>
       </div>
     </div>
   </div>
-</nav>
 
-<div class="ticker-wrap no-print">
-  <div class="ticker-text">
-    🔒 This portal is exclusively for United Cricket Club (UCC) members. &nbsp;&nbsp;|&nbsp;&nbsp;
-    Unauthorised access is strictly prohibited. &nbsp;&nbsp;|&nbsp;&nbsp;
-    If you are not a member, please log out immediately. &nbsp;&nbsp;|&nbsp;&nbsp;
-    🔒 This portal is exclusively for United Cricket Club (UCC) members. &nbsp;&nbsp;|&nbsp;&nbsp;
-    Unauthorised access is strictly prohibited. &nbsp;&nbsp;|&nbsp;&nbsp;
-    If you are not a member, please log out immediately. &nbsp;&nbsp;&nbsp;&nbsp;
-  </div>
-</div>
-
-<div class="container-fluid py-4">
-  <div id="page-content">
-    <div class="d-flex justify-content-center align-items-center" style="height:60vh">
-      <div class="spinner-border text-primary" role="status"></div>
+  <footer id="sponsors-footer" class="d-none no-print border-top mt-4 py-3 bg-light">
+    <div class="container-fluid">
+      <div class="d-flex align-items-center justify-content-center gap-2 flex-wrap text-muted small mb-2">
+        <i class="bi bi-award text-warning"></i>
+        <span class="fw-semibold text-uppercase" style="letter-spacing:.05em;font-size:.7rem">Official Sponsors</span>
+      </div>
+      <div class="d-flex align-items-center justify-content-center gap-4 flex-wrap" id="sponsors-footer-logos"></div>
     </div>
-  </div>
+  </footer>
 </div>
 
+<!-- ── Change Password Modal ─────────────────────────────────────────────────── -->
 <div class="modal fade" id="changePwdModal" tabindex="-1">
   <div class="modal-dialog modal-dialog-centered" style="max-width:380px">
     <div class="modal-content">
@@ -168,6 +153,7 @@
   </div>
 </div>
 
+<!-- ── Auth Modal ─────────────────────────────────────────────────────────────── -->
 <div class="modal fade" id="authModal" data-bs-backdrop="static" data-bs-keyboard="false" tabindex="-1">
   <div class="modal-dialog modal-dialog-centered" style="max-width:420px">
     <div class="modal-content">
@@ -230,26 +216,15 @@
   </div>
 </div>
 
-<!-- Sponsors footer (populated by app.js after login) -->
-<footer id="sponsors-footer" class="d-none no-print border-top mt-4 py-3 bg-light">
-  <div class="container-fluid">
-    <div class="d-flex align-items-center justify-content-center gap-2 flex-wrap text-muted small mb-2">
-      <i class="bi bi-award text-warning"></i>
-      <span class="fw-semibold text-uppercase" style="letter-spacing:.05em;font-size:.7rem">Official Sponsors</span>
-    </div>
-    <div class="d-flex align-items-center justify-content-center gap-4 flex-wrap" id="sponsors-footer-logos"></div>
-  </div>
-</footer>
-
 <script type="importmap">
 {
   "imports": {
-    "/js/api.js": "/js/api.js?v=4"
+    "/js/api.js": "/js/api.js?v=5"
   }
 }
 </script>
 <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.4/dist/chart.umd.min.js"></script>
-<script type="module" src="/js/app.js?v=4"></script>
+<script type="module" src="/js/app.js?v=5"></script>
 </body>
 </html>

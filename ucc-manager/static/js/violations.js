@@ -38,7 +38,16 @@ export async function init() {
 
 async function load() {
     try {
-        items = await apiFetch("/violations");
+        const fetches = [apiFetch("/violations")];
+        if (isAdmin && allMembers === null) {
+            fetches.push(apiFetch("/members?active_only=true").catch(() => []));
+        }
+        const [violations, members] = await Promise.all(fetches);
+        items = violations;
+        if (members) {
+            allMembers = members.sort((a, b) =>
+                (a.jersey_name || a.name).localeCompare(b.jersey_name || b.name));
+        }
     } catch (e) {
         document.getElementById("v-container").innerHTML =
             `<div class="alert alert-danger">${escHtml(e.message)}</div>`;
@@ -99,11 +108,9 @@ function setupFilters() {
 
 function populateMemberFilter() {
     const sel = document.getElementById("v-filter-member");
-    const memberMap = new Map(items.map(v => [v.member_id, v.member_name]));
     sel.innerHTML = `<option value="">All members</option>` +
-        [...memberMap.entries()]
-            .sort(([, a], [, b]) => a.localeCompare(b))
-            .map(([id, name]) => `<option value="${id}">${escHtml(name)}</option>`)
+        (allMembers || [])
+            .map(m => `<option value="${m.id}">${escHtml(m.jersey_name || m.name)}</option>`)
             .join("");
     sel.value = _fm;
 }
@@ -216,12 +223,14 @@ function setupLogModal() {
     document.getElementById("logViolationModal")?.addEventListener("show.bs.modal", async () => {
         document.getElementById("v-log-form").reset();
         document.getElementById("log-violation-error").classList.add("d-none");
-        if (allMembers !== null) return;
-        try {
-            const ms = await apiFetch("/members?active_only=true");
-            allMembers = ms.sort((a, b) => (a.jersey_name || a.name).localeCompare(b.jersey_name || b.name));
-        } catch { allMembers = []; }
+        if (allMembers === null) {
+            try {
+                const ms = await apiFetch("/members?active_only=true");
+                allMembers = ms.sort((a, b) => (a.jersey_name || a.name).localeCompare(b.jersey_name || b.name));
+            } catch { allMembers = []; }
+        }
         const sel = document.getElementById("v-log-member");
+        if (!sel) return;
         sel.innerHTML = `<option value="">— Select member —</option>` +
             allMembers.map(m => `<option value="${m.id}">${escHtml(m.jersey_name || m.name)}</option>`).join("");
     });

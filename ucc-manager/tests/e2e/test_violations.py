@@ -19,8 +19,10 @@ class TestViolationsPage:
         """Regression: member filter must list all active members, not just violators."""
         nav_to(page, "#violations")
 
-        # Filter is only visible for admins
-        if not page.locator("#v-filters").is_visible():
+        # Filter is only visible for admins — wait for async init() to reveal it
+        try:
+            page.wait_for_selector("#v-filters:not(.d-none)", timeout=6000)
+        except Exception:
             pytest.skip("Member filter not visible (not admin)")
 
         # The dropdown should have more than just the 'All members' default option
@@ -35,9 +37,12 @@ class TestViolationsPage:
         """Regression: Log Violation modal must populate member select, not show 'Loading members…'."""
         nav_to(page, "#violations")
 
-        btn = page.locator("#btn-log-violation")
-        if not btn.is_visible():
+        # Wait for async init() to reveal admin button
+        try:
+            page.wait_for_selector("#btn-log-violation:not(.d-none)", timeout=6000)
+        except Exception:
             pytest.skip("Log Violation button not visible (not admin)")
+        btn = page.locator("#btn-log-violation")
 
         btn.click()
         page.wait_for_selector("#logViolationModal.show", timeout=5000)
@@ -65,9 +70,12 @@ class TestViolationsPage:
         from tests.e2e.conftest import no_backdrop
         nav_to(page, "#violations")
 
-        btn = page.locator("#btn-log-violation")
-        if not btn.is_visible():
+        # Wait for async init() to reveal admin button
+        try:
+            page.wait_for_selector("#btn-log-violation:not(.d-none)", timeout=6000)
+        except Exception:
             pytest.skip("Log Violation button not visible (not admin)")
+        btn = page.locator("#btn-log-violation")
 
         btn.click()
         page.wait_for_selector("#logViolationModal.show", timeout=5000)
@@ -84,7 +92,7 @@ class TestViolationsQuiz:
         nav_to(page, "#quiz")
         page.wait_for_selector("#btn-start-quiz:not(:disabled)", timeout=8000)
         page.click("#btn-start-quiz")
-        page.wait_for_selector("#quiz-question:not(.d-none)", timeout=5000)
+        page.wait_for_selector("#quiz-question:not(.d-none)", timeout=10000)
         assert page.locator("#q-text").is_visible()
 
     def test_field_question_shows_svg(self, page):

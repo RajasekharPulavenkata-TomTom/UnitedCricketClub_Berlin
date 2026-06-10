@@ -96,9 +96,12 @@ class TestOverlayCleanup:
         """Open Log Violation modal (admin only), navigate away, check backdrop gone."""
         nav_to(page, "#violations")
 
-        btn = page.locator("#btn-log-violation")
-        if not btn.is_visible():
+        # Wait for async init() to reveal admin button (init() is called without await in router)
+        try:
+            page.wait_for_selector("#btn-log-violation:not(.d-none)", timeout=6000)
+        except Exception:
             pytest.skip("Log Violation button not visible (not admin)")
+        btn = page.locator("#btn-log-violation")
 
         btn.click()
         page.wait_for_selector("#logViolationModal.show", timeout=5000)

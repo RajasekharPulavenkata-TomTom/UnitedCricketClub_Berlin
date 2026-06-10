@@ -204,6 +204,33 @@ if (localStorage.getItem("ucc_token")) {
 // but allows the browser to cache files across in-session navigations.
 const _SV = Date.now();
 
+// Monotonically-increasing counter. Each router() call stamps its own seq;
+// any async step that runs after a newer navigation has started is a no-op.
+let _navSeq = 0;
+
+/**
+ * Synchronously wipe every overlay artifact from the page.
+ * @param {Element|null} scopeEl  If supplied, dispose Bootstrap Modal instances
+ *   scoped to this container.  Omit (or pass null) for the rAF second-pass
+ *   where the container has already been cleared.
+ */
+function _wipeOverlays(scopeEl) {
+    // Native <dialog> ::backdrop lingers if the dialog is removed without .close()
+    document.querySelectorAll("dialog[open]").forEach(d => d.close());
+    // dispose() is synchronous; it tears down Bootstrap's instance AND removes
+    // the backdrop element it owns.  Scoped to the page container so shell
+    // modals (authModal, changePwdModal) are never touched.
+    if (scopeEl) {
+        scopeEl.querySelectorAll(".modal").forEach(el => bootstrap.Modal.getInstance(el)?.dispose());
+    }
+    // Belt-and-suspenders: remove any backdrops Bootstrap appended to <body>,
+    // then restore body scroll state regardless of how we got here.
+    document.querySelectorAll(".modal-backdrop").forEach(el => el.remove());
+    document.body.classList.remove("modal-open");
+    document.body.style.removeProperty("overflow");
+    document.body.style.removeProperty("padding-right");
+}
+
 const PAGES = {
     home:               { html: "/pages/home.html",               js: "/js/home.js"               },
     dashboard:          { html: "/pages/dashboard.html",          js: "/js/dashboard.js"          },
@@ -239,6 +266,7 @@ const PAGES = {
 };
 
 async function router() {
+    const seq = ++_navSeq;   // stamp this navigation; stale continuations will bail out
     const hash = location.hash.replace("#", "") || "home";
     const page = PAGES[hash] || PAGES.dashboard;
     const container = document.getElementById("page-content");
@@ -252,29 +280,27 @@ async function router() {
     document.getElementById("ucc-sidebar")?.classList.remove("sidebar-open");
     document.getElementById("sidebar-overlay")?.classList.remove("overlay-open");
 
-    // Clean up BEFORE clearing the page — querySelectorAll returns nothing once innerHTML is replaced.
-    // Native dialogs must be closed before removal or the ::backdrop lingers.
-    document.querySelectorAll("dialog[open]").forEach(d => d.close());
-    // Scope dispose() to page-content only.  Shell modals (authModal, changePwdModal) live outside
-    // the container and must NOT be disposed — app.js never re-runs initAuth(), so those instances
-    // must survive navigation.  dispose() is synchronous so there is no async animation callback
-    // that can re-add modal-open or a backdrop after we clear the DOM.
-    container.querySelectorAll(".modal").forEach(el => bootstrap.Modal.getInstance(el)?.dispose());
-    // Backdrops are appended to <body>, so scan the whole document.
-    document.querySelectorAll(".modal-backdrop").forEach(el => el.remove());
-    document.body.classList.remove("modal-open");
-    document.body.style.removeProperty("overflow");
-    document.body.style.removeProperty("padding-right");
+    // First pass — synchronous, runs before the DOM is cleared.
+    _wipeOverlays(container);
+    // Second pass — runs after the current JS tick via rAF.  Bootstrap 5's
+    // executeAfterTransition has a setTimeout fallback that can re-append a
+    // backdrop ~150 ms after show() was called; the rAF re-sweep catches it.
+    // By the time rAF fires the container is already the spinner (no modals),
+    // so scopeEl is omitted and only body/backdrop state is cleaned.
+    requestAnimationFrame(() => { if (_navSeq === seq) _wipeOverlays(); });
 
     container.innerHTML = `<div class="d-flex justify-content-center py-5"><div class="spinner-border text-success"></div></div>`;
 
     try {
         const html = await fetch(page.html + "?v=" + _SV).then((r) => r.text());
+        if (seq !== _navSeq) return;   // superseded — a newer navigation is loading
         container.innerHTML = html;
         const mod = await import(page.js + "?v=" + _SV);
+        if (seq !== _navSeq) return;
         if (mod.init) mod.init();
         apiFetch("/page-views", { method: "POST", body: JSON.stringify({ page: hash }) }).catch(() => {});
     } catch (e) {
+        if (seq !== _navSeq) return;
         container.innerHTML = `<div class="alert alert-danger">Failed to load page: ${e.message}</div>`;
     }
 }

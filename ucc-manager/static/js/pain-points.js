@@ -6,18 +6,19 @@ let _activeFilter = "";
 let _activeCategory = "";
 let _editId = null;
 
+// Module-scope: registers once per session regardless of how many times the page is visited.
+document.addEventListener("hidden.bs.modal", (e) => {
+    if (e.target.id === "raisePPModal") {
+        document.getElementById("pp-raise-form")?.reset();
+        document.getElementById("raise-pp-error")?.classList.add("d-none");
+    }
+});
+
 export async function init() {
     const user = JSON.parse(localStorage.getItem("ucc_user") || "null");
     isAdmin = user?.role === "admin" || user?.role === "root";
     await load();
     setupFilters();
-
-    document.addEventListener("hidden.bs.modal", (e) => {
-        if (e.target.id === "raisePPModal") {
-            document.getElementById("pp-raise-form")?.reset();
-            document.getElementById("raise-pp-error")?.classList.add("d-none");
-        }
-    });
 }
 
 async function load() {

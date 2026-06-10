@@ -238,7 +238,7 @@ body::before {
   pointer-events: none;
   z-index: 0;
 }
-#page-content { position: relative; z-index: 1; }
+#page-content { position: relative; }
 
 @media (max-width: 991.98px) {
   body::before { left: 50%; }

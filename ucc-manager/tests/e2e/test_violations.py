@@ -25,6 +25,16 @@ class TestViolationsPage:
         except Exception:
             pytest.skip("Member filter not visible (not admin)")
 
+        # Members are fetched asynchronously after admin elements are shown;
+        # wait for the select to be populated with at least one member option.
+        try:
+            page.wait_for_function(
+                "document.querySelector('#v-filter-member')?.options.length > 1",
+                timeout=6000,
+            )
+        except Exception:
+            pass  # fall through to the assertion below for a clear failure message
+
         # The dropdown should have more than just the 'All members' default option
         # (assumes the server has at least one active member)
         options = page.locator("#v-filter-member option")
@@ -81,6 +91,9 @@ class TestViolationsPage:
         page.wait_for_selector("#logViolationModal.show", timeout=5000)
         page.locator("#logViolationModal .btn-secondary").click()
         page.wait_for_selector("#logViolationModal.show", state="hidden", timeout=3000)
+        # Bootstrap removes the backdrop after the fade-out transition (≈150 ms);
+        # wait for it to be fully detached before asserting.
+        page.wait_for_selector(".modal-backdrop", state="detached", timeout=3000)
 
         assert no_backdrop(page), "Backdrop remained after closing Log Violation modal"
 

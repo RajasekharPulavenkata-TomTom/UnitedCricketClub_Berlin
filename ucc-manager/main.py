@@ -365,4 +365,10 @@ app.include_router(page_views.router,          dependencies=_auth)
 app.include_router(tournament_feedback.router, dependencies=_auth)
 app.include_router(quiz.router,               dependencies=_auth)
 
+
+@app.get("/health", include_in_schema=False)
+async def health():
+    return {"status": "ok"}
+
+
 app.mount("/", StaticFiles(directory="static", html=True), name="static")

@@ -252,11 +252,15 @@ async function router() {
     document.getElementById("ucc-sidebar")?.classList.remove("sidebar-open");
     document.getElementById("sidebar-overlay")?.classList.remove("overlay-open");
 
-    // Clean up BEFORE clearing the page — querySelectorAll returns nothing once innerHTML is replaced
-    // Native dialogs (e.g. av-dialog in calendar) must be closed before removal or the ::backdrop lingers
+    // Clean up BEFORE clearing the page — querySelectorAll returns nothing once innerHTML is replaced.
+    // Native dialogs must be closed before removal or the ::backdrop lingers.
     document.querySelectorAll("dialog[open]").forEach(d => d.close());
-    // Bootstrap modals — hide() so Bootstrap can clean up, then force-remove backdrop as safety net
-    document.querySelectorAll(".modal.show").forEach(el => bootstrap.Modal.getInstance(el)?.hide());
+    // Scope dispose() to page-content only.  Shell modals (authModal, changePwdModal) live outside
+    // the container and must NOT be disposed — app.js never re-runs initAuth(), so those instances
+    // must survive navigation.  dispose() is synchronous so there is no async animation callback
+    // that can re-add modal-open or a backdrop after we clear the DOM.
+    container.querySelectorAll(".modal").forEach(el => bootstrap.Modal.getInstance(el)?.dispose());
+    // Backdrops are appended to <body>, so scan the whole document.
     document.querySelectorAll(".modal-backdrop").forEach(el => el.remove());
     document.body.classList.remove("modal-open");
     document.body.style.removeProperty("overflow");

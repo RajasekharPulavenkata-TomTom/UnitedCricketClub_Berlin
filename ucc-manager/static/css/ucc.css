@@ -78,6 +78,7 @@
   color: rgba(255,255,255,.75);
   text-decoration: none;
   font-size: .875rem;
+  font-weight: 600;
   border-left: 3px solid transparent;
   transition: background .12s, color .12s, border-color .12s;
   white-space: nowrap;

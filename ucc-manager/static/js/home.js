@@ -242,6 +242,25 @@ function renderNextEvent(events, activeCount) {
           </div>` : ""}
         </div>
       </div>
+      <div class="cricket-ball-anim" aria-hidden="true">
+        <svg width="100" height="100" viewBox="0 0 100 100" xmlns="http://www.w3.org/2000/svg">
+          <defs>
+            <radialGradient id="cball-grad" cx="38%" cy="35%" r="60%">
+              <stop offset="0%" stop-color="#e83a20"/>
+              <stop offset="100%" stop-color="#8b1500"/>
+            </radialGradient>
+          </defs>
+          <circle cx="50" cy="50" r="46" fill="url(#cball-grad)"/>
+          <path d="M22,28 C10,50 10,50 22,72" fill="none" stroke="rgba(255,255,255,0.75)" stroke-width="2.5" stroke-linecap="round"/>
+          <path d="M78,28 C90,50 90,50 78,72" fill="none" stroke="rgba(255,255,255,0.75)" stroke-width="2.5" stroke-linecap="round"/>
+          <line x1="15" y1="40" x2="22" y2="38" stroke="rgba(255,255,255,0.65)" stroke-width="1.5" stroke-linecap="round"/>
+          <line x1="13" y1="50" x2="21" y2="50" stroke="rgba(255,255,255,0.65)" stroke-width="1.5" stroke-linecap="round"/>
+          <line x1="15" y1="60" x2="22" y2="62" stroke="rgba(255,255,255,0.65)" stroke-width="1.5" stroke-linecap="round"/>
+          <line x1="85" y1="40" x2="78" y2="38" stroke="rgba(255,255,255,0.65)" stroke-width="1.5" stroke-linecap="round"/>
+          <line x1="87" y1="50" x2="79" y2="50" stroke="rgba(255,255,255,0.65)" stroke-width="1.5" stroke-linecap="round"/>
+          <line x1="85" y1="60" x2="78" y2="62" stroke="rgba(255,255,255,0.65)" stroke-width="1.5" stroke-linecap="round"/>
+        </svg>
+      </div>
     </div>`;
 
     // Weather for next event

@@ -13,6 +13,17 @@
     font-size: .65rem; font-weight: 700; letter-spacing: .12em;
     text-transform: uppercase; opacity: .7;
   }
+  .cricket-ball-anim {
+    position: absolute; top: 50%; right: 2rem;
+    opacity: .28; pointer-events: none; z-index: 0;
+    animation: cb-float 4s ease-in-out infinite;
+  }
+  .cricket-ball-anim svg { display: block; animation: cb-spin 7s linear infinite; }
+  @keyframes cb-float {
+    0%,100% { transform: translateY(-50%); }
+    50%     { transform: translateY(calc(-50% - 12px)); }
+  }
+  @keyframes cb-spin { to { transform: rotate(360deg); } }
   .avail-pill {
     border-radius: 20px; padding: 4px 12px; font-size: .8rem; font-weight: 600;
     display: inline-flex; align-items: center; gap: 5px;

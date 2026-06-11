@@ -64,10 +64,12 @@
 .ucc-nav-section-label {
   font-size: .62rem;
   font-weight: 700;
-  letter-spacing: .1em;
+  letter-spacing: .12em;
   text-transform: uppercase;
-  color: rgba(255,255,255,.38);
-  padding: .9rem 1rem .2rem;
+  color: rgba(255,255,255,.85);
+  padding: .35rem 1rem;
+  margin: .5rem 0 .1rem;
+  background: rgba(0,0,0,.22);
 }
 
 .ucc-nav-link {

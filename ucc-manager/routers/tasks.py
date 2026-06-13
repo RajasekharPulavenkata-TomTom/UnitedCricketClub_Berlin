@@ -9,6 +9,7 @@ from schemas.task import TaskCreate, TaskUpdate, TaskOut
 from routers.audit import log
 from models.auth import User
 from dependencies.auth import get_current_user
+from services.notification_service import notify_task_assigned as _notify_task
 
 router = APIRouter(prefix="/api/tasks", tags=["tasks"])
 
@@ -64,6 +65,13 @@ def create_task(
     log(db, "created", "task", task.id, f"Task '{task.title}' created", user=current_user)
     db.commit()
     db.refresh(task)
+    if task.assigned_to and task.assigned_to.email:
+        m = task.assigned_to
+        _notify_task(
+            task.title, task.priority,
+            str(task.due_date) if task.due_date else None,
+            task.description, m.jersey_name or m.name, m.email,
+        )
     return task
 
 

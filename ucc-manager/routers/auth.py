@@ -7,6 +7,8 @@ from models.auth import User
 from schemas.auth import LoginRequest, TokenOut, UserCreate, UserUpdate, PasswordReset, PasswordChange, UserOut, RegisterRequest
 from services.auth_service import create_access_token, hash_password, verify_password
 from dependencies.auth import get_current_user, require_root
+from models.member import Member
+from services.notification_service import notify_user_approved as _notify_approved
 
 router = APIRouter(prefix="/api/auth", tags=["auth"])
 
@@ -89,6 +91,10 @@ def approve_user(id: int, current_user: User = Depends(require_root), db: Sessio
     user.status = "active"
     db.commit()
     db.refresh(user)
+    if user.member_id:
+        m = db.query(Member).filter(Member.id == user.member_id).first()
+        if m and m.email:
+            _notify_approved(user.username, user.full_name, m.email)
     return user
 
 

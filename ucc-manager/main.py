@@ -6,7 +6,7 @@ from sqlalchemy import text, inspect
 from database import engine, Base
 import models  # registers all models before create_all
 from dependencies.auth import get_current_user
-from routers import accounting, inventory, members, events, audit, player_availability, tasks, reporting, auth, approvals, polls, pain_points, violations, field_formations, scoreboard, sponsors, external_tournament, internal_tournament, page_views, tournament_feedback, quiz
+from routers import accounting, inventory, members, events, audit, player_availability, tasks, reporting, auth, approvals, polls, pain_points, violations, field_formations, scoreboard, sponsors, external_tournament, internal_tournament, page_views, tournament_feedback, quiz, chatbot, elections, feedback, meetings
 
 
 def _run_migrations():
@@ -118,14 +118,19 @@ def _run_migrations():
             poll_cols = _cols["polls"]
             if "is_anonymous" not in poll_cols:
                 conn.execute(text("ALTER TABLE polls ADD COLUMN is_anonymous BOOLEAN NOT NULL DEFAULT FALSE"))
+            if "allow_multiple" not in poll_cols:
+                conn.execute(text("ALTER TABLE polls ADD COLUMN allow_multiple BOOLEAN NOT NULL DEFAULT FALSE"))
         if "poll_votes" in existing_tables:
             # Make user_id nullable to support anonymous votes
             conn.execute(text("ALTER TABLE poll_votes ALTER COLUMN user_id DROP NOT NULL"))
             # Drop old unique constraint and replace with partial index (excludes NULL user_ids)
             conn.execute(text("ALTER TABLE poll_votes DROP CONSTRAINT IF EXISTS uq_poll_user_vote"))
+            # Drop old (poll_id, user_id) index and upgrade to (poll_id, user_id, option_id)
+            # so multi-select polls can store multiple rows per user (one per option chosen)
+            conn.execute(text("DROP INDEX IF EXISTS uq_poll_user_vote"))
             conn.execute(text(
-                "CREATE UNIQUE INDEX IF NOT EXISTS uq_poll_user_vote "
-                "ON poll_votes(poll_id, user_id) WHERE user_id IS NOT NULL"
+                "CREATE UNIQUE INDEX IF NOT EXISTS uq_poll_user_option_vote "
+                "ON poll_votes(poll_id, user_id, option_id) WHERE user_id IS NOT NULL"
             ))
         if "poll_anonymous_voters" not in existing_tables:
             conn.execute(text("""
@@ -192,6 +197,137 @@ def _run_migrations():
                     created_at TIMESTAMPTZ DEFAULT NOW()
                 )
             """))
+        if "elections" in existing_tables:
+            el_cols = _cols.get("elections", set())
+            if "nominations_close_at" not in el_cols:
+                conn.execute(text("ALTER TABLE elections ADD COLUMN nominations_close_at TIMESTAMPTZ"))
+        if "elections" not in existing_tables:
+            conn.execute(text("""
+                CREATE TABLE elections (
+                    id SERIAL PRIMARY KEY,
+                    title VARCHAR(200) NOT NULL,
+                    description TEXT,
+                    status VARCHAR(20) NOT NULL DEFAULT 'nominating',
+                    created_by_id INTEGER REFERENCES users(id),
+                    created_at TIMESTAMPTZ DEFAULT NOW(),
+                    closed_at  TIMESTAMPTZ
+                )
+            """))
+            conn.execute(text("""
+                CREATE TABLE election_candidates (
+                    id SERIAL PRIMARY KEY,
+                    election_id INTEGER NOT NULL REFERENCES elections(id) ON DELETE CASCADE,
+                    member_id   INTEGER NOT NULL REFERENCES members(id)   ON DELETE CASCADE,
+                    CONSTRAINT uq_election_candidate UNIQUE (election_id, member_id)
+                )
+            """))
+            conn.execute(text("""
+                CREATE TABLE election_votes (
+                    id SERIAL PRIMARY KEY,
+                    election_id  INTEGER NOT NULL REFERENCES elections(id)           ON DELETE CASCADE,
+                    candidate_id INTEGER NOT NULL REFERENCES election_candidates(id) ON DELETE CASCADE,
+                    voted_at TIMESTAMPTZ DEFAULT NOW()
+                )
+            """))
+            conn.execute(text("""
+                CREATE TABLE election_voters (
+                    id SERIAL PRIMARY KEY,
+                    election_id INTEGER NOT NULL REFERENCES elections(id) ON DELETE CASCADE,
+                    user_id     INTEGER NOT NULL REFERENCES users(id)     ON DELETE CASCADE,
+                    voted_at TIMESTAMPTZ DEFAULT NOW(),
+                    CONSTRAINT uq_election_voter UNIQUE (election_id, user_id)
+                )
+            """))
+            conn.execute(text("""
+                CREATE TABLE election_nominations (
+                    id SERIAL PRIMARY KEY,
+                    election_id INTEGER NOT NULL REFERENCES elections(id) ON DELETE CASCADE,
+                    member_id   INTEGER NOT NULL REFERENCES members(id)   ON DELETE CASCADE,
+                    user_id     INTEGER NOT NULL REFERENCES users(id)     ON DELETE CASCADE,
+                    nominated_at TIMESTAMPTZ DEFAULT NOW(),
+                    CONSTRAINT uq_election_nomination_user UNIQUE (election_id, user_id)
+                )
+            """))
+        else:
+            # Migrate existing elections table to support nomination phase
+            el_cols = _cols.get("elections", set())
+            if "open" in (conn.execute(text("SELECT DISTINCT status FROM elections")).scalars().all() if "elections" in existing_tables else []):
+                conn.execute(text("UPDATE elections SET status='voting' WHERE status='open'"))
+            if "seats" not in el_cols:
+                conn.execute(text("ALTER TABLE elections ADD COLUMN seats INTEGER NOT NULL DEFAULT 3"))
+            if "election_nominations" not in existing_tables:
+                conn.execute(text("""
+                    CREATE TABLE election_nominations (
+                        id SERIAL PRIMARY KEY,
+                        election_id INTEGER NOT NULL REFERENCES elections(id) ON DELETE CASCADE,
+                        member_id   INTEGER NOT NULL REFERENCES members(id)   ON DELETE CASCADE,
+                        user_id     INTEGER NOT NULL REFERENCES users(id)     ON DELETE CASCADE,
+                        nominated_at TIMESTAMPTZ DEFAULT NOW(),
+                        CONSTRAINT uq_election_nomination_user UNIQUE (election_id, user_id)
+                    )
+                """))
+        if "meetings" not in existing_tables:
+            conn.execute(text("""
+                CREATE TABLE meetings (
+                    id SERIAL PRIMARY KEY,
+                    title VARCHAR(200) NOT NULL,
+                    meeting_date DATE NOT NULL,
+                    status VARCHAR(20) NOT NULL DEFAULT 'upcoming',
+                    created_by_id INTEGER REFERENCES users(id),
+                    created_at TIMESTAMPTZ DEFAULT NOW()
+                )
+            """))
+            conn.execute(text("""
+                CREATE TABLE meeting_agenda_items (
+                    id SERIAL PRIMARY KEY,
+                    meeting_id   INTEGER NOT NULL REFERENCES meetings(id) ON DELETE CASCADE,
+                    title        VARCHAR(300) NOT NULL,
+                    description  TEXT,
+                    raised_by_id INTEGER REFERENCES users(id),
+                    status       VARCHAR(20) NOT NULL DEFAULT 'pending',
+                    decision     TEXT,
+                    created_at   TIMESTAMPTZ DEFAULT NOW()
+                )
+            """))
+            conn.execute(text("""
+                CREATE TABLE meeting_item_seconds (
+                    id SERIAL PRIMARY KEY,
+                    item_id    INTEGER NOT NULL REFERENCES meeting_agenda_items(id) ON DELETE CASCADE,
+                    user_id    INTEGER NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+                    created_at TIMESTAMPTZ DEFAULT NOW(),
+                    CONSTRAINT uq_meeting_item_second UNIQUE (item_id, user_id)
+                )
+            """))
+        if "feedback_sessions" not in existing_tables:
+            conn.execute(text("""
+                CREATE TABLE feedback_sessions (
+                    id SERIAL PRIMARY KEY,
+                    title VARCHAR(200) NOT NULL,
+                    election_id INTEGER REFERENCES elections(id) ON DELETE SET NULL,
+                    status VARCHAR(20) NOT NULL DEFAULT 'open',
+                    created_by_id INTEGER REFERENCES users(id),
+                    created_at TIMESTAMPTZ DEFAULT NOW(),
+                    closed_at  TIMESTAMPTZ
+                )
+            """))
+            conn.execute(text("""
+                CREATE TABLE feedback_ratings (
+                    id SERIAL PRIMARY KEY,
+                    session_id   INTEGER NOT NULL REFERENCES feedback_sessions(id) ON DELETE CASCADE,
+                    pillar       INTEGER NOT NULL,
+                    rating       INTEGER NOT NULL,
+                    submitted_at TIMESTAMPTZ DEFAULT NOW()
+                )
+            """))
+            conn.execute(text("""
+                CREATE TABLE feedback_submitters (
+                    id SERIAL PRIMARY KEY,
+                    session_id   INTEGER NOT NULL REFERENCES feedback_sessions(id) ON DELETE CASCADE,
+                    user_id      INTEGER NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+                    submitted_at TIMESTAMPTZ DEFAULT NOW(),
+                    CONSTRAINT uq_feedback_submitter UNIQUE (session_id, user_id)
+                )
+            """))
         # Remove any non-cricket questions left over from the opentdb era
         conn.execute(text("DELETE FROM quiz_questions WHERE category IS DISTINCT FROM 'Cricket'"))
         if "quiz_questions" not in existing_tables:
@@ -215,6 +351,17 @@ def _run_migrations():
                 conn.execute(text("ALTER TABLE quiz_questions ADD COLUMN field_position VARCHAR(50)"))
                 # Clear all questions so _seed_if_empty reseeds with the full bank (including field questions)
                 conn.execute(text("DELETE FROM quiz_questions"))
+        conn.execute(text("""
+            CREATE TABLE IF NOT EXISTS quiz_scores (
+                id SERIAL PRIMARY KEY,
+                user_id INTEGER REFERENCES users(id) ON DELETE SET NULL,
+                score INTEGER NOT NULL,
+                total INTEGER NOT NULL,
+                played_at TIMESTAMPTZ DEFAULT NOW()
+            )
+        """))
+        conn.execute(text("CREATE INDEX IF NOT EXISTS ix_quiz_scores_user_id ON quiz_scores (user_id)"))
+        conn.execute(text("CREATE INDEX IF NOT EXISTS ix_quiz_scores_played_at ON quiz_scores (played_at DESC)"))
         # Drop legacy orphan tables
         conn.execute(text("DROP TABLE IF EXISTS assignments"))
         conn.execute(text("DROP TABLE IF EXISTS notification_logs"))
@@ -364,6 +511,10 @@ app.include_router(internal_tournament.router, dependencies=_auth)
 app.include_router(page_views.router,          dependencies=_auth)
 app.include_router(tournament_feedback.router, dependencies=_auth)
 app.include_router(quiz.router,               dependencies=_auth)
+app.include_router(chatbot.router,            dependencies=_auth)
+app.include_router(elections.router,          dependencies=_auth)
+app.include_router(feedback.router,           dependencies=_auth)
+app.include_router(meetings.router,           dependencies=_auth)
 
 
 @app.get("/health", include_in_schema=False)

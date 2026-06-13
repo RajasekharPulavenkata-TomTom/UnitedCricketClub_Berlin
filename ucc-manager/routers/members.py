@@ -1,5 +1,6 @@
 from typing import List, Optional
 from fastapi import APIRouter, Depends, HTTPException
+from sqlalchemy import func
 from sqlalchemy.orm import Session
 from database import get_db
 from models.member import Member
@@ -30,6 +31,14 @@ def create_member(data: MemberCreate, db: Session = Depends(get_db), current_use
     existing = db.query(Member).filter(Member.name == data.name).first()
     if existing:
         raise HTTPException(status_code=400, detail="A member with this name already exists")
+    if data.email:
+        clash = db.query(Member).filter(func.lower(Member.email) == data.email.lower()).first()
+        if clash:
+            raise HTTPException(status_code=400, detail=f"Email already registered to '{clash.name}'")
+    if data.phone:
+        clash = db.query(Member).filter(Member.phone == data.phone).first()
+        if clash:
+            raise HTTPException(status_code=400, detail=f"Phone number already registered to '{clash.name}'")
     member = Member(**data.model_dump())
     db.add(member)
     db.flush()
@@ -49,6 +58,14 @@ def update_member(id: int, data: MemberUpdate, db: Session = Depends(get_db), cu
         clash = db.query(Member).filter(Member.name == updates["name"], Member.id != id).first()
         if clash:
             raise HTTPException(status_code=400, detail="A member with this name already exists")
+    if updates.get("email"):
+        clash = db.query(Member).filter(func.lower(Member.email) == updates["email"].lower(), Member.id != id).first()
+        if clash:
+            raise HTTPException(status_code=400, detail=f"Email already registered to '{clash.name}'")
+    if updates.get("phone"):
+        clash = db.query(Member).filter(Member.phone == updates["phone"], Member.id != id).first()
+        if clash:
+            raise HTTPException(status_code=400, detail=f"Phone number already registered to '{clash.name}'")
     for field, value in updates.items():
         setattr(member, field, value)
     log(db, "updated", "member", id, f"Member '{member.name}' updated", user=current_user)

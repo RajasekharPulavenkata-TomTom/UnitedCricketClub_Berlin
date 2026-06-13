@@ -11,6 +11,7 @@ from schemas.event import EventCreate, EventUpdate, AvailabilitySet, EventOut
 from routers.audit import log
 from models.auth import User
 from dependencies.auth import get_current_user
+from services.notification_service import notify_event_created as _notify_event
 
 router = APIRouter(prefix="/api", tags=["events"])
 
@@ -65,6 +66,12 @@ def create_event(data: EventCreate, db: Session = Depends(get_db), current_user:
     log(db, "added", "event", event.id, f"Event '{event.title}' on {event.date} added", user=current_user)
     db.commit()
     db.refresh(event)
+    members = db.query(Member).filter(Member.is_active == True, Member.email.isnot(None)).all()
+    _notify_event(
+        event.title, str(event.date), event.type or "",
+        event.location, str(event.match_time) if event.match_time else None,
+        event.notes, [m.email for m in members],
+    )
     return _attach_counts([event])[0]
 
 

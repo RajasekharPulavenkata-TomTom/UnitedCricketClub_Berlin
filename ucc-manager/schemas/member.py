@@ -1,6 +1,6 @@
 from datetime import datetime
 from typing import Optional
-from pydantic import BaseModel
+from pydantic import BaseModel, field_validator
 
 
 class MemberBase(BaseModel):
@@ -11,6 +11,14 @@ class MemberBase(BaseModel):
     ball_type: Optional[str] = None
     email: Optional[str] = None
     phone: Optional[str] = None
+
+    @field_validator("email", mode="before")
+    @classmethod
+    def normalise_email(cls, v: Optional[str]) -> Optional[str]:
+        if v is None:
+            return v
+        v = v.strip().lower()
+        return v or None
     dcb_id: Optional[str] = None
     cricheroes: bool = False
     cricclubs: bool = False

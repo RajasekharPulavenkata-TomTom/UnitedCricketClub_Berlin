@@ -1,5 +1,5 @@
 from datetime import datetime, timezone
-from sqlalchemy import Column, Integer, String, Text, DateTime
+from sqlalchemy import Column, Integer, String, Text, DateTime, ForeignKey
 from sqlalchemy.dialects.postgresql import JSONB
 from database import Base
 
@@ -20,3 +20,13 @@ class QuizQuestion(Base):
     question_type    = Column(String(20), default="text")   # text | field
     field_position   = Column(String(50), nullable=True)    # position key for field questions
     fetched_at       = Column(DateTime(timezone=True), default=_now, nullable=False)
+
+
+class QuizScore(Base):
+    __tablename__ = "quiz_scores"
+
+    id        = Column(Integer, primary_key=True, autoincrement=True)
+    user_id   = Column(Integer, ForeignKey("users.id", ondelete="SET NULL"), nullable=True, index=True)
+    score     = Column(Integer, nullable=False)
+    total     = Column(Integer, nullable=False)
+    played_at = Column(DateTime(timezone=True), default=_now, nullable=False, index=True)

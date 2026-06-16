@@ -47,8 +47,8 @@ function fieldSVG(targetPos) {
     <text x="375" y="204" text-anchor="middle" fill="rgba(255,255,255,0.35)" font-size="9" font-family="sans-serif">OFF</text>
     <text x="25" y="204" text-anchor="middle" fill="rgba(255,255,255,0.35)" font-size="9" font-family="sans-serif">LEG</text>
     ${greyDots}
-    <circle cx="${cx}" cy="${cy}" r="18" fill="none" stroke="#f47920" stroke-width="2" opacity="0.5"/>
-    <circle cx="${cx}" cy="${cy}" r="11" fill="#f47920" stroke="#fff" stroke-width="2.5"/>
+    <circle cx="${cx}" cy="${cy}" r="18" fill="none" stroke="#e8603c" stroke-width="2" opacity="0.5"/>
+    <circle cx="${cx}" cy="${cy}" r="11" fill="#e8603c" stroke="#fff" stroke-width="2.5"/>
     <text x="${cx}" y="${cy + 4}" text-anchor="middle" fill="#fff" font-size="11" font-family="sans-serif" font-weight="bold">?</text>
   </svg>`;
 }

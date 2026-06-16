@@ -63,7 +63,7 @@ window.dlCalculate = function () {
     const targetCard = document.getElementById("dl-target-card");
     targetCard.style.background = r2 <= r1
         ? "linear-gradient(135deg,#1a3a8b,#1e4db7)"
-        : "linear-gradient(135deg,#d4661a,#f47920)";
+        : "linear-gradient(135deg,#c44e2c,#e8603c)";
 
     document.getElementById("dl-target-runs").textContent = target;
     document.getElementById("dl-target-runs").className = "display-4 fw-bold text-white";

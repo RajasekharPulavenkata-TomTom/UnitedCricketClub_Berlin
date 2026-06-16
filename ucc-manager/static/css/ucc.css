@@ -2,8 +2,8 @@
   --ucc-blue:        #1a3a8b;
   --ucc-blue-mid:    #1e4db7;
   --ucc-blue-light:  #2a5fd4;
-  --ucc-orange:      #f47920;
-  --ucc-orange-dark: #d4661a;
+  --ucc-orange:      #e8603c;
+  --ucc-orange-dark: #c44e2c;
   --ucc-light:       #f8f9fa;
   --sidebar-width:   240px;
 }
@@ -13,7 +13,7 @@
   position: fixed;
   top: 0; left: 0; bottom: 0;
   width: var(--sidebar-width);
-  background: linear-gradient(180deg, #a03a06 0%, var(--ucc-orange-dark) 40%, var(--ucc-blue) 78%, #112270 100%);
+  background: linear-gradient(180deg, #a03020 0%, var(--ucc-orange-dark) 40%, var(--ucc-blue) 78%, #112270 100%);
   display: flex;
   flex-direction: column;
   z-index: 1030;

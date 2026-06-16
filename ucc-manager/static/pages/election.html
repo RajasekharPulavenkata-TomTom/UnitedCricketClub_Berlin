@@ -1,0 +1,149 @@
+<style>
+  .election-hero {
+    background: linear-gradient(135deg, #112270 0%, #1a3a8b 55%, #1e4db7 100%);
+    border-radius: 16px; color: #fff; padding: 2.5rem 2rem; text-align: center; margin-bottom: 1.5rem;
+  }
+  .election-hero h2 { font-size: 1.75rem; font-weight: 700; margin: .5rem 0 .25rem; }
+  .election-hero p  { color: rgba(255,255,255,.7); margin: 0; }
+
+  .phase-badge-nominating { background: #dbeafe; color: #1e40af; }
+  .phase-badge-voting     { background: #d1fae5; color: #065f46; }
+  .phase-badge-closed     { background: #f1f5f9; color: #475569; }
+
+  /* Nominee / candidate cards */
+  .candidate-card {
+    border: 2px solid #dee2e6; border-radius: 12px; padding: .9rem 1.2rem;
+    display: flex; align-items: center; gap: 1rem; background: #fff;
+    transition: border-color .15s, background .15s;
+  }
+  .candidate-card.clickable { cursor: pointer; }
+  .candidate-card.clickable:hover { border-color: #1a3a8b; background: #f0f4ff; }
+  .candidate-card.selected  { border-color: #1a3a8b; background: #e8f0fe; }
+  .candidate-card.winner    { border-color: #e8603c !important; background: #fff7f0 !important; }
+
+  .c-avatar {
+    width: 46px; height: 46px; border-radius: 50%; flex-shrink: 0;
+    background: linear-gradient(135deg, #1a3a8b, #1e4db7);
+    color: #fff; font-weight: 700; font-size: 1rem;
+    display: flex; align-items: center; justify-content: center;
+  }
+  .c-avatar.winner-av { background: linear-gradient(135deg, #e8603c, #c44e2c); }
+
+  .result-bar-bg { background: #f0f0f0; border-radius: 4px; height: 8px; overflow: hidden; margin-top: 5px; }
+  .result-bar    { height: 8px; border-radius: 4px; background: #1a3a8b; transition: width .7s ease; }
+  .result-bar.winner-bar { background: #e8603c; }
+
+  .anon-notice {
+    background: #f0f4ff; border: 1px solid #c7d7ff; border-radius: 10px;
+    padding: .65rem 1rem; font-size: .85rem; color: #1a3a8b;
+    display: flex; align-items: center; gap: .5rem;
+  }
+  .history-card { border-radius: 10px; transition: box-shadow .15s; }
+  .history-card:hover { box-shadow: 0 3px 14px rgba(0,0,0,.09); }
+
+  .phase-stepper {
+    display: flex; align-items: center; gap: 0; margin-bottom: 1.25rem;
+    font-size: .8rem; font-weight: 600;
+  }
+  .phase-step {
+    flex: 1; text-align: center; padding: .45rem .5rem;
+    border: 1px solid #dee2e6; background: #f8f9fa; color: #adb5bd;
+  }
+  .phase-step:first-child { border-radius: 8px 0 0 8px; }
+  .phase-step:last-child  { border-radius: 0 8px 8px 0; }
+  .phase-step.active  { background: #1a3a8b; color: #fff; border-color: #1a3a8b; }
+  .phase-step.done    { background: #d1fae5; color: #065f46; border-color: #a7f3d0; }
+</style>
+
+<div class="d-flex align-items-center justify-content-between mb-4 flex-wrap gap-2 no-print">
+  <h3 class="page-header mb-0"><i class="bi bi-person-badge me-2"></i>Manager Election</h3>
+  <button class="btn btn-success btn-sm d-none" id="btn-create-election"
+          data-bs-toggle="modal" data-bs-target="#createElectionModal">
+    <i class="bi bi-plus-lg me-1"></i>Start Election
+  </button>
+</div>
+
+<div id="election-active-wrap"></div>
+<div id="election-history-wrap"></div>
+
+<div id="election-loading" class="text-center text-muted py-5">
+  <div class="spinner-border spinner-border-sm me-2"></div>Loading…
+</div>
+<div id="election-empty" class="d-none text-center text-muted py-5">
+  <i class="bi bi-person-badge" style="font-size:2.5rem;opacity:.35"></i>
+  <p class="mt-2 mb-0">No elections yet.</p>
+  <p class="small">An admin can start one using the <strong>Start Election</strong> button.</p>
+</div>
+
+
+<!-- ── Create Election Modal ─────────────────────────────── -->
+<div class="modal fade" id="createElectionModal" tabindex="-1">
+  <div class="modal-dialog">
+    <div class="modal-content">
+      <div class="modal-header">
+        <h5 class="modal-title"><i class="bi bi-person-badge me-2"></i>Start Manager Election</h5>
+        <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+      </div>
+      <div class="modal-body">
+        <div class="mb-3">
+          <label class="form-label fw-semibold">Election Title <span class="text-danger">*</span></label>
+          <input type="text" class="form-control" id="el-title"
+                 placeholder="e.g. Team Manager — Season 2026" />
+        </div>
+        <div class="mb-3">
+          <label class="form-label fw-semibold">Description
+            <span class="text-muted fw-normal small">(optional)</span></label>
+          <textarea class="form-control" id="el-description" rows="2"
+                    placeholder="Brief context for members…"></textarea>
+        </div>
+        <div class="mb-3">
+          <label class="form-label fw-semibold">Seats to fill <span class="text-danger">*</span></label>
+          <input type="number" class="form-control" id="el-seats" value="3" min="1" max="20"
+                 style="width:120px" />
+          <div class="text-muted small mt-1">Number of committee members to elect.</div>
+        </div>
+        <div class="mb-3">
+          <label class="form-label fw-semibold">Nominations close
+            <span class="text-muted fw-normal small">(optional)</span></label>
+          <input type="date" class="form-control" id="el-nominations-close" style="width:200px" />
+          <div class="text-muted small mt-1">Voting opens automatically at the end of this date if enough members have nominated.</div>
+        </div>
+        <div class="anon-notice">
+          <i class="bi bi-shield-lock-fill fs-5"></i>
+          <span>Members will <strong>self-nominate</strong> during the nomination phase.
+                Voting is always <strong>anonymous</strong>.</span>
+        </div>
+        <div id="create-election-error" class="alert alert-danger py-2 small d-none mt-3 mb-0"></div>
+      </div>
+      <div class="modal-footer">
+        <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+        <button type="button" class="btn btn-success" id="btn-election-submit">
+          <i class="bi bi-send me-1"></i>Start Election
+        </button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- Set Nominations Deadline Modal -->
+<div class="modal fade" id="deadlineModal" tabindex="-1">
+  <div class="modal-dialog modal-sm">
+    <div class="modal-content">
+      <div class="modal-header">
+        <h5 class="modal-title"><i class="bi bi-calendar-event me-2"></i>Nominations Deadline</h5>
+        <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+      </div>
+      <div class="modal-body">
+        <label class="form-label fw-semibold">Nominations close on</label>
+        <input type="date" class="form-control" id="deadline-date-input" />
+        <div class="text-muted small mt-2">Voting opens automatically at the end of this date (if enough nominations).</div>
+      </div>
+      <div class="modal-footer">
+        <button type="button" class="btn btn-sm btn-secondary" data-bs-dismiss="modal">Cancel</button>
+        <button type="button" class="btn btn-sm btn-success" id="deadline-save-btn">
+          <i class="bi bi-check2 me-1"></i>Save
+        </button>
+      </div>
+    </div>
+  </div>
+</div>

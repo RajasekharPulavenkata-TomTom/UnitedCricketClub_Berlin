@@ -401,34 +401,6 @@ def _seed_sponsors():
             """))
 
 
-_SEED_MEMBERS = [
-    ("Raja Sekhar Pula Venkata", "REDACTED",           "REDACTED"),
-    ("Anish Arora",               "REDACTED",           "REDACTED"),
-    ("Nilesh Chaudhari",          "REDACTED",             "REDACTED"),
-    ("Bubai",                     "REDACTED",         "REDACTED"),
-    ("Vinay Yadati Nagaraj",      "REDACTED",             "REDACTED"),
-    ("Vamsi Krishna Sripathi",    "REDACTED",           "REDACTED"),
-    ("Souvik Ghosh",              "REDACTED",               None),
-    ("Vinal Kamble",              "REDACTED",            None),
-    ("Samir Choksi",              "REDACTED",            None),
-    ("Rounak Maheshwari",         "REDACTED",       "REDACTED"),
-    ("Samir Patel",               "REDACTED",            None),
-    ("Bhavin Mehta",              "REDACTED",           "REDACTED"),
-    ("Pratik Chaudhary",          "REDACTED",   "REDACTED"),
-    ("Monark Shah",               "REDACTED",          "REDACTED"),
-    ("Chirag Patel",              "REDACTED",        "REDACTED"),
-    ("Kuljit Arora",              "REDACTED",          "REDACTED"),
-    ("Dipanshu Sharma",           "REDACTED",      "REDACTED"),
-    ("Manoj Varma Sri Vatchavai", "REDACTED",           "REDACTED"),
-    ("Sani Upadhyay",             "REDACTED",               "REDACTED"),
-    ("Shyam Chothani",            "REDACTED",          "REDACTED"),
-    ("Rakesh Sharma",             "REDACTED",          "REDACTED"),
-    ("Bharghav Krishna",          "REDACTED",  "REDACTED"),
-    ("Raj Kumar Saragadam",       "REDACTED",           "REDACTED"),
-    ("Roshan Neupane",            "REDACTED",           "REDACTED"),
-]
-
-
 def _seed_founding_events():
     from datetime import date
     current_year = date.today().year
@@ -446,28 +418,11 @@ def _seed_founding_events():
                 )
 
 
-def _seed_members():
-    with engine.begin() as conn:
-        existing = {r[0] for r in conn.execute(text("SELECT name FROM members")).fetchall()}
-        for name, email, phone in _SEED_MEMBERS:
-            if name in existing:
-                conn.execute(
-                    text("UPDATE members SET email=:e, phone=:p WHERE name=:n AND (email IS NULL OR email='')"),
-                    {"e": email, "p": phone, "n": name},
-                )
-            else:
-                conn.execute(
-                    text("INSERT INTO members (name, email, phone, is_active, created_at) VALUES (:n, :e, :p, TRUE, NOW())"),
-                    {"n": name, "e": email, "p": phone},
-                )
-
-
 @asynccontextmanager
 async def lifespan(app: FastAPI):
     _run_migrations()
     Base.metadata.create_all(bind=engine)
     _seed_sponsors()
-    _seed_members()
     _seed_founding_events()
     yield
 

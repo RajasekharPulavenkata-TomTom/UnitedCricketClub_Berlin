@@ -1,0 +1,185 @@
+<style>
+  .charter-hero {
+    background: linear-gradient(135deg, #112270 0%, #1a3a8b 55%, #1e4db7 100%);
+    border-radius: 16px; color: #fff; padding: 3rem 2rem; text-align: center; margin-bottom: 2rem;
+    position: relative; overflow: hidden;
+  }
+  .charter-hero::before {
+    content: ""; position: absolute; inset: 0;
+    background: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='84' height='48.5'%3E%3Cpolygon points='28,0 14,-24.3 -14,-24.3 -28,0 -14,24.3 14,24.3' fill='%23ffffff' fill-opacity='0.04' stroke='%23ffffff' stroke-width='1.5' stroke-opacity='0.1'/%3E%3Cpolygon points='70,24.3 56,0 28,0 14,24.3 28,48.5 56,48.5' fill='%23ffffff' fill-opacity='0.04' stroke='%23ffffff' stroke-width='1.5' stroke-opacity='0.1'/%3E%3Cpolygon points='112,0 98,-24.3 70,-24.3 56,0 70,24.3 98,24.3' fill='%23ffffff' fill-opacity='0.04' stroke='%23ffffff' stroke-width='1.5' stroke-opacity='0.1'/%3E%3C/svg%3E");
+    background-size: 84px 48.5px; pointer-events: none;
+  }
+  .charter-hero > * { position: relative; }
+  .charter-hero h1  { font-size: 2rem; font-weight: 800; margin-bottom: .4rem; }
+  .charter-hero p   { color: rgba(255,255,255,.75); max-width: 560px; margin: 0 auto; font-size: 1.05rem; }
+
+  .pillar-card {
+    border: none; border-radius: 14px;
+    box-shadow: 0 2px 12px rgba(0,0,0,.07);
+    transition: box-shadow .2s;
+    height: 100%;
+  }
+  .pillar-card:hover { box-shadow: 0 6px 24px rgba(0,0,0,.12); }
+
+  .pillar-icon {
+    width: 52px; height: 52px; border-radius: 14px;
+    display: flex; align-items: center; justify-content: center;
+    font-size: 1.5rem; margin-bottom: 1rem; flex-shrink: 0;
+  }
+  .icon-blue   { background: #dbeafe; color: #1e40af; }
+  .icon-orange { background: #ffedd5; color: #c2410c; }
+  .icon-green  { background: #dcfce7; color: #166534; }
+  .icon-indigo { background: #ede9fe; color: #5b21b6; }
+
+  .pillar-card .card-body { padding: 1.75rem; }
+  .pillar-card h5 { font-size: 1.05rem; font-weight: 700; margin-bottom: 1rem; }
+
+  .pillar-item {
+    display: flex; gap: .75rem; margin-bottom: .9rem; align-items: flex-start;
+  }
+  .pillar-item:last-child { margin-bottom: 0; }
+  .pillar-dot {
+    width: 7px; height: 7px; border-radius: 50%; flex-shrink: 0; margin-top: .45rem;
+  }
+  .pillar-item strong { display: block; font-size: .92rem; font-weight: 600; margin-bottom: .15rem; }
+  .pillar-item span   { font-size: .85rem; color: #6b7280; line-height: 1.5; }
+
+  .principle-bar {
+    background: linear-gradient(90deg, #f0f4ff 0%, #fff 100%);
+    border-left: 4px solid #1a3a8b; border-radius: 0 10px 10px 0;
+    padding: .85rem 1.1rem; margin-bottom: .75rem; font-size: .88rem; color: #374151;
+    font-style: italic;
+  }
+</style>
+
+<!-- Hero -->
+<div class="charter-hero mb-4">
+  <div style="font-size:2.8rem;margin-bottom:.75rem">📜</div>
+  <h1>UCC Management Charter</h1>
+  <p>Our management philosophy built on four core pillars — the principles every elected manager commits to uphold.</p>
+</div>
+
+<!-- Guiding principles strip -->
+<div class="mb-4">
+  <div class="principle-bar"><i class="bi bi-eye me-2 text-primary"></i><strong class="d-inline me-1" style="font-style:normal">Transparent</strong> — members always know what's happening and why.</div>
+  <div class="principle-bar"><i class="bi bi-people me-2 text-success"></i><strong class="d-inline me-1" style="font-style:normal">Inclusive</strong> — every member's voice matters, from first ball to last.</div>
+  <div class="principle-bar"><i class="bi bi-clipboard-check me-2 text-warning"></i><strong class="d-inline me-1" style="font-style:normal">Organised</strong> — nothing left to chance; structure enables great cricket.</div>
+  <div class="principle-bar"><i class="bi bi-trophy me-2 text-danger"></i><strong class="d-inline me-1" style="font-style:normal">Competitive</strong> — always striving to improve on and off the field.</div>
+</div>
+
+<!-- Four pillars -->
+<div class="row g-4 mb-4">
+
+  <!-- I. Strategic Leadership -->
+  <div class="col-md-6">
+    <div class="card pillar-card">
+      <div class="card-body">
+        <div class="pillar-icon icon-blue"><i class="bi bi-compass"></i></div>
+        <h5><span class="text-muted fw-normal me-1">I.</span> Strategic Leadership &amp; Vision</h5>
+
+        <div class="pillar-item">
+          <div class="pillar-dot" style="background:#1e40af"></div>
+          <div><strong>Structured Planning</strong>
+            <span>Design and implement balanced short- and long-term roadmaps to ensure the club's immediate stability and future growth.</span></div>
+        </div>
+        <div class="pillar-item">
+          <div class="pillar-dot" style="background:#1e40af"></div>
+          <div><strong>Analytical Decision-Making</strong>
+            <span>Thoroughly evaluate every new initiative against its potential pitfalls and risks before execution.</span></div>
+        </div>
+        <div class="pillar-item">
+          <div class="pillar-dot" style="background:#1e40af"></div>
+          <div><strong>Succession &amp; Mentorship</strong>
+            <span>Lead by example, actively training and mentoring interested members to become the next generation of UCC leaders.</span></div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- II. People, Culture & Community -->
+  <div class="col-md-6">
+    <div class="card pillar-card">
+      <div class="card-body">
+        <div class="pillar-icon icon-orange"><i class="bi bi-people-fill"></i></div>
+        <h5><span class="text-muted fw-normal me-1">II.</span> People, Culture &amp; Community</h5>
+
+        <div class="pillar-item">
+          <div class="pillar-dot" style="background:#c2410c"></div>
+          <div><strong>Belonging &amp; Trust</strong>
+            <span>Foster a strong sense of community and team bonding through regular social events and off-pitch get-togethers.</span></div>
+        </div>
+        <div class="pillar-item">
+          <div class="pillar-dot" style="background:#c2410c"></div>
+          <div><strong>Proactive Communication</strong>
+            <span>Bridge communication gaps early and transparently, ensuring all player concerns are addressed constructively.</span></div>
+        </div>
+        <div class="pillar-item">
+          <div class="pillar-dot" style="background:#c2410c"></div>
+          <div><strong>Accountability to Members</strong>
+            <span>Maintain total organisational transparency and remain readily available to answer questions from club members.</span></div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- III. Operational Excellence -->
+  <div class="col-md-6">
+    <div class="card pillar-card">
+      <div class="card-body">
+        <div class="pillar-icon icon-green"><i class="bi bi-gear-wide-connected"></i></div>
+        <h5><span class="text-muted fw-normal me-1">III.</span> Operational Excellence</h5>
+
+        <div class="pillar-item">
+          <div class="pillar-dot" style="background:#166534"></div>
+          <div><strong>Empowered Delegation</strong>
+            <span>Manage by trust — appoint and support dedicated leaders to head specific club topics and portfolios.</span></div>
+        </div>
+        <div class="pillar-item">
+          <div class="pillar-dot" style="background:#166534"></div>
+          <div><strong>Continuous Improvement</strong>
+            <span>Host structured, regular alignment meetings to identify operational friction points and implement collective solutions.</span></div>
+        </div>
+        <div class="pillar-item">
+          <div class="pillar-dot" style="background:#166534"></div>
+          <div><strong>On-Field Support</strong>
+            <span>Work hand-in-hand with team captains to streamline player availability and logistical planning for all matches.</span></div>
+        </div>
+        <div class="pillar-item">
+          <div class="pillar-dot" style="background:#166534"></div>
+          <div><strong>Financial Stewardship</strong>
+            <span>Oversee the club's budget with full transparency — responsible fund management, timely fee collection, and clear reporting to members.</span></div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- IV. External Relations & Growth -->
+  <div class="col-md-6">
+    <div class="card pillar-card">
+      <div class="card-body">
+        <div class="pillar-icon icon-indigo"><i class="bi bi-globe2"></i></div>
+        <h5><span class="text-muted fw-normal me-1">IV.</span> External Relations &amp; Growth</h5>
+
+        <div class="pillar-item">
+          <div class="pillar-dot" style="background:#5b21b6"></div>
+          <div><strong>Inter-Club Collaboration</strong>
+            <span>Actively coordinate with other clubs to facilitate tournament participation and optimise fixture scheduling.</span></div>
+        </div>
+        <div class="pillar-item">
+          <div class="pillar-dot" style="background:#5b21b6"></div>
+          <div><strong>Cricket Advocacy</strong>
+            <span>Build strategic associations with external cricketing bodies and clubs to promote the growth of the sport in our region.</span></div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+</div>
+
+<!-- Footer note -->
+<div class="text-center text-muted small py-2">
+  <i class="bi bi-person-badge me-1"></i>
+  Every elected UCC manager commits to upholding this charter on behalf of all members.
+  &nbsp;·&nbsp;
+  <a href="#election" class="text-decoration-none">View current election →</a>
+</div>

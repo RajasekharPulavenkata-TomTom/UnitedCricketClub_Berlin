@@ -1,0 +1,104 @@
+<style>
+  .fb-hero {
+    background: linear-gradient(135deg, #1a1a2e 0%, #16213e 55%, #0f3460 100%);
+    border-radius: 16px; color: #fff; padding: 2.5rem 2rem; text-align: center; margin-bottom: 1.5rem;
+  }
+  .fb-hero h2 { font-size: 1.75rem; font-weight: 700; margin: .5rem 0 .25rem; }
+  .fb-hero p  { color: rgba(255,255,255,.7); margin: 0; }
+
+  /* Star rating */
+  .star-row { display: flex; gap: .4rem; }
+  .star-btn {
+    background: none; border: none; padding: .1rem;
+    font-size: 1.6rem; cursor: pointer; color: #d1d5db;
+    transition: color .1s, transform .1s;
+    line-height: 1;
+  }
+  .star-btn:hover, .star-btn.hovered, .star-btn.selected { color: #f59e0b; }
+  .star-btn:hover { transform: scale(1.15); }
+
+  /* Pillar row */
+  .pillar-row {
+    display: flex; align-items: center; gap: 1rem; padding: 1rem 1.25rem;
+    border: 2px solid #e5e7eb; border-radius: 12px; background: #fff;
+    transition: border-color .15s;
+    flex-wrap: wrap;
+  }
+  .pillar-row.rated { border-color: #f59e0b; background: #fffbeb; }
+  .pillar-icon-sm {
+    width: 36px; height: 36px; border-radius: 9px; flex-shrink: 0;
+    display: flex; align-items: center; justify-content: center; font-size: .95rem;
+  }
+
+  /* Results */
+  .result-avg { font-size: 2rem; font-weight: 800; color: #1a3a8b; }
+  .dist-bar-bg { background: #f3f4f6; border-radius: 4px; height: 8px; flex: 1; overflow: hidden; }
+  .dist-bar    { height: 8px; border-radius: 4px; background: #f59e0b; transition: width .6s ease; }
+
+  .anon-notice {
+    background: #f0f4ff; border: 1px solid #c7d7ff; border-radius: 10px;
+    padding: .65rem 1rem; font-size: .85rem; color: #1a3a8b;
+    display: flex; align-items: center; gap: .5rem;
+  }
+  .history-card { border-radius: 10px; transition: box-shadow .15s; }
+  .history-card:hover { box-shadow: 0 3px 14px rgba(0,0,0,.09); }
+</style>
+
+<div class="d-flex align-items-center justify-content-between mb-4 flex-wrap gap-2 no-print">
+  <h3 class="page-header mb-0"><i class="bi bi-star-half me-2"></i>Management Tenure Feedback</h3>
+  <button class="btn btn-success btn-sm d-none" id="btn-create-fb"
+          data-bs-toggle="modal" data-bs-target="#createFbModal">
+    <i class="bi bi-plus-lg me-1"></i>Open Feedback
+  </button>
+</div>
+
+<div id="fb-active-wrap"></div>
+<div id="fb-history-wrap"></div>
+
+<div id="fb-loading" class="text-center text-muted py-5">
+  <div class="spinner-border spinner-border-sm me-2"></div>Loading…
+</div>
+<div id="fb-empty" class="d-none text-center text-muted py-5">
+  <i class="bi bi-star" style="font-size:2.5rem;opacity:.35"></i>
+  <p class="mt-2 mb-0">No feedback sessions yet.</p>
+  <p class="small">An admin can open one using the <strong>Open Feedback</strong> button.</p>
+</div>
+
+
+<!-- ── Create Session Modal ───────────────────────────────────────────── -->
+<div class="modal fade" id="createFbModal" tabindex="-1">
+  <div class="modal-dialog">
+    <div class="modal-content">
+      <div class="modal-header">
+        <h5 class="modal-title"><i class="bi bi-star-half me-2"></i>Open Feedback Session</h5>
+        <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+      </div>
+      <div class="modal-body">
+        <div class="mb-3">
+          <label class="form-label fw-semibold">Session Title <span class="text-danger">*</span></label>
+          <input type="text" class="form-control" id="fb-title"
+                 placeholder="e.g. 2025 Management Tenure Feedback" />
+        </div>
+        <div class="mb-3">
+          <label class="form-label fw-semibold">Link to election
+            <span class="text-muted fw-normal small">(optional)</span></label>
+          <select class="form-select" id="fb-election-id">
+            <option value="">— None —</option>
+          </select>
+          <div class="text-muted small mt-1">Selecting a past election shows it as context for voters.</div>
+        </div>
+        <div class="anon-notice">
+          <i class="bi bi-shield-lock-fill fs-5"></i>
+          <span>Ratings are <strong>completely anonymous</strong>. Results are revealed only when you close the session.</span>
+        </div>
+        <div id="create-fb-error" class="alert alert-danger py-2 small d-none mt-3 mb-0"></div>
+      </div>
+      <div class="modal-footer">
+        <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+        <button type="button" class="btn btn-success" id="btn-fb-submit">
+          <i class="bi bi-send me-1"></i>Open Session
+        </button>
+      </div>
+    </div>
+  </div>
+</div>

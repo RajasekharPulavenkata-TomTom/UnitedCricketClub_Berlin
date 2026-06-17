@@ -1,0 +1,124 @@
+<style>
+  /* Phase banners */
+  .meeting-upcoming   { border-left: 4px solid #3b82f6; background: #eff6ff; }
+  .meeting-inprogress { border-left: 4px solid #f59e0b; background: #fffbeb; }
+  .meeting-completed  { border-left: 4px solid #10b981; background: #f0fdf4; }
+
+  /* Agenda item card */
+  .agenda-item {
+    border: 1px solid #e5e7eb; border-radius: 10px;
+    padding: .9rem 1.1rem; background: #fff;
+    transition: box-shadow .15s;
+  }
+  .agenda-item:hover { box-shadow: 0 2px 10px rgba(0,0,0,.07); }
+  .agenda-item.status-discussed { border-color: #10b981; background: #f0fdf4; }
+  .agenda-item.status-deferred  { border-color: #f59e0b; background: #fffbeb; }
+  .agenda-item.status-dropped   { border-color: #ef4444; background: #fef2f2; opacity: .75; }
+
+  /* Second button */
+  .btn-second {
+    border: 1px solid #d1d5db; border-radius: 20px; background: #f9fafb;
+    color: #374151; font-size: .78rem; padding: .2rem .65rem;
+    cursor: pointer; transition: all .15s; display: inline-flex; align-items: center; gap: .3rem;
+  }
+  .btn-second:hover   { border-color: #3b82f6; background: #eff6ff; color: #1d4ed8; }
+  .btn-second.active  { border-color: #3b82f6; background: #dbeafe; color: #1d4ed8; font-weight: 600; }
+
+  /* Status badges */
+  .badge-pending    { background: #f3f4f6; color: #6b7280; }
+  .badge-discussed  { background: #d1fae5; color: #065f46; }
+  .badge-deferred   { background: #fef3c7; color: #92400e; }
+  .badge-dropped    { background: #fee2e2; color: #991b1b; }
+
+  /* Minutes view */
+  .minutes-item { border-left: 3px solid #e5e7eb; padding-left: 1rem; margin-bottom: 1.25rem; }
+  .minutes-item.discussed { border-color: #10b981; }
+  .minutes-item.deferred  { border-color: #f59e0b; }
+  .minutes-item.dropped   { border-color: #ef4444; }
+
+  .history-card { border-radius: 10px; transition: box-shadow .15s; cursor: pointer; }
+  .history-card:hover { box-shadow: 0 3px 14px rgba(0,0,0,.09); }
+</style>
+
+<div class="d-flex align-items-center justify-content-between mb-4 flex-wrap gap-2 no-print">
+  <h3 class="page-header mb-0"><i class="bi bi-calendar-event me-2"></i>Monthly Meetings</h3>
+  <button class="btn btn-success btn-sm d-none" id="btn-create-meeting"
+          data-bs-toggle="modal" data-bs-target="#createMeetingModal">
+    <i class="bi bi-plus-lg me-1"></i>Schedule Meeting
+  </button>
+</div>
+
+<div id="meeting-active-wrap"></div>
+<div id="meeting-history-wrap"></div>
+
+<div id="meeting-loading" class="text-center text-muted py-5">
+  <div class="spinner-border spinner-border-sm me-2"></div>Loading…
+</div>
+<div id="meeting-empty" class="d-none text-center text-muted py-5">
+  <i class="bi bi-calendar-x" style="font-size:2.5rem;opacity:.35"></i>
+  <p class="mt-2 mb-0">No meetings scheduled yet.</p>
+  <p class="small">An admin can schedule one using the <strong>Schedule Meeting</strong> button.</p>
+</div>
+
+
+<!-- ── Schedule Meeting Modal ─────────────────────────────── -->
+<div class="modal fade" id="createMeetingModal" tabindex="-1">
+  <div class="modal-dialog">
+    <div class="modal-content">
+      <div class="modal-header">
+        <h5 class="modal-title"><i class="bi bi-calendar-event me-2"></i>Schedule Meeting</h5>
+        <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+      </div>
+      <div class="modal-body">
+        <div class="mb-3">
+          <label class="form-label fw-semibold">Title <span class="text-danger">*</span></label>
+          <input type="text" class="form-control" id="meet-title"
+                 placeholder="e.g. UCC Monthly Meeting — July 2026" />
+        </div>
+        <div class="mb-3">
+          <label class="form-label fw-semibold">Date <span class="text-danger">*</span></label>
+          <input type="date" class="form-control" id="meet-date" />
+        </div>
+        <div id="create-meet-error" class="alert alert-danger py-2 small d-none mb-0"></div>
+      </div>
+      <div class="modal-footer">
+        <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+        <button type="button" class="btn btn-success" id="btn-meet-submit">
+          <i class="bi bi-send me-1"></i>Schedule
+        </button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ── Raise Agenda Item Modal ────────────────────────────── -->
+<div class="modal fade" id="raiseItemModal" tabindex="-1">
+  <div class="modal-dialog">
+    <div class="modal-content">
+      <div class="modal-header">
+        <h5 class="modal-title"><i class="bi bi-hand-index-thumb me-2"></i>Raise Agenda Item</h5>
+        <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+      </div>
+      <div class="modal-body">
+        <div class="mb-3">
+          <label class="form-label fw-semibold">Topic <span class="text-danger">*</span></label>
+          <input type="text" class="form-control" id="item-title"
+                 placeholder="Brief title of the concern or topic" />
+        </div>
+        <div class="mb-3">
+          <label class="form-label fw-semibold">Details
+            <span class="text-muted fw-normal small">(optional)</span></label>
+          <textarea class="form-control" id="item-description" rows="3"
+                    placeholder="Provide context, background, or what you'd like discussed…"></textarea>
+        </div>
+        <div id="raise-item-error" class="alert alert-danger py-2 small d-none mb-0"></div>
+      </div>
+      <div class="modal-footer">
+        <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+        <button type="button" class="btn btn-primary" id="btn-item-submit">
+          <i class="bi bi-send me-1"></i>Raise Item
+        </button>
+      </div>
+    </div>
+  </div>
+</div>

@@ -10,6 +10,7 @@ class Poll(Base):
     title         = Column(String(200), nullable=False)
     description   = Column(Text, nullable=True)
     is_anonymous  = Column(Boolean, default=False, nullable=False)
+    allow_multiple = Column(Boolean, default=False, nullable=False)
     created_by_id = Column(Integer, ForeignKey("users.id"), nullable=True)
     created_at    = Column(DateTime, default=datetime.utcnow)
     closes_at     = Column(DateTime, nullable=True)

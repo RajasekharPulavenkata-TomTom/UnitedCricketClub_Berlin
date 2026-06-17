@@ -8,7 +8,7 @@ export async function init() {
         return { year: m.getFullYear(), month: m.getMonth() + 1 };
     });
 
-    const [members, equipment, finance, tasks, matchResults, pageStats, auditLog, ...eventPages] = await Promise.all([
+    const [members, equipment, finance, tasks, matchResults, pageStats, auditLog, elections, meetings, ...eventPages] = await Promise.all([
         apiFetch("/members"),
         apiFetch("/equipment?active_only=true"),
         apiFetch("/reports/dashboard"),
@@ -16,6 +16,8 @@ export async function init() {
         apiFetch(`/scoreboard?year=${now.getFullYear()}`),
         apiFetch("/page-views/stats"),
         apiFetch("/history?limit=8"),
+        apiFetch("/elections"),
+        apiFetch("/meetings"),
         ...months.map((m) => apiFetch(`/events?year=${m.year}&month=${m.month}`)),
     ]);
 
@@ -27,6 +29,7 @@ export async function init() {
     const activeCount = members.filter((m) => m.is_active).length;
 
     renderFoundingDay();
+    renderNotices(elections, meetings);
     renderMembers(members);
     renderEquipment(equipment);
     renderFinance(finance);
@@ -37,6 +40,92 @@ export async function init() {
     renderTasks(tasks);
     renderPageStats(pageStats);
     renderRecentActivity(auditLog);
+}
+
+function renderNotices(elections, meetings) {
+    const el = document.getElementById("home-notices");
+    if (!el) return;
+
+    const notices = [];
+    const todayStr = new Date().toISOString().split("T")[0];
+
+    // ── Election notices ──────────────────────────────────────────────────────
+    const activeElection = elections.find(e => e.status === "nominating" || e.status === "voting");
+    if (activeElection) {
+        if (activeElection.status === "nominating") {
+            const deadline = activeElection.nominations_close_at
+                ? ` · Closes ${new Date(activeElection.nominations_close_at).toLocaleDateString("en-GB", { day: "numeric", month: "short", hour: "2-digit", minute: "2-digit" })}`
+                : "";
+            const selfTag = activeElection.has_nominated
+                ? `<span class="badge bg-success ms-2">You're nominated</span>`
+                : `<span class="badge bg-warning text-dark ms-2">Nominate yourself?</span>`;
+            notices.push(`
+                <div class="alert d-flex align-items-start gap-3 py-3 mb-3"
+                     style="background:#e8f4fd;border:1px solid #90caf9;border-radius:12px;cursor:pointer"
+                     onclick="location.hash='election'">
+                  <i class="bi bi-person-lines-fill fs-4 text-primary mt-1" style="flex-shrink:0"></i>
+                  <div class="flex-grow-1">
+                    <div class="fw-semibold text-primary">Nominations Open — ${activeElection.title}</div>
+                    <div class="text-muted small">${activeElection.nomination_count} nomination${activeElection.nomination_count !== 1 ? "s" : ""} so far · ${activeElection.seats} seat${activeElection.seats !== 1 ? "s" : ""}${deadline}${selfTag}</div>
+                  </div>
+                  <i class="bi bi-chevron-right text-muted mt-1"></i>
+                </div>`);
+        } else if (activeElection.status === "voting") {
+            const votedTag = activeElection.has_voted
+                ? `<span class="badge bg-success ms-2"><i class="bi bi-check-circle me-1"></i>You've voted</span>`
+                : `<span class="badge bg-danger ms-2">Your vote is needed!</span>`;
+            notices.push(`
+                <div class="alert d-flex align-items-start gap-3 py-3 mb-3"
+                     style="background:#fff3e0;border:1px solid #ffb74d;border-radius:12px;cursor:pointer"
+                     onclick="location.hash='election'">
+                  <i class="bi bi-ballot fs-4 text-warning mt-1" style="flex-shrink:0"></i>
+                  <div class="flex-grow-1">
+                    <div class="fw-semibold" style="color:#e65100">Voting Open — ${activeElection.title}</div>
+                    <div class="text-muted small">${activeElection.candidates.length} candidate${activeElection.candidates.length !== 1 ? "s" : ""} · ${activeElection.seats} seat${activeElection.seats !== 1 ? "s" : ""}${votedTag}</div>
+                  </div>
+                  <i class="bi bi-chevron-right text-muted mt-1"></i>
+                </div>`);
+        }
+    }
+
+    // ── Meeting notices ───────────────────────────────────────────────────────
+    const inProgress = meetings.find(m => m.status === "in_progress");
+    if (inProgress) {
+        const itemCount = inProgress.items.length;
+        notices.push(`
+            <div class="alert d-flex align-items-start gap-3 py-3 mb-3"
+                 style="background:#e8f5e9;border:1px solid #a5d6a7;border-radius:12px;cursor:pointer"
+                 onclick="location.hash='meetings'">
+              <i class="bi bi-circle-fill text-success mt-1" style="flex-shrink:0;font-size:.75rem;margin-top:.45rem!important;animation:pulse 1.5s infinite"></i>
+              <div class="flex-grow-1">
+                <div class="fw-semibold text-success">Meeting In Progress — ${inProgress.title}</div>
+                <div class="text-muted small">${itemCount} agenda item${itemCount !== 1 ? "s" : ""} · Click to view &amp; participate</div>
+              </div>
+              <i class="bi bi-chevron-right text-muted mt-1"></i>
+            </div>`);
+    } else {
+        const upcoming = meetings
+            .filter(m => m.status === "upcoming" && m.meeting_date >= todayStr)
+            .sort((a, b) => a.meeting_date.localeCompare(b.meeting_date))[0];
+        if (upcoming) {
+            const diffDays = Math.round((new Date(upcoming.meeting_date + "T12:00:00") - Date.now()) / 86400000);
+            const when = diffDays === 0 ? "Today" : diffDays === 1 ? "Tomorrow" : `in ${diffDays} days`;
+            const itemCount = upcoming.items.length;
+            notices.push(`
+                <div class="alert d-flex align-items-start gap-3 py-3 mb-3"
+                     style="background:#f3e5f5;border:1px solid #ce93d8;border-radius:12px;cursor:pointer"
+                     onclick="location.hash='meetings'">
+                  <i class="bi bi-calendar-event fs-4 mt-1" style="color:#7b1fa2;flex-shrink:0"></i>
+                  <div class="flex-grow-1">
+                    <div class="fw-semibold" style="color:#7b1fa2">Meeting ${when} — ${upcoming.title}</div>
+                    <div class="text-muted small">${fmt.date(upcoming.meeting_date)} · ${itemCount} agenda item${itemCount !== 1 ? "s" : ""} · Click to raise items</div>
+                  </div>
+                  <i class="bi bi-chevron-right text-muted mt-1"></i>
+                </div>`);
+        }
+    }
+
+    el.innerHTML = notices.join("");
 }
 
 function renderFoundingDay() {
@@ -409,6 +498,9 @@ const _PAGE_LABEL = {
     approvals:              "Approvals",
     "user-management":      "User Management",
     sponsors:               "Sponsors",
+    election:               "Elections",
+    meetings:               "Meetings",
+    "tenure-feedback":      "Tenure Feedback",
 };
 
 function renderPageStats(stats) {

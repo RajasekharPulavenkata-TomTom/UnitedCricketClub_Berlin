@@ -14,7 +14,6 @@ const ENTITY_ICON = {
     event:       "bi-calendar3",
     transaction: "bi-cash-coin",
     equipment:   "bi-bag",
-    task:        "bi-check2-square",
 };
 
 let allItems = [];

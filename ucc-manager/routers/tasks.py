@@ -6,7 +6,6 @@ from models.task import Task
 from models.member import Member
 from models.event import Event
 from schemas.task import TaskCreate, TaskUpdate, TaskOut
-from routers.audit import log
 from models.auth import User
 from dependencies.auth import get_current_user
 from services.notification_service import notify_task_assigned as _notify_task
@@ -61,8 +60,6 @@ def create_task(
 
     task = Task(**data.model_dump())
     db.add(task)
-    db.flush()
-    log(db, "created", "task", task.id, f"Task '{task.title}' created", user=current_user)
     db.commit()
     db.refresh(task)
     if task.assigned_to and task.assigned_to.email:
@@ -119,7 +116,6 @@ def update_task(
 
     for field, value in updates.items():
         setattr(task, field, value)
-    log(db, "updated", "task", task.id, f"Task '{task.title}' updated", user=current_user)
     db.commit()
     db.refresh(task)
     return task
@@ -136,7 +132,6 @@ def update_status(
         raise HTTPException(status_code=422, detail=f"status must be one of {VALID_STATUSES}")
     task = _get_task_or_404(task_id, db)
     task.status = status
-    log(db, "updated", "task", task.id, f"Task '{task.title}' marked {status}", user=current_user)
     db.commit()
     db.refresh(task)
     return task
@@ -174,8 +169,6 @@ def bulk_assign(
             event_id=event_id,
         )
         db.add(task)
-        db.flush()
-        log(db, "created", "task", task.id, f"Task '{title}' bulk-assigned to member {mid}", user=current_user)
         created.append(task)
 
     db.commit()
@@ -191,6 +184,5 @@ def delete_task(
     current_user: User = Depends(get_current_user),
 ):
     task = _get_task_or_404(task_id, db)
-    log(db, "deleted", "task", task.id, f"Task '{task.title}' deleted", user=current_user)
     db.delete(task)
     db.commit()

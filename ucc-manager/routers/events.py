@@ -183,7 +183,7 @@ def set_squad(id: int, data: SquadSet, db: Session = Depends(get_db)):
         raise HTTPException(status_code=404, detail="Event not found")
     if len(data.squad) > 15:
         raise HTTPException(status_code=400, detail="Squad cannot exceed 15 players")
-    active_ids = {m.id for m in db.query(Member).filter(Member.is_active == True).all()}
+    active_ids = {row[0] for row in db.query(Member.id).filter(Member.is_active == True).all()}
     invalid = [p.member_id for p in data.squad if p.member_id not in active_ids]
     if invalid:
         raise HTTPException(status_code=400, detail=f"Invalid or inactive member IDs: {invalid}")

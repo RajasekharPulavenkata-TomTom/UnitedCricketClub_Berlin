@@ -1,5 +1,6 @@
 from typing import List, Optional
 from datetime import date
+import asyncio
 from fastapi import APIRouter, Depends, HTTPException
 from sqlalchemy.orm import Session
 from sqlalchemy import extract
@@ -120,83 +121,92 @@ async def cricclubs_live():
     fixtures = []
 
     async with httpx.AsyncClient() as client:
-        for league in _CC_LEAGUES:
-            params = {"clubId": _CC_CLUB, "location": _CC_LOC, "leagueId": league["id"]}
+        # Fire all 8 requests (4 leagues × 2 endpoints) concurrently
+        all_data = await asyncio.gather(*[
+            coro
+            for league in _CC_LEAGUES
+            for coro in (
+                _cc_get(client, "getResults.do",  {"clubId": _CC_CLUB, "location": _CC_LOC, "leagueId": league["id"]}),
+                _cc_get(client, "getSchedule.do", {"clubId": _CC_CLUB, "location": _CC_LOC, "leagueId": league["id"]}),
+            )
+        ])
 
-            # Completed results
-            data = await _cc_get(client, "getResults.do", params)
-            if isinstance(data, list):
-                for m in data:
-                    try:
-                        t1id = int(m.get("teamOneId") or 0)
-                        t2id = int(m.get("teamTwoId") or 0)
-                    except (TypeError, ValueError):
-                        continue
-                    if _ACB_TEAM_ID not in (t1id, t2id):
-                        continue
-                    we_t1    = t1id == _ACB_TEAM_ID
-                    our_score = _fmt_score(
-                        m.get("t1total") if we_t1 else m.get("t2total"),
-                        m.get("t1wickets") if we_t1 else m.get("t2wickets"),
-                        m.get("t1balls") if we_t1 else m.get("t2balls"),
-                    )
-                    opp_score = _fmt_score(
-                        m.get("t2total") if we_t1 else m.get("t1total"),
-                        m.get("t2wickets") if we_t1 else m.get("t1wickets"),
-                        m.get("t2balls") if we_t1 else m.get("t1balls"),
-                    )
-                    opponent  = m.get("teamTwoName") if we_t1 else m.get("teamOneName")
-                    winner_id = m.get("winner")
-                    try:
-                        winner_id = int(winner_id) if winner_id else None
-                    except (TypeError, ValueError):
-                        winner_id = None
-                    if winner_id == _ACB_TEAM_ID:
-                        result = "won"
-                    elif winner_id and winner_id != _ACB_TEAM_ID:
-                        result = "lost"
-                    else:
-                        result = "no-result"
-                    match_id = m.get("matchID") or m.get("matchId")
-                    results.append({
-                        "match_id":       match_id,
-                        "date":           m.get("matchDate"),
-                        "opponent":       opponent,
-                        "venue":          m.get("location"),
-                        "league":         m.get("leagueName") or league["name"],
-                        "league_id":      league["id"],
-                        "our_score":      our_score,
-                        "opponent_score": opp_score,
-                        "result":         result,
-                        "scorecard_url":  (
-                            f"https://cricclubs.com/{_CC_LOC}/viewScorecard.do"
-                            f"?matchId={match_id}&clubId={_CC_CLUB}"
-                            if match_id else None
-                        ),
-                    })
+    for i, league in enumerate(_CC_LEAGUES):
+        results_data  = all_data[i * 2]
+        fixtures_data = all_data[i * 2 + 1]
 
-            # Upcoming fixtures
-            data = await _cc_get(client, "getSchedule.do", params)
-            if isinstance(data, list):
-                for f in data:
-                    try:
-                        t1id = int(f.get("teamOneId") or 0)
-                        t2id = int(f.get("teamTwoId") or 0)
-                    except (TypeError, ValueError):
-                        continue
-                    if _ACB_TEAM_ID not in (t1id, t2id):
-                        continue
-                    we_t1    = t1id == _ACB_TEAM_ID
-                    opponent = f.get("teamTwoName") if we_t1 else f.get("teamOneName")
-                    fixtures.append({
-                        "match_id": f.get("matchID") or f.get("matchId"),
-                        "date":     f.get("matchDate"),
-                        "time":     f.get("matchTime"),
-                        "opponent": opponent,
-                        "venue":    f.get("location"),
-                        "league":   f.get("leagueName") or league["name"],
-                        "league_id": league["id"],
-                    })
+        # Completed results
+        if isinstance(results_data, list):
+            for m in results_data:
+                try:
+                    t1id = int(m.get("teamOneId") or 0)
+                    t2id = int(m.get("teamTwoId") or 0)
+                except (TypeError, ValueError):
+                    continue
+                if _ACB_TEAM_ID not in (t1id, t2id):
+                    continue
+                we_t1    = t1id == _ACB_TEAM_ID
+                our_score = _fmt_score(
+                    m.get("t1total") if we_t1 else m.get("t2total"),
+                    m.get("t1wickets") if we_t1 else m.get("t2wickets"),
+                    m.get("t1balls") if we_t1 else m.get("t2balls"),
+                )
+                opp_score = _fmt_score(
+                    m.get("t2total") if we_t1 else m.get("t1total"),
+                    m.get("t2wickets") if we_t1 else m.get("t1wickets"),
+                    m.get("t2balls") if we_t1 else m.get("t1balls"),
+                )
+                opponent  = m.get("teamTwoName") if we_t1 else m.get("teamOneName")
+                winner_id = m.get("winner")
+                try:
+                    winner_id = int(winner_id) if winner_id else None
+                except (TypeError, ValueError):
+                    winner_id = None
+                if winner_id == _ACB_TEAM_ID:
+                    result = "won"
+                elif winner_id and winner_id != _ACB_TEAM_ID:
+                    result = "lost"
+                else:
+                    result = "no-result"
+                match_id = m.get("matchID") or m.get("matchId")
+                results.append({
+                    "match_id":       match_id,
+                    "date":           m.get("matchDate"),
+                    "opponent":       opponent,
+                    "venue":          m.get("location"),
+                    "league":         m.get("leagueName") or league["name"],
+                    "league_id":      league["id"],
+                    "our_score":      our_score,
+                    "opponent_score": opp_score,
+                    "result":         result,
+                    "scorecard_url":  (
+                        f"https://cricclubs.com/{_CC_LOC}/viewScorecard.do"
+                        f"?matchId={match_id}&clubId={_CC_CLUB}"
+                        if match_id else None
+                    ),
+                })
+
+        # Upcoming fixtures
+        if isinstance(fixtures_data, list):
+            for f in fixtures_data:
+                try:
+                    t1id = int(f.get("teamOneId") or 0)
+                    t2id = int(f.get("teamTwoId") or 0)
+                except (TypeError, ValueError):
+                    continue
+                if _ACB_TEAM_ID not in (t1id, t2id):
+                    continue
+                we_t1    = t1id == _ACB_TEAM_ID
+                opponent = f.get("teamTwoName") if we_t1 else f.get("teamOneName")
+                fixtures.append({
+                    "match_id": f.get("matchID") or f.get("matchId"),
+                    "date":     f.get("matchDate"),
+                    "time":     f.get("matchTime"),
+                    "opponent": opponent,
+                    "venue":    f.get("location"),
+                    "league":   f.get("leagueName") or league["name"],
+                    "league_id": league["id"],
+                })
 
     # Sort results newest-first, fixtures earliest-first
     def _sort_date(d):

@@ -1,4 +1,5 @@
 from typing import List, Optional
+from collections import Counter
 from datetime import datetime, timezone
 from fastapi import APIRouter, Depends, HTTPException
 from pydantic import BaseModel
@@ -51,9 +52,10 @@ def _out(election: Election, current_user: User) -> dict:
     voter_count = len(election.voters)
 
     # Candidates (only present during voting / closed)
+    vote_counts = Counter(v.candidate_id for v in election.votes)
     candidates = []
     for c in election.candidates:
-        count = sum(1 for v in election.votes if v.candidate_id == c.id)
+        count = vote_counts[c.id]
         candidates.append({
             "id":          c.id,
             "member_id":   c.member_id,
@@ -326,9 +328,9 @@ def close_election(
     election.closed_at = datetime.now(timezone.utc)
     db.commit()
     loaded = _load(db, election_id)
+    vote_counts = Counter(v.candidate_id for v in loaded.votes)
     candidate_votes = sorted(
-        [(c.member.name if c.member else "Unknown",
-          sum(1 for v in loaded.votes if v.candidate_id == c.id))
+        [(c.member.name if c.member else "Unknown", vote_counts[c.id])
          for c in loaded.candidates],
         key=lambda x: -x[1],
     )

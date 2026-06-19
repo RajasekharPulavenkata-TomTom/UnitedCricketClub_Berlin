@@ -96,7 +96,7 @@ def _out(election: Election, current_user: User) -> dict:
         "has_voted":        has_voted,
         "has_nominated":    has_nominated,
         "total_votes":      voter_count if reveal else None,
-        "required_votes":   min(election.seats, len(candidates)),
+        "max_votes":        min(election.seats, len(candidates)),
         "nomination_count":     len(nominations),
         "nominations":          nominations,
         "nominations_close_at": election.nominations_close_at.isoformat() if election.nominations_close_at else None,
@@ -356,12 +356,12 @@ def cast_vote(
 
     candidate_ids = list(dict.fromkeys(data.candidate_ids))  # deduplicate, preserve order
     valid_ids = {c.id for c in db.query(ElectionCandidate).filter_by(election_id=election_id).all()}
-    required = min(election.seats, len(valid_ids))
+    max_votes = min(election.seats, len(valid_ids))
 
-    if len(candidate_ids) != required:
+    if len(candidate_ids) < 1 or len(candidate_ids) > max_votes:
         raise HTTPException(
             status_code=400,
-            detail=f"You must select exactly {required} candidate{'s' if required != 1 else ''}",
+            detail=f"You must select between 1 and {max_votes} candidate{'s' if max_votes != 1 else ''}",
         )
     for cid in candidate_ids:
         if cid not in valid_ids:

@@ -251,7 +251,7 @@ function renderNominating(body, el, admin, root, onAction) {
 // ── Voting phase ──────────────────────────────────────────────────────────────
 
 function renderVoting(body, el, admin, root, onAction) {
-    const required = el.required_votes ?? el.seats ?? 1;
+    const required = el.max_votes ?? el.seats ?? 1;
     const selected = new Set();
 
     body.innerHTML += `
@@ -260,7 +260,7 @@ function renderVoting(body, el, admin, root, onAction) {
         <span>Your vote is <strong>completely anonymous</strong>. No one can see who you voted for.</span>
       </div>
       ${el.has_voted && el.total_votes != null
-          ? `<p class="text-muted small mb-2"><i class="bi bi-people me-1"></i>${el.total_votes} voter${el.total_votes !== 1 ? "s" : ""} · ${required} vote${required !== 1 ? "s" : ""} each</p>`
+          ? `<p class="text-muted small mb-2"><i class="bi bi-people me-1"></i>${el.total_votes} voter${el.total_votes !== 1 ? "s" : ""} · up to ${required} vote${required !== 1 ? "s" : ""} each</p>`
           : ""}
       ${!el.has_voted ? `
         <div class="card mb-3" style="border:1px solid #c7d7ff;border-radius:10px;background:#f8faff">
@@ -269,9 +269,9 @@ function renderVoting(body, el, admin, root, onAction) {
               <i class="bi bi-info-circle me-1"></i>How to vote
             </div>
             <ul class="mb-0 ps-3 small text-muted" style="line-height:1.7">
-              <li>Click on <strong>${required}</strong> candidate card${required !== 1 ? "s" : ""} to select your choice${required !== 1 ? "s" : ""}.</li>
+              <li>Click up to <strong>${required}</strong> candidate card${required !== 1 ? "s" : ""} to select your choice${required !== 1 ? "s" : ""}.</li>
               <li>Click a selected card again to deselect it.</li>
-              <li>Once you have selected ${required}, click <strong>Cast Vote</strong>.</li>
+              <li>You can vote for 1 to ${required} candidate${required !== 1 ? "s" : ""}. Click <strong>Cast Vote</strong> when ready.</li>
               <li>Your vote is <strong>anonymous</strong> — results are revealed after the election closes.</li>
             </ul>
           </div>
@@ -315,7 +315,7 @@ function renderVoting(body, el, admin, root, onAction) {
                     icon.className = "bi bi-square text-muted flex-shrink-0";
                 } else {
                     if (selected.size >= required) {
-                        showError(body, `You can only select ${required} candidate${required !== 1 ? "s" : ""}.`);
+                        showError(body, `You can only select up to ${required} candidate${required !== 1 ? "s" : ""}.`);
                         return;
                     }
                     selected.add(c.id);
@@ -323,7 +323,7 @@ function renderVoting(body, el, admin, root, onAction) {
                     icon.className = "bi bi-check-square-fill text-primary flex-shrink-0";
                 }
                 if (counterEl) counterEl.textContent = `${selected.size} / ${required} selected`;
-                if (voteBtn) voteBtn.disabled = selected.size !== required;
+                if (voteBtn) voteBtn.disabled = selected.size < 1;
             });
         }
         optionsWrap.appendChild(card);
@@ -337,7 +337,7 @@ function renderVoting(body, el, admin, root, onAction) {
         voteBtn.disabled = true;
         voteBtn.innerHTML = `<i class="bi bi-check2-circle me-1"></i>Cast Vote`;
         voteBtn.addEventListener("click", async () => {
-            if (selected.size !== required) { showError(body, `Select exactly ${required} candidate${required !== 1 ? "s" : ""}.`); return; }
+            if (selected.size < 1 || selected.size > required) { showError(body, `Select between 1 and ${required} candidate${required !== 1 ? "s" : ""}.`); return; }
             voteBtn.disabled = true;
             voteBtn.innerHTML = `<span class="spinner-border spinner-border-sm me-1"></span>Submitting…`;
             try {
@@ -356,7 +356,7 @@ function renderVoting(body, el, admin, root, onAction) {
     } else {
         const info = document.createElement("div");
         info.className = "alert alert-success py-2 small mt-3 mb-0";
-        info.innerHTML = `<i class="bi bi-check-circle-fill me-1"></i>Your ${required} vote${required !== 1 ? "s have" : " has"} been recorded anonymously.`;
+        info.innerHTML = `<i class="bi bi-check-circle-fill me-1"></i>Your vote has been recorded anonymously.`;
         body.appendChild(info);
     }
 

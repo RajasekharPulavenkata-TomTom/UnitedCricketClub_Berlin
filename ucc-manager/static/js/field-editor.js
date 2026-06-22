@@ -50,7 +50,7 @@ export async function init() {
     setupControls();
 
     const [members, events, formations] = await Promise.all([
-        apiFetch("/members"),
+        apiFetch("/members/summary"),
         apiFetch("/events"),
         apiFetch("/field-formations"),
     ]);

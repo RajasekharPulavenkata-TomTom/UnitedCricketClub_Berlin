@@ -32,7 +32,7 @@ async function load() {
     try {
         [allUsers, allMembers] = await Promise.all([
             apiFetch("/auth/users"),
-            apiFetch("/members"),
+            apiFetch("/members/summary"),
         ]);
         memberMap = Object.fromEntries(allMembers.map(m => [m.id, m.jersey_name || m.name]));
         render();

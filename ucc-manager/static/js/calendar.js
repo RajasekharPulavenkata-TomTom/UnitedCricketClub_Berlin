@@ -72,7 +72,7 @@ export async function init() {
     });
 
     // Load members in background (non-blocking)
-    apiFetch("/members").then(raw => {
+    apiFetch("/members/summary").then(raw => {
         members = raw.filter(m => m.is_active).sort((a, b) =>
             (a.jersey_name || a.name).localeCompare(b.jersey_name || b.name)
         );

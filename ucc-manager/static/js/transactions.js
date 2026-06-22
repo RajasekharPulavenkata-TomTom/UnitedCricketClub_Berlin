@@ -6,7 +6,13 @@ let modal;
 
 export async function init() {
     modal = new bootstrap.Modal(document.getElementById("txModal"));
-    allCategories = await apiFetch("/categories");
+
+    // Fetch categories and first transaction page in parallel — saves one full RTT
+    const [cats] = await Promise.all([
+        apiFetch("/categories"),
+        loadTransactions(),
+    ]);
+    allCategories = cats;
 
     populateCategoryFilter();
     populateFormCategories("income");
@@ -14,15 +20,11 @@ export async function init() {
     document.getElementById("form-type").addEventListener("change", (e) => {
         populateFormCategories(e.target.value);
     });
-
     document.getElementById("btn-add-tx").addEventListener("click", () => openModal());
-
     ["filter-type", "filter-cat", "filter-month", "filter-search"].forEach((id) => {
         document.getElementById(id).addEventListener("input", loadTransactions);
     });
-
     document.getElementById("tx-form").addEventListener("submit", onSubmit);
-    await loadTransactions();
 }
 
 function populateCategoryFilter() {

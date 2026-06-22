@@ -248,7 +248,7 @@ body::before {
   transform: translate(-50%, -50%);
   width: 380px;
   height: 380px;
-  background: url('/img/ucc-logo.png') no-repeat center center;
+  background: url('/img/ucc-logo.webp') no-repeat center center;
   background-size: contain;
   opacity: .14;
   pointer-events: none;

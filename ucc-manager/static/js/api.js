@@ -1,6 +1,32 @@
 const BASE = "/api";
 
+// ── In-session GET cache ───────────────────────────────────────────────────────
+// Eliminates duplicate fetches when navigating back to a page within a session.
+// TTL: 60 s.  Mutations automatically evict matching cache entries.
+const _cache = new Map();          // cacheKey → { data, ts }
+const _CACHE_TTL = 60_000;
+const _CACHE_SKIP = new Set(["/auth/me"]); // always fetch fresh
+
+function _cacheEvict(path) {
+    // e.g. mutation on /members/5 evicts everything under /api/members
+    const resource = "/" + path.split("?")[0].split("/").filter(Boolean)[0];
+    const prefix = BASE + resource;
+    for (const key of _cache.keys()) {
+        if (key.startsWith(prefix)) _cache.delete(key);
+    }
+}
+
 export async function apiFetch(path, options = {}) {
+    const method = (options.method || "GET").toUpperCase();
+    const cacheKey = BASE + path;
+
+    if (method === "GET" && !_CACHE_SKIP.has(path)) {
+        const hit = _cache.get(cacheKey);
+        if (hit && (Date.now() - hit.ts) < _CACHE_TTL) return hit.data;
+    } else if (method !== "GET") {
+        _cacheEvict(path);
+    }
+
     const headers = { "Content-Type": "application/json" };
     const token = localStorage.getItem("ucc_token");
     if (token) headers["Authorization"] = `Bearer ${token}`;
@@ -26,6 +52,9 @@ export async function apiFetch(path, options = {}) {
               }).join("; ")
             : JSON.stringify(detail) || `Server error (${res.status})`;
         throw new Error(msg);
+    }
+    if (method === "GET" && data !== null && !_CACHE_SKIP.has(path)) {
+        _cache.set(cacheKey, { data, ts: Date.now() });
     }
     return data;
 }

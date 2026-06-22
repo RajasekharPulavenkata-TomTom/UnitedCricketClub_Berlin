@@ -93,7 +93,7 @@ export async function init() {
 async function loadAll() {
     [tournaments, members] = await Promise.all([
         apiFetch("/int-tournaments"),
-        apiFetch("/members"),
+        apiFetch("/members/summary"),
     ]);
     renderList();
     if (selectedId) {

@@ -12,6 +12,13 @@ from dependencies.auth import get_current_user, require_admin
 router = APIRouter(prefix="/api", tags=["members"])
 
 
+@router.get("/members/summary")
+def list_members_summary(db: Session = Depends(get_db)):
+    """Lightweight list — id, name, is_active only.  Use for dropdowns and counts."""
+    rows = db.query(Member.id, Member.name, Member.is_active).order_by(Member.name).all()
+    return [{"id": r.id, "name": r.name, "is_active": r.is_active} for r in rows]
+
+
 @router.get("/members", response_model=List[MemberOut])
 def list_members(
     active_only: bool = False,

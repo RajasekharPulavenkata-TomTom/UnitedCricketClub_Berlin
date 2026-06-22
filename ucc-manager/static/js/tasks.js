@@ -34,7 +34,7 @@ async function loadAll() {
     try {
         [allTasks, allMembers, allEvents] = await Promise.all([
             apiFetch("/tasks"),
-            apiFetch("/members"),
+            apiFetch("/members/summary"),
             apiFetch("/events"),
         ]);
         populateFilterMembers();

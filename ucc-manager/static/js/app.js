@@ -82,7 +82,7 @@ function bootApp() {
     if (user) {
         document.getElementById("sidebar-user").textContent = user.username;
         document.getElementById("sidebar-user-area").style.removeProperty("display");
-        if (user.role === "admin" || user.role === "root") {
+        if (user.role === "manager" || user.role === "developer") {
             document.getElementById("nav-admin-section").style.display = "";
         }
     }

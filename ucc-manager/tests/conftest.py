@@ -73,7 +73,7 @@ def make_user(db):
     from services.auth_service import hash_password
     from models.auth import User
 
-    def _make(username, role="user", password="testpass123", member=None, status="active"):
+    def _make(username, role="player", password="testpass123", member=None, status="active"):
         u = User(
             username=username,
             full_name=f"Test {username.title()}",
@@ -110,7 +110,7 @@ def make_member(db):
 def admin_token(make_user):
     """Bearer token for a root admin user."""
     from services.auth_service import create_access_token
-    user = make_user("admin_test", role="root")
+    user = make_user("admin_test", role="developer")
     return f"Bearer {create_access_token(user)}"
 
 
@@ -119,7 +119,7 @@ def user_token(make_user, make_member):
     """Bearer token for a regular user linked to a member."""
     from services.auth_service import create_access_token
     member = make_member("Linked Player")
-    user = make_user("player_test", role="user", member=member)
+    user = make_user("player_test", role="player", member=member)
     return f"Bearer {create_access_token(user)}", member
 
 

@@ -17,7 +17,7 @@ const RULE_META = {
 
 export async function init() {
     const me = await apiFetch("/auth/me").catch(() => null);
-    isAdmin = me?.role === "admin" || me?.role === "root";
+    isAdmin = me?.role === "manager" || me?.role === "developer";
     currentMemberId = me?.member_id ?? null;
 
     if (isAdmin) {

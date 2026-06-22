@@ -45,7 +45,7 @@ class TestCreateEvent:
 
     def test_non_admin_cannot_create(self, client, make_user):
         from services.auth_service import create_access_token
-        user = make_user("non_admin", role="user")
+        user = make_user("non_admin", role="player")
         header = {"Authorization": f"Bearer {create_access_token(user)}"}
         res = _create(client, header, title="Sneaky Event")
         assert res.status_code == 403

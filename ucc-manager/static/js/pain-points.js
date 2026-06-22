@@ -16,7 +16,7 @@ document.addEventListener("hidden.bs.modal", (e) => {
 
 export async function init() {
     const user = JSON.parse(localStorage.getItem("ucc_user") || "null");
-    isAdmin = user?.role === "admin" || user?.role === "root";
+    isAdmin = user?.role === "manager" || user?.role === "developer";
     await load();
     setupFilters();
 }

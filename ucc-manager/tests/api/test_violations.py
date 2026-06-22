@@ -45,7 +45,7 @@ class TestListViolations:
         from services.auth_service import create_access_token
         my_member = make_member("Mine")
         other_member = make_member("Other")
-        user = make_user("regular_joe", role="user", member=my_member)
+        user = make_user("regular_joe", role="player", member=my_member)
         user_header = {"Authorization": f"Bearer {create_access_token(user)}"}
 
         _log(client, my_member.id, auth)
@@ -58,7 +58,7 @@ class TestListViolations:
 
     def test_user_with_no_member_sees_empty_list(self, client, make_user):
         from services.auth_service import create_access_token
-        user = make_user("unlinked", role="user")  # no member linked
+        user = make_user("unlinked", role="player")  # no member linked
         header = {"Authorization": f"Bearer {create_access_token(user)}"}
         res = client.get("/api/violations", headers=header)
         assert res.status_code == 200
@@ -77,7 +77,7 @@ class TestCreateViolation:
 
     def test_non_admin_cannot_log(self, client, make_user, make_member):
         from services.auth_service import create_access_token
-        user = make_user("regular2", role="user")
+        user = make_user("regular2", role="player")
         m = make_member("Player C")
         res = _log(client, m.id, {"Authorization": f"Bearer {create_access_token(user)}"})
         assert res.status_code == 403
@@ -110,7 +110,7 @@ class TestAcknowledge:
     def test_member_can_acknowledge_own_violation(self, client, auth, make_user, make_member):
         from services.auth_service import create_access_token
         my_member = make_member("Ack Player")
-        user = make_user("ack_user", role="user", member=my_member)
+        user = make_user("ack_user", role="player", member=my_member)
         user_header = {"Authorization": f"Bearer {create_access_token(user)}"}
 
         v = _log(client, my_member.id, auth).json()
@@ -121,7 +121,7 @@ class TestAcknowledge:
     def test_cannot_acknowledge_twice(self, client, auth, make_user, make_member):
         from services.auth_service import create_access_token
         my_member = make_member("Double Ack")
-        user = make_user("double_ack_user", role="user", member=my_member)
+        user = make_user("double_ack_user", role="player", member=my_member)
         user_header = {"Authorization": f"Bearer {create_access_token(user)}"}
         v = _log(client, my_member.id, auth).json()
         client.post(f"/api/violations/{v['id']}/acknowledge", headers=user_header)
@@ -132,7 +132,7 @@ class TestAcknowledge:
         from services.auth_service import create_access_token
         victim = make_member("Victim")
         intruder_m = make_member("Intruder")
-        intruder_u = make_user("intruder_user", role="user", member=intruder_m)
+        intruder_u = make_user("intruder_user", role="player", member=intruder_m)
         intruder_header = {"Authorization": f"Bearer {create_access_token(intruder_u)}"}
         v = _log(client, victim.id, auth).json()
         res = client.post(f"/api/violations/{v['id']}/acknowledge", headers=intruder_header)
@@ -152,7 +152,7 @@ class TestDelete:
         from services.auth_service import create_access_token
         m = make_member("Protected")
         v = _log(client, m.id, auth).json()
-        user = make_user("powerless", role="user")
+        user = make_user("powerless", role="player")
         res = client.delete(
             f"/api/violations/{v['id']}",
             headers={"Authorization": f"Bearer {create_access_token(user)}"},

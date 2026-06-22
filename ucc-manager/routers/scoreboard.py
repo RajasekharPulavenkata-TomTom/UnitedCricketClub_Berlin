@@ -370,7 +370,7 @@ def create_result(
     db: Session = Depends(get_db),
     current_user: User = Depends(get_current_user),
 ):
-    if current_user.role not in ("admin", "root"):
+    if current_user.role not in ("manager", "developer"):
         raise HTTPException(status_code=403, detail="Admin only")
     mr = MatchResult(**data.model_dump())
     db.add(mr)
@@ -386,7 +386,7 @@ def update_result(
     db: Session = Depends(get_db),
     current_user: User = Depends(get_current_user),
 ):
-    if current_user.role not in ("admin", "root"):
+    if current_user.role not in ("manager", "developer"):
         raise HTTPException(status_code=403, detail="Admin only")
     mr = db.query(MatchResult).filter(MatchResult.id == id).first()
     if not mr:
@@ -404,7 +404,7 @@ def delete_result(
     db: Session = Depends(get_db),
     current_user: User = Depends(get_current_user),
 ):
-    if current_user.role not in ("admin", "root"):
+    if current_user.role not in ("manager", "developer"):
         raise HTTPException(status_code=403, detail="Admin only")
     mr = db.query(MatchResult).filter(MatchResult.id == id).first()
     if not mr:

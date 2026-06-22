@@ -49,7 +49,7 @@ class ViolationCreate(BaseModel):
 
 @router.get("")
 def list_violations(db: Session = Depends(get_db), current_user: User = Depends(get_current_user)):
-    is_admin = current_user.role in ("admin", "root")
+    is_admin = current_user.role in ("manager", "developer")
     if is_admin:
         violations = db.query(Violation).order_by(Violation.created_at.desc()).all()
         members, logged_by, strikes = _resolve(db, violations)
@@ -69,7 +69,7 @@ def create_violation(
     db: Session = Depends(get_db),
     current_user: User = Depends(get_current_user),
 ):
-    if current_user.role not in ("admin", "root"):
+    if current_user.role not in ("manager", "developer"):
         raise HTTPException(status_code=403, detail="Admin access required")
     if data.rule_ref not in RULE_REFS:
         raise HTTPException(status_code=400, detail=f"Invalid rule: {data.rule_ref}")
@@ -99,7 +99,7 @@ def acknowledge_violation(
     v = db.query(Violation).filter(Violation.id == v_id).first()
     if not v:
         raise HTTPException(status_code=404, detail="Violation not found")
-    is_admin = current_user.role in ("admin", "root")
+    is_admin = current_user.role in ("manager", "developer")
     is_mine  = bool(current_user.member_id) and current_user.member_id == v.member_id
     if not is_admin and not is_mine:
         raise HTTPException(status_code=403, detail="Cannot acknowledge this violation")
@@ -119,7 +119,7 @@ def delete_violation(
     db: Session = Depends(get_db),
     current_user: User = Depends(get_current_user),
 ):
-    if current_user.role not in ("admin", "root"):
+    if current_user.role not in ("manager", "developer"):
         raise HTTPException(status_code=403, detail="Admin access required")
     v = db.query(Violation).filter(Violation.id == v_id).first()
     if not v:

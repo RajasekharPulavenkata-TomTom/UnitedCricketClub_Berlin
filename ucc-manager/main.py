@@ -21,6 +21,10 @@ def _run_migrations():
         conn.execute(text("UPDATE users SET username='ucc_manager', full_name='UCC Manager' WHERE username='root'"))
         conn.execute(text("UPDATE users SET username='ucc_accouting_manager', full_name='UCC Accounting Manager' WHERE username='admin'"))
         conn.execute(text("UPDATE users SET username='ucc_inventory_manager', full_name='UCC Inventory Manager', role='admin' WHERE username='player1'"))
+        # Rename roles: root→developer, admin→manager, user→player
+        conn.execute(text("UPDATE users SET role='developer' WHERE role='root'"))
+        conn.execute(text("UPDATE users SET role='manager' WHERE role='admin'"))
+        conn.execute(text("UPDATE users SET role='player' WHERE role='user'"))
         if "equipment_items" in existing_tables:
             cols = _cols["equipment_items"]
             if "purchase_date" in cols:

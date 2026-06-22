@@ -41,7 +41,7 @@ class TestCreateMember:
 
     def test_non_admin_cannot_create(self, client, make_user):
         from services.auth_service import create_access_token
-        user = make_user("regular", role="user")
+        user = make_user("regular", role="player")
         token = create_access_token(user)
         res = client.post(
             "/api/members",

@@ -2,7 +2,7 @@ from datetime import datetime
 from typing import Optional
 from pydantic import BaseModel, field_validator
 
-VALID_ROLES = ("root", "admin", "user")
+VALID_ROLES = ("developer", "manager", "player")
 
 
 class LoginRequest(BaseModel):

@@ -141,7 +141,7 @@ def list_polls(db: Session = Depends(get_db), current_user: User = Depends(get_c
 
 @router.post("", status_code=201)
 def create_poll(data: PollCreate, db: Session = Depends(get_db), current_user: User = Depends(get_current_user)):
-    if current_user.role not in ("admin", "root"):
+    if current_user.role not in ("manager", "developer"):
         raise HTTPException(status_code=403, detail="Admin access required to create polls")
     if len(data.options) < 2:
         raise HTTPException(status_code=400, detail="A poll must have at least 2 options")
@@ -257,7 +257,7 @@ def change_vote(poll_id: int, data: VoteCast, db: Session = Depends(get_db), cur
 
 @router.patch("/{poll_id}", status_code=200)
 def update_poll(poll_id: int, data: PollUpdate, db: Session = Depends(get_db), current_user: User = Depends(get_current_user)):
-    if current_user.role not in ("admin", "root"):
+    if current_user.role not in ("manager", "developer"):
         raise HTTPException(status_code=403, detail="Admin access required")
     poll = db.query(Poll).filter(Poll.id == poll_id).first()
     if not poll:
@@ -293,7 +293,7 @@ def update_poll(poll_id: int, data: PollUpdate, db: Session = Depends(get_db), c
 
 @router.patch("/{poll_id}/close", status_code=200)
 def close_poll(poll_id: int, db: Session = Depends(get_db), current_user: User = Depends(get_current_user)):
-    if current_user.role not in ("admin", "root"):
+    if current_user.role not in ("manager", "developer"):
         raise HTTPException(status_code=403, detail="Admin access required")
     poll = db.query(Poll).filter(Poll.id == poll_id).first()
     if not poll:
@@ -307,7 +307,7 @@ def close_poll(poll_id: int, db: Session = Depends(get_db), current_user: User =
 
 @router.delete("/{poll_id}", status_code=204)
 def delete_poll(poll_id: int, db: Session = Depends(get_db), current_user: User = Depends(get_current_user)):
-    if current_user.role not in ("admin", "root"):
+    if current_user.role not in ("manager", "developer"):
         raise HTTPException(status_code=403, detail="Admin access required")
     poll = db.query(Poll).filter(Poll.id == poll_id).first()
     if not poll:

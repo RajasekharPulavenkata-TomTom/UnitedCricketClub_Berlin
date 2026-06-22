@@ -20,6 +20,6 @@ export function clearAuth() {
 export function isAdmin() {
     try {
         const user = JSON.parse(localStorage.getItem("ucc_user") || "null");
-        return user?.role === "admin" || user?.role === "root";
+        return user?.role === "manager" || user?.role === "developer";
     } catch { return false; }
 }

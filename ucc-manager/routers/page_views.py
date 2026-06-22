@@ -49,7 +49,7 @@ def get_stats(db: Session = Depends(get_db)):
 
 @router.get("/perf")
 def get_perf(db: Session = Depends(get_db), current_user=Depends(get_current_user)):
-    if current_user.role not in ("admin", "root"):
+    if current_user.role not in ("manager", "developer"):
         raise HTTPException(status_code=403, detail="Admin access required")
 
     now = datetime.now(timezone.utc)

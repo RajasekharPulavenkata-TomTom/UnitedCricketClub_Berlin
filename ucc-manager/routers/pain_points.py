@@ -22,7 +22,7 @@ def _user_map(db: Session, items: list) -> dict:
 
 
 def _out(pp: PainPoint, current_user: User, umap: dict) -> dict:
-    is_admin = current_user.role in ("admin", "root")
+    is_admin = current_user.role in ("manager", "developer")
     is_mine = pp.submitted_by_id == current_user.id
     u = umap.get(pp.submitted_by_id)
     if pp.is_anonymous and not is_admin and not is_mine:
@@ -103,7 +103,7 @@ def update_pain_point(
     db: Session = Depends(get_db),
     current_user: User = Depends(get_current_user),
 ):
-    if current_user.role not in ("admin", "root"):
+    if current_user.role not in ("manager", "developer"):
         raise HTTPException(status_code=403, detail="Admin access required")
     pp = db.query(PainPoint).filter(PainPoint.id == pp_id).first()
     if not pp:
@@ -130,7 +130,7 @@ def delete_pain_point(
     pp = db.query(PainPoint).filter(PainPoint.id == pp_id).first()
     if not pp:
         raise HTTPException(status_code=404, detail="Pain point not found")
-    is_admin = current_user.role in ("admin", "root")
+    is_admin = current_user.role in ("manager", "developer")
     is_mine = pp.submitted_by_id == current_user.id
     if not is_admin and not (is_mine and pp.status == "open"):
         raise HTTPException(status_code=403, detail="You can only delete your own open pain points")

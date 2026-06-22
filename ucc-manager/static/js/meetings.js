@@ -4,7 +4,7 @@ function getRole() {
     try { return JSON.parse(atob(localStorage.getItem("ucc_token").split(".")[1])).role; }
     catch { return null; }
 }
-const isAdmin = () => ["admin", "root"].includes(getRole());
+const isAdmin = () => ["manager", "developer"].includes(getRole());
 
 function getUserId() {
     try { return JSON.parse(atob(localStorage.getItem("ucc_token").split(".")[1])).sub; }

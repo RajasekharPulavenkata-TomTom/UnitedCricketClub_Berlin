@@ -9,7 +9,7 @@ let addPlayerTeamId = null;
 let _user = null;
 try { _user = JSON.parse(localStorage.getItem("ucc_user") || "null"); } catch { /**/ }
 
-function _isAdmin()    { return _user?.role === "admin" || _user?.role === "root"; }
+function _isAdmin()    { return _user?.role === "manager" || _user?.role === "developer"; }
 function _canEdit(t)   {
     if (_isAdmin()) return true;
     if (t.captain_id == null) return true;

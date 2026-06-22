@@ -95,7 +95,7 @@ def create_meeting(
     db: Session = Depends(get_db),
     current_user: User = Depends(get_current_user),
 ):
-    if current_user.role not in ("admin", "root"):
+    if current_user.role not in ("manager", "developer"):
         raise HTTPException(status_code=403, detail="Admin access required")
     meeting = Meeting(
         title=data.title.strip(),
@@ -118,7 +118,7 @@ def get_meeting(meeting_id: int, db: Session = Depends(get_db), current_user: Us
 
 @router.patch("/{meeting_id}/start")
 def start_meeting(meeting_id: int, db: Session = Depends(get_db), current_user: User = Depends(get_current_user)):
-    if current_user.role not in ("admin", "root"):
+    if current_user.role not in ("manager", "developer"):
         raise HTTPException(status_code=403, detail="Admin access required")
     m = db.query(Meeting).filter(Meeting.id == meeting_id).first()
     if not m:
@@ -132,7 +132,7 @@ def start_meeting(meeting_id: int, db: Session = Depends(get_db), current_user: 
 
 @router.patch("/{meeting_id}/complete")
 def complete_meeting(meeting_id: int, db: Session = Depends(get_db), current_user: User = Depends(get_current_user)):
-    if current_user.role not in ("admin", "root"):
+    if current_user.role not in ("manager", "developer"):
         raise HTTPException(status_code=403, detail="Admin access required")
     m = db.query(Meeting).filter(Meeting.id == meeting_id).first()
     if not m:
@@ -146,7 +146,7 @@ def complete_meeting(meeting_id: int, db: Session = Depends(get_db), current_use
 
 @router.delete("/{meeting_id}", status_code=204)
 def delete_meeting(meeting_id: int, db: Session = Depends(get_db), current_user: User = Depends(get_current_user)):
-    if current_user.role not in ("admin", "root"):
+    if current_user.role not in ("manager", "developer"):
         raise HTTPException(status_code=403, detail="Admin access required")
     m = db.query(Meeting).filter(Meeting.id == meeting_id).first()
     if not m:
@@ -196,7 +196,7 @@ def update_item(
     if not item:
         raise HTTPException(status_code=404, detail="Agenda item not found")
 
-    is_admin = current_user.role in ("admin", "root")
+    is_admin = current_user.role in ("manager", "developer")
     is_owner = item.raised_by_id == current_user.id
 
     # Admins can update status/decision during or after meeting
@@ -235,7 +235,7 @@ def delete_item(
     item = db.query(MeetingAgendaItem).filter_by(id=item_id, meeting_id=meeting_id).first()
     if not item:
         raise HTTPException(status_code=404, detail="Agenda item not found")
-    is_admin = current_user.role in ("admin", "root")
+    is_admin = current_user.role in ("manager", "developer")
     is_owner = item.raised_by_id == current_user.id
     if not (is_admin or is_owner):
         raise HTTPException(status_code=403, detail="You can only delete your own items")

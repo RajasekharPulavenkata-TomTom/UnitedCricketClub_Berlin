@@ -160,7 +160,7 @@ def create_election(
     db: Session = Depends(get_db),
     current_user: User = Depends(get_current_user),
 ):
-    if current_user.role not in ("admin", "root"):
+    if current_user.role not in ("manager", "developer"):
         raise HTTPException(status_code=403, detail="Admin access required")
     if db.query(Election).filter(Election.status.in_(["nominating", "voting"])).first():
         raise HTTPException(status_code=400, detail="An election is already in progress. Close it before starting a new one.")
@@ -246,7 +246,7 @@ def set_deadline(
     db: Session = Depends(get_db),
     current_user: User = Depends(get_current_user),
 ):
-    if current_user.role != "root":
+    if current_user.role != "developer":
         raise HTTPException(status_code=403, detail="Root access required")
     election = _load(db, election_id)
     if not election:
@@ -264,7 +264,7 @@ def revert_to_nominating(
     db: Session = Depends(get_db),
     current_user: User = Depends(get_current_user),
 ):
-    if current_user.role != "root":
+    if current_user.role != "developer":
         raise HTTPException(status_code=403, detail="Root access required")
     election = _load(db, election_id)
     if not election:
@@ -287,7 +287,7 @@ def start_voting(
     db: Session = Depends(get_db),
     current_user: User = Depends(get_current_user),
 ):
-    if current_user.role != "root":
+    if current_user.role != "developer":
         raise HTTPException(status_code=403, detail="Root access required")
     election = _load(db, election_id)
     if not election:
@@ -317,7 +317,7 @@ def close_election(
     db: Session = Depends(get_db),
     current_user: User = Depends(get_current_user),
 ):
-    if current_user.role != "root":
+    if current_user.role != "developer":
         raise HTTPException(status_code=403, detail="Root access required")
     election = db.query(Election).filter(Election.id == election_id).first()
     if not election:
@@ -382,7 +382,7 @@ def delete_election(
     db: Session = Depends(get_db),
     current_user: User = Depends(get_current_user),
 ):
-    if current_user.role != "root":
+    if current_user.role != "developer":
         raise HTTPException(status_code=403, detail="Root access required to delete elections")
     election = db.query(Election).filter(Election.id == election_id).first()
     if not election:

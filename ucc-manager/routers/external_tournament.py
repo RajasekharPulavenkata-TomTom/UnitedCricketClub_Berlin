@@ -17,7 +17,7 @@ class CaptainSet(BaseModel):
 
 
 def _require_captain_or_admin(user: User, captain_id) -> None:
-    if user.role in ("admin", "root"):
+    if user.role in ("manager", "developer"):
         return
     if captain_id is None:
         return  # No captain set — any logged-in user can edit
@@ -91,7 +91,7 @@ def delete_tournament(id: int, db: Session = Depends(get_db), user: User = Depen
 
 @router.patch("/{id}/captain", response_model=ExtTournamentOut)
 def set_captain(id: int, body: CaptainSet, db: Session = Depends(get_db), user: User = Depends(get_current_user)):
-    if user.role not in ("admin", "root"):
+    if user.role not in ("manager", "developer"):
         raise HTTPException(status_code=403, detail="Only an admin can assign the captain")
     t = _get_or_404(db, id)
     t.captain_id = body.captain_id

@@ -39,7 +39,7 @@ def register(data: RegisterRequest, db: Session = Depends(get_db)):
         username=data.username.strip(),
         full_name=data.full_name,
         hashed_password=hash_password(data.password),
-        role="user",
+        role="player",
         status="pending",
     )
     db.add(user)
@@ -116,7 +116,7 @@ def update_user(id: int, data: UserUpdate, current_user: User = Depends(require_
     user = db.query(User).filter(User.id == id).first()
     if not user:
         raise HTTPException(status_code=404, detail="User not found")
-    if id == current_user.id and data.role and data.role != "root":
+    if id == current_user.id and data.role and data.role != "developer":
         raise HTTPException(status_code=400, detail="Cannot demote yourself")
     if data.username:
         clash = db.query(User).filter(User.username == data.username, User.id != id).first()

@@ -49,7 +49,7 @@ def list_sponsors(
     current_user: User = Depends(get_current_user),
 ):
     q = db.query(Sponsor)
-    if current_user.role not in ("admin", "root"):
+    if current_user.role not in ("manager", "developer"):
         q = q.filter(Sponsor.is_active == True)
     return q.order_by(Sponsor.display_order, Sponsor.created_at).all()
 
@@ -60,7 +60,7 @@ def create_sponsor(
     db: Session = Depends(get_db),
     current_user: User = Depends(get_current_user),
 ):
-    if current_user.role not in ("admin", "root"):
+    if current_user.role not in ("manager", "developer"):
         raise HTTPException(status_code=403, detail="Admin only")
     s = Sponsor(**data.model_dump())
     db.add(s)
@@ -76,7 +76,7 @@ def update_sponsor(
     db: Session = Depends(get_db),
     current_user: User = Depends(get_current_user),
 ):
-    if current_user.role not in ("admin", "root"):
+    if current_user.role not in ("manager", "developer"):
         raise HTTPException(status_code=403, detail="Admin only")
     s = db.query(Sponsor).filter(Sponsor.id == id).first()
     if not s:
@@ -94,7 +94,7 @@ def delete_sponsor(
     db: Session = Depends(get_db),
     current_user: User = Depends(get_current_user),
 ):
-    if current_user.role not in ("admin", "root"):
+    if current_user.role not in ("manager", "developer"):
         raise HTTPException(status_code=403, detail="Admin only")
     s = db.query(Sponsor).filter(Sponsor.id == id).first()
     if not s:

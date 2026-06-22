@@ -12,7 +12,7 @@ class TestLogin:
         data = res.json()
         assert "access_token" in data
         assert data["username"] == "alice"
-        assert data["role"] == "user"
+        assert data["role"] == "player"
 
     def test_wrong_password_returns_401(self, client, make_user):
         make_user("bob", password="correct")
@@ -55,7 +55,7 @@ class TestRegister:
 class TestMe:
     def test_authenticated_returns_user_info(self, client, make_user):
         from services.auth_service import create_access_token
-        user = make_user("carol", role="user")
+        user = make_user("carol", role="player")
         token = create_access_token(user)
         res = client.get("/api/auth/me", headers={"Authorization": f"Bearer {token}"})
         assert res.status_code == 200

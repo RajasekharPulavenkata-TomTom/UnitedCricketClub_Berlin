@@ -7,7 +7,7 @@ const _selectedOption = {};
 
 export async function init() {
     const user = JSON.parse(localStorage.getItem("ucc_user") || "null");
-    isAdmin = user?.role === "admin" || user?.role === "root";
+    isAdmin = user?.role === "manager" || user?.role === "developer";
     if (isAdmin) {
         document.getElementById("btn-create-poll").classList.remove("d-none");
     }

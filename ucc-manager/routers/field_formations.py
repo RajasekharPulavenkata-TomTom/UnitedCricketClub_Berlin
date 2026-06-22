@@ -85,7 +85,7 @@ def update_formation(
     f = db.query(FieldFormation).filter(FieldFormation.id == fid).first()
     if not f:
         raise HTTPException(404, "Formation not found")
-    is_admin = current_user.role in ("admin", "root")
+    is_admin = current_user.role in ("manager", "developer")
     if f.created_by_id != current_user.id and not is_admin:
         raise HTTPException(403, "Not allowed")
     if data.event_id and data.event_id != f.event_id:
@@ -109,7 +109,7 @@ def delete_formation(
     f = db.query(FieldFormation).filter(FieldFormation.id == fid).first()
     if not f:
         raise HTTPException(404, "Formation not found")
-    is_admin = current_user.role in ("admin", "root")
+    is_admin = current_user.role in ("manager", "developer")
     if f.created_by_id != current_user.id and not is_admin:
         raise HTTPException(403, "Not allowed")
     db.delete(f)

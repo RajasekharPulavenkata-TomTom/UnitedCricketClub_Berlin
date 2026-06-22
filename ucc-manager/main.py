@@ -1,11 +1,16 @@
+import time
 from contextlib import asynccontextmanager
 from fastapi import FastAPI, Depends, Request
+from fastapi.responses import Response
 from fastapi.staticfiles import StaticFiles
 from fastapi.middleware.gzip import GZipMiddleware
 from sqlalchemy import text, inspect
 from database import engine, Base
 import models  # registers all models before create_all
 from dependencies.auth import get_current_user
+
+# Stable per-process version — changes on every deploy/restart, used as SW cache key
+_BOOT_VERSION = f"ucc-{int(time.time())}"
 from routers import accounting, inventory, members, events, audit, player_availability, tasks, reporting, auth, approvals, polls, pain_points, violations, field_formations, scoreboard, sponsors, external_tournament, internal_tournament, page_views, tournament_feedback, quiz, chatbot, elections, feedback, meetings
 
 
@@ -439,7 +444,7 @@ async def lifespan(app: FastAPI):
 
 
 app = FastAPI(title="UCC Manager", lifespan=lifespan)
-app.add_middleware(GZipMiddleware, minimum_size=1000)
+app.add_middleware(GZipMiddleware, minimum_size=500)
 
 @app.middleware("http")
 async def cache_control(request: Request, call_next):
@@ -486,6 +491,16 @@ app.include_router(meetings.router,           dependencies=_auth)
 @app.get("/health", include_in_schema=False)
 async def health():
     return {"status": "ok"}
+
+
+@app.get("/sw.js", include_in_schema=False)
+async def service_worker():
+    """Serve the Service Worker with the current deploy version baked in.
+    The no-store header ensures the browser always checks for an updated SW."""
+    with open("static/sw.js") as f:
+        body = f.read().replace("__CACHE_VERSION__", _BOOT_VERSION)
+    return Response(body, media_type="application/javascript",
+                    headers={"Cache-Control": "no-store"})
 
 
 app.mount("/", StaticFiles(directory="static", html=True), name="static")

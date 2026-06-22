@@ -1,6 +1,13 @@
 import { apiFetch, fmt } from "/js/api.js";
 import { fetchWeather, wmoInfo, swingInfo } from "/js/weather.js?v=4";
 
+// Deduplicate weather fetches — two events on the same date share one API call
+const _wxCache = new Map();
+function _weather(date) {
+    if (!_wxCache.has(date)) _wxCache.set(date, fetchWeather(date));
+    return _wxCache.get(date);
+}
+
 export async function init() {
     const now = new Date();
     const todayStr = now.toISOString().split("T")[0];
@@ -374,7 +381,7 @@ function renderNextEvent(events, activeCount) {
         if (diffDays > 15) {
             wxEl.innerHTML = `<i class="bi bi-cloud-slash me-1"></i>Forecast available closer to event`;
         } else {
-            fetchWeather(e.date).then((w) => {
+            _weather(e.date).then((w) => {
                 if (!w || !wxEl) return;
                 const { icon, color, label } = wmoInfo(w.code);
                 const swing = swingInfo(w);
@@ -433,7 +440,7 @@ function renderSchedule(events, activeCount) {
         const diffDays = Math.round((new Date(e.date + "T12:00:00") - todayMs) / 86400000);
         const cell = document.getElementById(`home-wx-${e.id}`);
         if (!cell || diffDays > 15) return;
-        fetchWeather(e.date).then(w => {
+        _weather(e.date).then(w => {
             if (!w) return;
             const live = document.getElementById(`home-wx-${e.id}`);
             if (!live) return;

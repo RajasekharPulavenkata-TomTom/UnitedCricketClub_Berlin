@@ -168,6 +168,22 @@ function bootApp() {
     window.addEventListener("hashchange", router);
     router();
     _loadSponsorsFooter();
+
+    // Prefetch the next page's HTML + JS module when the user hovers a nav link.
+    // By the time they click (~150 ms later) the resources are already cached.
+    document.querySelectorAll(".ucc-nav-link[data-page]").forEach(a => {
+        a.addEventListener("mouseenter", () => {
+            const p = PAGES[a.dataset.page];
+            if (!p) return;
+            fetch(p.html + "?v=" + _SV).catch(() => {});
+            import(p.js  + "?v=" + _SV).catch(() => {});
+        }, { once: true });
+    });
+
+    // Service Worker — serves cached assets on repeat visits
+    if ("serviceWorker" in navigator) {
+        navigator.serviceWorker.register("/sw.js").catch(() => {});
+    }
 }
 
 async function _loadSponsorsFooter() {
@@ -267,11 +283,11 @@ const PAGES = {
     calendar:           { html: "/pages/calendar.html",            js: "/js/calendar.js"           },
     rules:              { html: "/pages/rules.html",               js: "/js/rules.js"              },
     history:            { html: "/pages/history.html",             js: "/js/history.js"            },
-    "cricket-rules":    { html: "/pages/cricket-rules.html",       js: "/js/cricket-rules.js"      },
-    "cricket-formats":  { html: "/pages/cricket-formats.html",     js: "/js/cricket-formats.js"    },
-    "cricket-positions":{ html: "/pages/cricket-positions.html",   js: "/js/cricket-positions.js"  },
-    "cricket-glossary": { html: "/pages/cricket-glossary.html",    js: "/js/cricket-glossary.js"   },
-    "dl-calculator":    { html: "/pages/dl-calculator.html",       js: "/js/dl-calculator.js"      },
+    "cricket-rules":    { html: "/pages/cricket-rules.html",       js: "/js/cricket-rules.js",     static: true },
+    "cricket-formats":  { html: "/pages/cricket-formats.html",     js: "/js/cricket-formats.js",   static: true },
+    "cricket-positions":{ html: "/pages/cricket-positions.html",   js: "/js/cricket-positions.js", static: true },
+    "cricket-glossary": { html: "/pages/cricket-glossary.html",    js: "/js/cricket-glossary.js",  static: true },
+    "dl-calculator":    { html: "/pages/dl-calculator.html",       js: "/js/dl-calculator.js",     static: true },
     quiz:               { html: "/pages/quiz.html",                js: "/js/quiz.js"               },
     polls:              { html: "/pages/polls.html",               js: "/js/polls.js"              },
     election:           { html: "/pages/election.html",            js: "/js/election.js"           },
@@ -309,7 +325,10 @@ async function router() {
     // so scopeEl is omitted and only body/backdrop state is cleaned.
     requestAnimationFrame(() => { if (_navSeq === seq) _wipeOverlays(); });
 
-    container.innerHTML = `<div class="d-flex justify-content-center py-5"><div class="spinner-border text-success"></div></div>`;
+    // Static pages (no API calls) render instantly — no spinner needed
+    if (!page.static) {
+        container.innerHTML = `<div class="d-flex justify-content-center py-5"><div class="spinner-border text-success"></div></div>`;
+    }
 
     const _t0 = performance.now();
     try {

@@ -14,3 +14,5 @@ class PageView(Base):
     page       = Column(String(100), nullable=False)
     user_id    = Column(Integer, ForeignKey("users.id", ondelete="SET NULL"), nullable=True)
     visited_at = Column(DateTime, default=_now)
+    nav_ms     = Column(Integer, nullable=True)   # full navigation time in ms (router start → init done)
+    device     = Column(String(10), nullable=True) # "mobile" | "desktop"

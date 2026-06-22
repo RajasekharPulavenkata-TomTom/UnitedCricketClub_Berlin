@@ -266,6 +266,7 @@ const PAGES = {
     approvals:          { html: "/pages/approvals.html",           js: "/js/approvals.js"          },
     "user-management":  { html: "/pages/user-management.html",    js: "/js/user-management.js"    },
     sponsors:           { html: "/pages/sponsors.html",            js: "/js/sponsors.js"           },
+    performance:        { html: "/pages/performance.html",         js: "/js/performance.js"        },
 };
 
 async function router() {
@@ -294,6 +295,7 @@ async function router() {
 
     container.innerHTML = `<div class="d-flex justify-content-center py-5"><div class="spinner-border text-success"></div></div>`;
 
+    const _t0 = performance.now();
     try {
         // Fetch the page HTML and import its JS module in parallel — saves one full
         // round-trip per navigation compared to the previous sequential approach.
@@ -303,8 +305,11 @@ async function router() {
         ]);
         if (seq !== _navSeq) return;   // superseded — a newer navigation is loading
         container.innerHTML = html;
-        if (mod.init) mod.init();
-        apiFetch("/page-views", { method: "POST", body: JSON.stringify({ page: hash }) }).catch(() => {});
+        if (mod.init) await mod.init();
+        if (seq !== _navSeq) return;
+        const nav_ms = Math.round(performance.now() - _t0);
+        const device = window.innerWidth < 768 ? "mobile" : "desktop";
+        apiFetch("/page-views", { method: "POST", body: JSON.stringify({ page: hash, nav_ms, device }) }).catch(() => {});
     } catch (e) {
         if (seq !== _navSeq) return;
         container.innerHTML = `<div class="alert alert-danger">Failed to load page: ${e.message}</div>`;

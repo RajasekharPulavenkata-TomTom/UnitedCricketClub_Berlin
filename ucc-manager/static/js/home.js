@@ -3,43 +3,58 @@ import { fetchWeather, wmoInfo, swingInfo } from "/js/weather.js?v=4";
 
 export async function init() {
     const now = new Date();
+    const todayStr = now.toISOString().split("T")[0];
     const months = [0, 1, 2].map((d) => {
         const m = new Date(now.getFullYear(), now.getMonth() + d, 1);
         return { year: m.getFullYear(), month: m.getMonth() + 1 };
     });
 
-    const [members, equipment, finance, tasks, matchResults, pageStats, auditLog, elections, meetings, ...eventPages] = await Promise.all([
-        apiFetch("/members"),
-        apiFetch("/equipment?active_only=true"),
-        apiFetch("/reports/dashboard"),
-        apiFetch("/tasks"),
-        apiFetch(`/scoreboard?year=${now.getFullYear()}`),
-        apiFetch("/page-views/stats"),
-        apiFetch("/history?limit=8"),
-        apiFetch("/elections"),
-        apiFetch("/meetings"),
-        ...months.map((m) => apiFetch(`/events?year=${m.year}&month=${m.month}`)),
-    ]);
-
-    const todayStr = now.toISOString().split("T")[0];
-    const upcoming = eventPages.flat()
-        .filter((e) => e.date >= todayStr)
-        .sort((a, b) => a.date.localeCompare(b.date));
-
-    const activeCount = members.filter((m) => m.is_active).length;
-
+    // Render immediately — no API call needed
     renderFoundingDay();
-    renderNotices(elections, meetings);
-    renderMembers(members);
-    renderEquipment(equipment);
-    renderFinance(finance);
-    renderSeasonRecord(matchResults);
-    renderRecentResults(matchResults);
-    renderNextEvent(upcoming, activeCount);
-    renderSchedule(upcoming, activeCount);
-    renderTasks(tasks);
-    renderPageStats(pageStats);
-    renderRecentActivity(auditLog);
+
+    // Fire all calls simultaneously so they download in parallel
+    const eventsP      = Promise.all(months.map(m => apiFetch(`/events?year=${m.year}&month=${m.month}`)));
+    const membersP     = apiFetch("/members");
+    const electionsP   = apiFetch("/elections");
+    const meetingsP    = apiFetch("/meetings");
+    const financeP     = apiFetch("/reports/dashboard");
+    const equipmentP   = apiFetch("/equipment?active_only=true");
+    const scoresP      = apiFetch(`/scoreboard?year=${now.getFullYear()}`);
+    const tasksP       = apiFetch("/tasks");
+    const pageStatsP   = apiFetch("/page-views/stats");
+    const auditLogP    = apiFetch("/history?limit=8");
+
+    // Guard: don't render into a page the user has already navigated away from
+    const mounted = () => !!document.getElementById("home-next-event");
+
+    // ── Critical path: renders as soon as events + members arrive ──────────────
+    Promise.all([eventsP, membersP]).then(([eventPages, members]) => {
+        if (!mounted()) return;
+        const upcoming = eventPages.flat()
+            .filter(e => e.date >= todayStr)
+            .sort((a, b) => a.date.localeCompare(b.date));
+        const activeCount = members.filter(m => m.is_active).length;
+        renderNextEvent(upcoming, activeCount);
+        renderSchedule(upcoming, activeCount);
+        renderMembers(members);
+    });
+
+    // ── Notices: renders as soon as elections + meetings arrive ────────────────
+    Promise.all([electionsP, meetingsP]).then(([elections, meetings]) => {
+        if (!mounted()) return;
+        renderNotices(elections, meetings);
+    });
+
+    // ── Background sections: each renders independently as its call returns ────
+    financeP.then(d   => { if (mounted()) renderFinance(d); });
+    equipmentP.then(d => { if (mounted()) renderEquipment(d); });
+    scoresP.then(d    => { if (mounted()) { renderSeasonRecord(d); renderRecentResults(d); } });
+    tasksP.then(d     => { if (mounted()) renderTasks(d); });
+    pageStatsP.then(d => { if (mounted()) renderPageStats(d); });
+    auditLogP.then(d  => { if (mounted()) renderRecentActivity(d); });
+
+    // Return after the critical path so nav_ms captures meaningful load time
+    await Promise.all([eventsP, membersP, electionsP, meetingsP]);
 }
 
 function renderNotices(elections, meetings) {

@@ -17,6 +17,16 @@ function _canEdit(t)       {
 }
 
 export async function init() {
+    // Refresh member_id from the server without blocking page init — localStorage
+    // may be stale if an admin linked this account after the user last logged in.
+    // Completes well before the user can click a tournament row.
+    apiFetch("/auth/me").then(me => {
+        if (!_user || !me) return;
+        _user.member_id = me.member_id ?? null;
+        const stored = JSON.parse(localStorage.getItem("ucc_user") || "null");
+        if (stored) { stored.member_id = me.member_id ?? null; localStorage.setItem("ucc_user", JSON.stringify(stored)); }
+    }).catch(() => {});
+
     modal = new bootstrap.Modal(document.getElementById("extTournamentModal"));
     playerFbModal = new bootstrap.Modal(document.getElementById("playerFbModal"));
 
@@ -42,16 +52,16 @@ export async function init() {
         const picker = document.getElementById("pfb-star-picker");
         const stars = picker.querySelectorAll(".star-btn");
         playerFbModal._selected = 0;
+        const _setStars = (arr, upTo) => arr.forEach((x, i) => {
+            x.classList.toggle("text-warning", i < upTo);
+            x.classList.toggle("text-muted", i >= upTo);
+        });
         stars.forEach(s => {
-            s.addEventListener("mouseover", () => {
-                stars.forEach((x, i) => x.classList.toggle("text-warning", i < parseInt(s.dataset.val)));
-            });
-            s.addEventListener("mouseout", () => {
-                stars.forEach((x, i) => x.classList.toggle("text-warning", i < playerFbModal._selected));
-            });
-            s.addEventListener("click", () => {
+            s.addEventListener("mouseover", () => _setStars(stars, parseInt(s.dataset.val)));
+            s.addEventListener("mouseout",  () => _setStars(stars, playerFbModal._selected));
+            s.addEventListener("click",     () => {
                 playerFbModal._selected = parseInt(s.dataset.val);
-                stars.forEach((x, i) => x.classList.toggle("text-warning", i < playerFbModal._selected));
+                _setStars(stars, playerFbModal._selected);
             });
         });
     }
@@ -490,9 +500,9 @@ function _stars(rating, interactive = false, prefix = "") {
         ).join("");
     }
     // interactive star picker
-    return `<div class="d-flex gap-1 my-1" id="${prefix}star-picker">
+    return `<div class="d-flex gap-1 my-1" id="${prefix}star-picker" data-initial="${rating || 0}">
         ${Array.from({ length: 5 }, (_, i) =>
-            `<i class="bi bi-star-fill fs-5 star-btn text-muted" data-val="${i + 1}" style="cursor:pointer"></i>`
+            `<i class="bi bi-star-fill fs-5 star-btn ${i < (rating || 0) ? "text-warning" : "text-muted"}" data-val="${i + 1}" style="cursor:pointer"></i>`
         ).join("")}
     </div>`;
 }
@@ -515,7 +525,7 @@ function _renderFeedbackHTML(t, tType, captainFb, playerFb, canSeePlayerReviews)
     const myFbBlock = _user?.member_id
         ? `<div class="mt-3 border-top pt-3" id="captain-fb-form">
                <div class="small fw-semibold mb-1">${captainFb.my_rating ? "Your rating (click to update):" : "Leave your rating:"}</div>
-               ${_stars(null, true, "captain-")}
+               ${_stars(captainFb.my_rating, true, "captain-")}
                <textarea class="form-control form-control-sm mt-2" id="captain-fb-comment" rows="2"
                    placeholder="Optional comment…" maxlength="500">${captainFb.my_comment ?? ""}</textarea>
                ${submitBtn}
@@ -573,22 +583,16 @@ function _bindFeedbackEvents(t, tType, el) {
     // Star picker interaction for captain feedback form
     const picker = el.querySelector("#captain-star-picker");
     if (picker) {
-        let selected = 0;
+        let selected = parseInt(picker.dataset.initial || "0") || 0;
         const stars = picker.querySelectorAll(".star-btn");
+        const _setStars = (upTo) => stars.forEach((x, i) => {
+            x.classList.toggle("text-warning", i < upTo);
+            x.classList.toggle("text-muted", i >= upTo);
+        });
         stars.forEach(s => {
-            s.addEventListener("mouseover", () => {
-                stars.forEach((x, i) =>
-                    x.classList.toggle("text-warning", i < parseInt(s.dataset.val)));
-            });
-            s.addEventListener("mouseout", () => {
-                stars.forEach((x, i) =>
-                    x.classList.toggle("text-warning", i < selected));
-            });
-            s.addEventListener("click", () => {
-                selected = parseInt(s.dataset.val);
-                stars.forEach((x, i) =>
-                    x.classList.toggle("text-warning", i < selected));
-            });
+            s.addEventListener("mouseover", () => _setStars(parseInt(s.dataset.val)));
+            s.addEventListener("mouseout",  () => _setStars(selected));
+            s.addEventListener("click",     () => { selected = parseInt(s.dataset.val); _setStars(selected); });
         });
 
         const submitBtn = el.querySelector("#btn-submit-captain-fb");
@@ -618,7 +622,10 @@ window._openPlayerFbModal = (memberId, memberName, currentRating, currentComment
     const stars = document.querySelectorAll("#pfb-star-picker .star-btn");
     const selected = currentRating || 0;
     playerFbModal._selected = selected;
-    stars.forEach((s, i) => s.classList.toggle("text-warning", i < selected));
+    stars.forEach((s, i) => {
+        s.classList.toggle("text-warning", i < selected);
+        s.classList.toggle("text-muted", i >= selected);
+    });
     playerFbModal.show();
 };
 

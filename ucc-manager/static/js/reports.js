@@ -2,6 +2,17 @@ import { apiFetch, fmt } from "/js/api.js";
 
 let chart = null;
 
+function _ensureChartJs() {
+    if (window.Chart) return Promise.resolve();
+    return new Promise((resolve, reject) => {
+        const s = document.createElement("script");
+        s.src = "https://cdn.jsdelivr.net/npm/chart.js@4.4.4/dist/chart.umd.min.js";
+        s.onload = resolve;
+        s.onerror = () => reject(new Error("Failed to load Chart.js"));
+        document.head.appendChild(s);
+    });
+}
+
 export async function init() {
   const yearSel = document.getElementById("year-select");
   const currentYear = new Date().getFullYear();
@@ -13,9 +24,12 @@ export async function init() {
 }
 
 async function loadReports(year) {
-  const [monthly, cats] = await Promise.all([
-    apiFetch(`/reports/monthly?year=${year}`),
-    apiFetch(`/reports/by-category`),
+  const [[monthly, cats]] = await Promise.all([
+    Promise.all([
+      apiFetch(`/reports/monthly?year=${year}`),
+      apiFetch(`/reports/by-category`),
+    ]),
+    _ensureChartJs(),
   ]);
 
   renderChart(monthly);

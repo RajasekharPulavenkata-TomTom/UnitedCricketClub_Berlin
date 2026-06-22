@@ -59,6 +59,9 @@ function pollCard(p) {
     const anonBadge = p.is_anonymous
         ? `<span class="badge bg-dark"><i class="bi bi-incognito me-1"></i>Anonymous</span>`
         : `<span class="badge bg-light text-dark border"><i class="bi bi-eye me-1"></i>Public</span>`;
+    const multipleBadge = p.allow_multiple
+        ? `<span class="badge bg-info text-dark"><i class="bi bi-check2-square me-1"></i>Multi-select</span>`
+        : "";
 
     const deadlineHtml = p.closes_at && !closed
         ? `<span class="text-muted small"><i class="bi bi-clock me-1"></i>Closes ${new Date(p.closes_at).toLocaleString("en-GB", { dateStyle: "medium", timeStyle: "short" })}</span>`
@@ -81,13 +84,15 @@ function pollCard(p) {
         const voteHint = p.is_anonymous
             ? `<i class="bi bi-incognito me-1"></i>Anonymous poll — nobody can see your choice.`
             : `<i class="bi bi-eye me-1"></i>Public poll — results are revealed after you vote.`;
+        const optIcon = p.allow_multiple ? "bi-square" : "bi-circle";
         body = `
-            <p class="text-muted small mb-3">${voteHint}</p>
+            <p class="text-muted small mb-2">${voteHint}</p>
+            ${p.allow_multiple ? `<p class="text-muted small mb-3"><i class="bi bi-check2-square me-1"></i>Multi-select — choose all that apply.</p>` : ""}
             <div class="d-flex flex-column gap-2" id="poll-opts-${p.id}">
                 ${p.options.map(o => `
                     <button type="button" class="poll-opt-btn"
-                        onclick="window._pollSelect(${p.id}, ${o.id}, this)">
-                        <i class="bi bi-circle text-muted flex-shrink-0"></i>
+                        onclick="window._pollSelect(${p.id}, ${o.id}, this, ${p.allow_multiple})">
+                        <i class="bi ${optIcon} text-muted flex-shrink-0"></i>
                         <span class="flex-grow-1">${escHtml(o.text)}</span>
                     </button>`).join("")}
             </div>
@@ -96,7 +101,7 @@ function pollCard(p) {
                     onclick="window._pollVote(${p.id})" disabled>
                     <i class="bi bi-check2 me-1"></i>Cast Vote
                 </button>
-                <span class="text-muted small ms-2">Select an option above</span>
+                <span class="text-muted small ms-2">${p.allow_multiple ? "Select at least one option above" : "Select an option above"}</span>
             </div>`;
     } else {
         const maxVotes = p.options.reduce((m, o) => Math.max(m, o.vote_count ?? 0), 0);
@@ -108,7 +113,7 @@ function pollCard(p) {
             </div>
             <div class="d-flex flex-column gap-3">
                 ${p.options.map(o => {
-                    const isMyVote  = o.id === p.voted_option_id;
+                    const isMyVote  = (p.voted_option_ids || []).includes(o.id);
                     const isWinner  = closed && (o.vote_count ?? 0) === maxVotes && maxVotes > 0;
                     const barColor  = isMyVote ? "bg-primary" : (isWinner ? "bg-warning" : "bg-success");
                     return `
@@ -140,6 +145,7 @@ function pollCard(p) {
                     <div class="d-flex flex-wrap gap-3 align-items-center">
                         ${statusBadge}
                         ${anonBadge}
+                        ${multipleBadge}
                         ${votesHtml}
                         ${createdHtml}
                         ${deadlineHtml}
@@ -167,30 +173,47 @@ function escHtml(s) {
 
 // ── Voting ─────────────────────────────────────────────────────────────────────
 
-window._pollSelect = (pollId, optId, btn) => {
-    _selectedOption[pollId] = optId;
-    document.querySelectorAll(`#poll-opts-${pollId} .poll-opt-btn`).forEach(b => {
-        b.classList.remove("selected");
-        b.querySelector(".bi").className = "bi bi-circle text-muted flex-shrink-0";
-    });
-    btn.classList.add("selected");
-    btn.querySelector(".bi").className = "bi bi-check-circle-fill text-primary flex-shrink-0";
+window._pollSelect = (pollId, optId, btn, allowMultiple = false) => {
+    if (allowMultiple) {
+        if (!Array.isArray(_selectedOption[pollId])) _selectedOption[pollId] = [];
+        const arr = _selectedOption[pollId];
+        const idx = arr.indexOf(optId);
+        if (idx === -1) {
+            arr.push(optId);
+            btn.classList.add("selected");
+            btn.querySelector(".bi").className = "bi bi-check-square-fill text-primary flex-shrink-0";
+        } else {
+            arr.splice(idx, 1);
+            btn.classList.remove("selected");
+            btn.querySelector(".bi").className = "bi bi-square text-muted flex-shrink-0";
+        }
+    } else {
+        _selectedOption[pollId] = [optId];
+        document.querySelectorAll(`#poll-opts-${pollId} .poll-opt-btn`).forEach(b => {
+            b.classList.remove("selected");
+            b.querySelector(".bi").className = "bi bi-circle text-muted flex-shrink-0";
+        });
+        btn.classList.add("selected");
+        btn.querySelector(".bi").className = "bi bi-check-circle-fill text-primary flex-shrink-0";
+    }
     const voteBtn = document.getElementById(`poll-vote-btn-${pollId}`);
+    const hasSelection = Array.isArray(_selectedOption[pollId]) && _selectedOption[pollId].length > 0;
     if (voteBtn) {
-        voteBtn.disabled = false;
-        voteBtn.nextElementSibling?.remove();
+        voteBtn.disabled = !hasSelection;
+        if (hasSelection) voteBtn.nextElementSibling?.remove();
     }
 };
 
 window._pollVote = async (pollId) => {
-    const optId = _selectedOption[pollId];
-    if (!optId) return;
+    const selection = _selectedOption[pollId];
+    const option_ids = Array.isArray(selection) ? selection : (selection ? [selection] : []);
+    if (!option_ids.length) return;
     const btn = document.getElementById(`poll-vote-btn-${pollId}`);
     if (btn) { btn.disabled = true; btn.innerHTML = `<span class="spinner-border spinner-border-sm me-1"></span>Submitting…`; }
     try {
         const updated = await apiFetch(`/polls/${pollId}/vote`, {
             method: "POST",
-            body: JSON.stringify({ option_id: optId }),
+            body: JSON.stringify({ option_ids }),
         });
         const idx = polls.findIndex(p => p.id === pollId);
         if (idx !== -1) polls[idx] = updated;
@@ -287,13 +310,14 @@ window._pollSubmit = async () => {
         return;
     }
 
-    const closes_at   = closesAtRaw ? new Date(closesAtRaw).toISOString() : null;
-    const is_anonymous = document.getElementById("poll-is-anonymous")?.checked ?? false;
+    const closes_at      = closesAtRaw ? new Date(closesAtRaw).toISOString() : null;
+    const is_anonymous   = document.getElementById("poll-is-anonymous")?.checked ?? false;
+    const allow_multiple = document.getElementById("poll-allow-multiple")?.checked ?? false;
 
     try {
         const created = await apiFetch("/polls", {
             method: "POST",
-            body: JSON.stringify({ title, description, closes_at, is_anonymous, options }),
+            body: JSON.stringify({ title, description, closes_at, is_anonymous, allow_multiple, options }),
         });
         polls.unshift(created);
         bootstrap.Modal.getInstance(document.getElementById("createPollModal"))?.hide();
@@ -317,6 +341,8 @@ document.addEventListener("shown.bs.modal", (e) => {
     const chk = document.getElementById("poll-is-anonymous");
     if (chk) chk.checked = false;
     _updateAnonHint(false);
+    const multiChk = document.getElementById("poll-allow-multiple");
+    if (multiChk) multiChk.checked = false;
 });
 
 document.addEventListener("change", (e) => {

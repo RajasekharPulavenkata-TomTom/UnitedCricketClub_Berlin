@@ -295,11 +295,14 @@ async function router() {
     container.innerHTML = `<div class="d-flex justify-content-center py-5"><div class="spinner-border text-success"></div></div>`;
 
     try {
-        const html = await fetch(page.html + "?v=" + _SV).then((r) => r.text());
+        // Fetch the page HTML and import its JS module in parallel — saves one full
+        // round-trip per navigation compared to the previous sequential approach.
+        const [html, mod] = await Promise.all([
+            fetch(page.html + "?v=" + _SV).then(r => r.text()),
+            import(page.js + "?v=" + _SV),
+        ]);
         if (seq !== _navSeq) return;   // superseded — a newer navigation is loading
         container.innerHTML = html;
-        const mod = await import(page.js + "?v=" + _SV);
-        if (seq !== _navSeq) return;
         if (mod.init) mod.init();
         apiFetch("/page-views", { method: "POST", body: JSON.stringify({ page: hash }) }).catch(() => {});
     } catch (e) {

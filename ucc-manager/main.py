@@ -436,7 +436,7 @@ async def cache_control(request: Request, call_next):
     path = request.url.path
     if path.startswith("/api/"):
         response.headers["Cache-Control"] = "no-store"
-    elif path.endswith((".js", ".css", ".png", ".jpg", ".webp", ".ico", ".woff2", ".svg")):
+    elif path.endswith((".js", ".css", ".png", ".jpg", ".webp", ".ico", ".woff2", ".svg", ".gif")):
         # versioned via ?v= query param — safe to cache for a long time
         response.headers["Cache-Control"] = "public, max-age=31536000, immutable"
     elif path.endswith(".html") or path == "/":

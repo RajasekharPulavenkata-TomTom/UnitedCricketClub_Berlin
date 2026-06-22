@@ -76,15 +76,31 @@ window._authTab = (tab) => {
     document.getElementById("tab-register-btn").classList.toggle("active", tab === "register");
 };
 
+function _applyRole(role) {
+    const isManager = role === "manager" || role === "developer";
+    document.getElementById("nav-admin-section").style.display = isManager ? "" : "none";
+}
+
 function bootApp() {
     let user = null;
     try { user = JSON.parse(localStorage.getItem("ucc_user") || "null"); } catch { localStorage.removeItem("ucc_user"); }
     if (user) {
         document.getElementById("sidebar-user").textContent = user.username;
         document.getElementById("sidebar-user-area").style.removeProperty("display");
-        if (user.role === "manager" || user.role === "developer") {
-            document.getElementById("nav-admin-section").style.display = "";
-        }
+        _applyRole(user.role);
+
+        // Refresh role (and member_id) from the server in the background.
+        // This ensures stale localStorage — e.g. after a role rename deployment —
+        // never hides the admin menu from users who haven't re-logged in.
+        apiFetch("/auth/me").then(me => {
+            if (!me) return;
+            const stored = JSON.parse(localStorage.getItem("ucc_user") || "null");
+            if (!stored) return;
+            stored.role      = me.role;
+            stored.member_id = me.member_id ?? null;
+            localStorage.setItem("ucc_user", JSON.stringify(stored));
+            _applyRole(me.role);
+        }).catch(() => {});
     }
 
     document.getElementById("sidebar-logout").addEventListener("click", () => {

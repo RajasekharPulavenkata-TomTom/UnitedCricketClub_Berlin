@@ -13,9 +13,9 @@ pytestmark = pytest.mark.e2e
 PAGES = [
     "home", "members", "calendar", "reporting", "practice-reporting",
     "field-editor", "match-results", "dashboard", "transactions",
-    "categories", "reports", "equipment", "maintenance", "club-fees",
+    "categories", "reports", "equipment", "club-fees",
     "tasks", "polls", "pain-points", "violations", "rules", "history",
-    "sponsors", "quiz", "cricket-rules", "cricket-formats",
+    "sponsors", "cricket-rules", "cricket-formats",
     "cricket-positions", "cricket-glossary", "dl-calculator",
 ]
 

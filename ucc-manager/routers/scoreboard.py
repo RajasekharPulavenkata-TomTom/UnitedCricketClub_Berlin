@@ -356,12 +356,17 @@ async def cricclubs_scorecard(match_id: int):
 @router.get("", response_model=List[MatchResultOut])
 def list_results(
     year: Optional[int] = None,
+    limit: Optional[int] = None,
+    offset: int = 0,
     db: Session = Depends(get_db),
 ):
     q = db.query(MatchResult)
     if year:
         q = q.filter(extract("year", MatchResult.date) == year)
-    return q.order_by(MatchResult.date.desc()).all()
+    q = q.order_by(MatchResult.date.desc())
+    if limit is not None:
+        q = q.offset(offset).limit(limit)
+    return q.all()
 
 
 @router.post("", response_model=MatchResultOut, status_code=201)

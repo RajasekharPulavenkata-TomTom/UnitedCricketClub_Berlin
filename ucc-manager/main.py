@@ -11,7 +11,7 @@ from dependencies.auth import get_current_user
 
 # Stable per-process version — changes on every deploy/restart, used as SW cache key
 _BOOT_VERSION = f"ucc-{int(time.time())}"
-from routers import accounting, inventory, members, events, audit, player_availability, tasks, reporting, auth, approvals, polls, pain_points, violations, field_formations, scoreboard, sponsors, external_tournament, internal_tournament, page_views, tournament_feedback, quiz, chatbot, elections, feedback, meetings
+from routers import accounting, inventory, members, events, audit, player_availability, tasks, reporting, auth, approvals, polls, pain_points, violations, field_formations, scoreboard, sponsors, external_tournament, internal_tournament, page_views, tournament_feedback, chatbot, elections, feedback, meetings
 
 
 def _run_migrations():
@@ -164,6 +164,7 @@ def _run_migrations():
         conn.execute(text("CREATE INDEX IF NOT EXISTS ix_users_member_id ON users (member_id)"))
         conn.execute(text("CREATE INDEX IF NOT EXISTS ix_ext_tournament_players_tournament_id ON external_tournament_players (tournament_id)"))
         conn.execute(text("CREATE INDEX IF NOT EXISTS ix_ext_tournament_players_member_id ON external_tournament_players (member_id)"))
+        conn.execute(text("CREATE INDEX IF NOT EXISTS ix_members_active ON members (id) WHERE is_active = true"))
         if "external_tournament_players" in existing_tables:
             etp_cols = _cols.get("external_tournament_players", set())
             if "matches_played" not in etp_cols:
@@ -344,40 +345,6 @@ def _run_migrations():
                     CONSTRAINT uq_feedback_submitter UNIQUE (session_id, user_id)
                 )
             """))
-        # Remove any non-cricket questions left over from the opentdb era
-        conn.execute(text("DELETE FROM quiz_questions WHERE category IS DISTINCT FROM 'Cricket'"))
-        if "quiz_questions" not in existing_tables:
-            conn.execute(text("""
-                CREATE TABLE quiz_questions (
-                    id SERIAL PRIMARY KEY,
-                    question TEXT NOT NULL,
-                    correct_answer TEXT NOT NULL,
-                    incorrect_answers JSONB NOT NULL,
-                    difficulty VARCHAR(10),
-                    category VARCHAR(100),
-                    question_type VARCHAR(20) DEFAULT 'text',
-                    field_position VARCHAR(50),
-                    fetched_at TIMESTAMPTZ DEFAULT NOW()
-                )
-            """))
-        elif "quiz_questions" in existing_tables:
-            qq_cols = _cols.get("quiz_questions", set())
-            if "question_type" not in qq_cols:
-                conn.execute(text("ALTER TABLE quiz_questions ADD COLUMN question_type VARCHAR(20) DEFAULT 'text'"))
-                conn.execute(text("ALTER TABLE quiz_questions ADD COLUMN field_position VARCHAR(50)"))
-                # Clear all questions so _seed_if_empty reseeds with the full bank (including field questions)
-                conn.execute(text("DELETE FROM quiz_questions"))
-        conn.execute(text("""
-            CREATE TABLE IF NOT EXISTS quiz_scores (
-                id SERIAL PRIMARY KEY,
-                user_id INTEGER REFERENCES users(id) ON DELETE SET NULL,
-                score INTEGER NOT NULL,
-                total INTEGER NOT NULL,
-                played_at TIMESTAMPTZ DEFAULT NOW()
-            )
-        """))
-        conn.execute(text("CREATE INDEX IF NOT EXISTS ix_quiz_scores_user_id ON quiz_scores (user_id)"))
-        conn.execute(text("CREATE INDEX IF NOT EXISTS ix_quiz_scores_played_at ON quiz_scores (played_at DESC)"))
         # Drop legacy orphan tables
         conn.execute(text("DROP TABLE IF EXISTS assignments"))
         conn.execute(text("DROP TABLE IF EXISTS notification_logs"))
@@ -481,7 +448,6 @@ app.include_router(external_tournament.router, dependencies=_auth)
 app.include_router(internal_tournament.router, dependencies=_auth)
 app.include_router(page_views.router,          dependencies=_auth)
 app.include_router(tournament_feedback.router, dependencies=_auth)
-app.include_router(quiz.router,               dependencies=_auth)
 app.include_router(chatbot.router,            dependencies=_auth)
 app.include_router(elections.router,          dependencies=_auth)
 app.include_router(feedback.router,           dependencies=_auth)

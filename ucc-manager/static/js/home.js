@@ -29,7 +29,6 @@ export async function init() {
     const scoresP      = apiFetch(`/scoreboard?year=${now.getFullYear()}`);
     const tasksP       = apiFetch("/tasks");
     const pageStatsP   = apiFetch("/page-views/stats");
-    const auditLogP    = apiFetch("/history?limit=8");
 
     // Guard: don't render into a page the user has already navigated away from
     const mounted = () => !!document.getElementById("home-next-event");
@@ -58,7 +57,6 @@ export async function init() {
     scoresP.then(d    => { if (mounted()) { renderSeasonRecord(d); renderRecentResults(d); } });
     tasksP.then(d     => { if (mounted()) renderTasks(d); });
     pageStatsP.then(d => { if (mounted()) renderPageStats(d); });
-    auditLogP.then(d  => { if (mounted()) renderRecentActivity(d); });
 
     // Return after the critical path so nav_ms captures meaningful load time
     await Promise.all([eventsP, membersP, electionsP, meetingsP]);
@@ -500,7 +498,6 @@ const _PAGE_LABEL = {
     categories:             "Categories",
     reports:                "Reports",
     equipment:              "Equipment",
-    maintenance:            "Maintenance",
     members:                "Members",
     tasks:                  "Tasks",
     "club-fees":            "Club Fees",
@@ -513,7 +510,6 @@ const _PAGE_LABEL = {
     calendar:               "Calendar",
     rules:                  "Rules",
     history:                "Club History",
-    quiz:                   "Cricket Quiz",
     polls:                  "Polls",
     "pain-points":          "Pain Points",
     violations:             "Violations",
@@ -551,46 +547,6 @@ function renderPageStats(stats) {
     </div>`;
 }
 
-function _ago(isoStr) {
-    const diff = Date.now() - new Date(isoStr).getTime();
-    const mins = Math.floor(diff / 60000);
-    if (mins < 1) return "just now";
-    if (mins < 60) return `${mins}m ago`;
-    const hrs = Math.floor(mins / 60);
-    if (hrs < 24) return `${hrs}h ago`;
-    const days = Math.floor(hrs / 24);
-    return `${days}d ago`;
-}
-
-function renderRecentActivity(logs) {
-    const el = document.getElementById("home-activity");
-    if (!el) return;
-    if (!logs.length) {
-        el.innerHTML = `<p class="text-muted small text-center py-3 mb-0">No activity recorded yet.</p>`;
-        return;
-    }
-    const iconClass = {
-        create: "bi-plus-circle-fill text-success",
-        update: "bi-pencil-fill text-primary",
-        delete: "bi-trash-fill text-danger",
-    };
-    el.innerHTML = `<ul class="list-group list-group-flush">
-        ${logs.map(l => `
-          <li class="list-group-item px-3 py-2">
-            <div class="d-flex align-items-start gap-2">
-              <i class="bi ${iconClass[l.action] || "bi-circle-fill text-secondary"} mt-1" style="flex-shrink:0"></i>
-              <div class="flex-grow-1 overflow-hidden">
-                <div class="small text-truncate">${l.description || `${l.action} ${l.entity_type}`}</div>
-                <div class="text-muted d-flex gap-2" style="font-size:.72rem">
-                  <span>${l.user_name || "System"}</span>
-                  <span>·</span>
-                  <span>${_ago(l.created_at)}</span>
-                </div>
-              </div>
-            </div>
-          </li>`).join("")}
-    </ul>`;
-}
 
 function renderFinance(data) {
     const bal = document.getElementById("home-balance");

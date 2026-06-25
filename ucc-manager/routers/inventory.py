@@ -2,10 +2,9 @@ from typing import List, Optional
 from fastapi import APIRouter, Depends, HTTPException, Query
 from sqlalchemy.orm import Session
 from database import get_db
-from models.inventory import EquipmentItem, MaintenanceNote
+from models.inventory import EquipmentItem
 from schemas.inventory import (
     EquipmentCreate, EquipmentUpdate, EquipmentOut,
-    MaintenanceNoteCreate, MaintenanceNoteUpdate, MaintenanceNoteOut,
 )
 from routers.audit import log
 from models.auth import User
@@ -79,47 +78,4 @@ def delete_equipment(id: int, db: Session = Depends(get_db), current_user: User 
         raise HTTPException(status_code=404, detail="Equipment not found")
     item.is_active = False
     log(db, "archived", "equipment", id, f"Equipment '{item.name}' archived", user=current_user)
-    db.commit()
-
-
-# ── Maintenance ────────────────────────────────────────────────────────────────
-
-@router.get("/maintenance", response_model=List[MaintenanceNoteOut])
-def list_maintenance(equipment_id: Optional[int] = None, db: Session = Depends(get_db)):
-    q = db.query(MaintenanceNote)
-    if equipment_id:
-        q = q.filter(MaintenanceNote.equipment_id == equipment_id)
-    return q.order_by(MaintenanceNote.date.desc()).all()
-
-
-@router.post("/maintenance", response_model=MaintenanceNoteOut, status_code=201)
-def create_maintenance(data: MaintenanceNoteCreate, db: Session = Depends(get_db)):
-    item = db.query(EquipmentItem).filter(EquipmentItem.id == data.equipment_id).first()
-    if not item:
-        raise HTTPException(status_code=404, detail="Equipment not found")
-    note = MaintenanceNote(**data.model_dump())
-    db.add(note)
-    db.commit()
-    db.refresh(note)
-    return note
-
-
-@router.put("/maintenance/{id}", response_model=MaintenanceNoteOut)
-def update_maintenance(id: int, data: MaintenanceNoteUpdate, db: Session = Depends(get_db)):
-    note = db.query(MaintenanceNote).filter(MaintenanceNote.id == id).first()
-    if not note:
-        raise HTTPException(status_code=404, detail="Maintenance note not found")
-    for field, value in data.model_dump(exclude_none=True).items():
-        setattr(note, field, value)
-    db.commit()
-    db.refresh(note)
-    return note
-
-
-@router.delete("/maintenance/{id}", status_code=204)
-def delete_maintenance(id: int, db: Session = Depends(get_db)):
-    note = db.query(MaintenanceNote).filter(MaintenanceNote.id == id).first()
-    if not note:
-        raise HTTPException(status_code=404, detail="Maintenance note not found")
-    db.delete(note)
     db.commit()

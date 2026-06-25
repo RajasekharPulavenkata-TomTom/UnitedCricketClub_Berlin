@@ -20,9 +20,8 @@ from .external_tournament import ExternalTournament, ExternalTournamentPlayer
 from .internal_tournament import InternalTournament, InternalTournamentTeam, InternalTournamentTeamPlayer
 from .page_view import PageView
 from .tournament_feedback import TournamentFeedback
-from .quiz import QuizQuestion, QuizScore
 from .election import Election, ElectionCandidate, ElectionVote, ElectionVoter, ElectionNomination
 from .feedback import FeedbackSession, FeedbackRating, FeedbackSubmitter
 from .meeting import Meeting, MeetingAgendaItem, MeetingItemSecond
 
-__all__ = ["User", "Category", "Transaction", "EquipmentItem", "MaintenanceNote", "Member", "Event", "EventAvailability", "AuditLog", "ClubSetting", "PlayerAvailability", "EventSquad", "Task", "Tournament", "TournamentParticipant", "PlayerReporting", "Poll", "PollOption", "PollVote", "PollAnonymousVoter", "PainPoint", "Violation", "FieldFormation", "MatchResult", "Sponsor", "ExternalTournament", "ExternalTournamentPlayer", "InternalTournament", "InternalTournamentTeam", "InternalTournamentTeamPlayer", "PageView", "TournamentFeedback", "QuizQuestion", "QuizScore", "Election", "ElectionCandidate", "ElectionVote", "ElectionVoter", "ElectionNomination", "FeedbackSession", "FeedbackRating", "FeedbackSubmitter", "Meeting", "MeetingAgendaItem", "MeetingItemSecond"]
+__all__ = ["User", "Category", "Transaction", "EquipmentItem", "MaintenanceNote", "Member", "Event", "EventAvailability", "AuditLog", "ClubSetting", "PlayerAvailability", "EventSquad", "Task", "Tournament", "TournamentParticipant", "PlayerReporting", "Poll", "PollOption", "PollVote", "PollAnonymousVoter", "PainPoint", "Violation", "FieldFormation", "MatchResult", "Sponsor", "ExternalTournament", "ExternalTournamentPlayer", "InternalTournament", "InternalTournamentTeam", "InternalTournamentTeamPlayer", "PageView", "TournamentFeedback", "Election", "ElectionCandidate", "ElectionVote", "ElectionVoter", "ElectionNomination", "FeedbackSession", "FeedbackRating", "FeedbackSubmitter", "Meeting", "MeetingAgendaItem", "MeetingItemSecond"]

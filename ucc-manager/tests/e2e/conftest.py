@@ -52,6 +52,10 @@ def _auth_context(browser, _require_e2e):
 def page(_auth_context):
     """Fresh page from the shared authenticated context; no login overhead per test."""
     pg = _auth_context.new_page()
+    # Must navigate to the app URL — a new page starts at about:blank and
+    # page.evaluate("location.hash = ...") would set the hash on about:blank instead.
+    # The shared context carries localStorage with the JWT, so no login modal appears.
+    pg.goto("/")
     yield pg
     pg.close()
 

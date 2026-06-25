@@ -50,7 +50,7 @@ jobs:
           pip install -r requirements-test.txt
 
       - name: Run API tests
-        run: pytest tests/api/ -m api -v --tb=short
+        run: pytest tests/api/ -v --tb=short
 
   # ── Job 2: E2E / Playwright tests ────────────────────────────────────────────
   e2e-tests:
@@ -108,4 +108,4 @@ jobs:
           done
 
       - name: Run E2E tests
-        run: pytest tests/e2e/ -m e2e -v --tb=short
+        run: pytest tests/e2e/ -v --tb=short

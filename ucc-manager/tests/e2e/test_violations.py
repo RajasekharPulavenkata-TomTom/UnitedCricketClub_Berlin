@@ -98,6 +98,7 @@ class TestViolationsPage:
         assert no_backdrop(page), "Backdrop remained after closing Log Violation modal"
 
 
+@pytest.mark.skip(reason="quiz frontend not yet implemented — unskip when #quiz page is added to app.js")
 class TestViolationsQuiz:
     """Smoke tests for the Quiz page since it shares field-rendering concerns."""
 

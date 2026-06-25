@@ -10,7 +10,7 @@ from models.squad import EventSquad
 from schemas.event import EventCreate, EventUpdate, AvailabilitySet, EventOut
 from routers.audit import log
 from models.auth import User
-from dependencies.auth import get_current_user
+from dependencies.auth import get_current_user, require_admin
 from services.notification_service import notify_event_created as _notify_event
 
 router = APIRouter(prefix="/api", tags=["events"])
@@ -59,7 +59,7 @@ def list_events(
 
 
 @router.post("/events", response_model=EventOut, status_code=201)
-def create_event(data: EventCreate, db: Session = Depends(get_db), current_user: User = Depends(get_current_user)):
+def create_event(data: EventCreate, db: Session = Depends(get_db), current_user: User = Depends(require_admin)):
     event = Event(**data.model_dump())
     db.add(event)
     db.flush()

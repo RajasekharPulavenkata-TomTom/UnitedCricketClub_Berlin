@@ -11,7 +11,7 @@ from dependencies.auth import get_current_user
 
 # Stable per-process version — changes on every deploy/restart, used as SW cache key
 _BOOT_VERSION = f"ucc-{int(time.time())}"
-from routers import accounting, inventory, members, events, audit, player_availability, tasks, reporting, auth, approvals, polls, pain_points, violations, field_formations, scoreboard, sponsors, external_tournament, internal_tournament, page_views, tournament_feedback, chatbot, elections, feedback, meetings
+from routers import accounting, inventory, members, events, audit, player_availability, tasks, reporting, auth, approvals, polls, pain_points, violations, field_formations, scoreboard, sponsors, external_tournament, internal_tournament, page_views, tournament_feedback, chatbot, elections, feedback, meetings, quiz
 
 
 def _run_migrations():
@@ -452,6 +452,7 @@ app.include_router(chatbot.router,            dependencies=_auth)
 app.include_router(elections.router,          dependencies=_auth)
 app.include_router(feedback.router,           dependencies=_auth)
 app.include_router(meetings.router,           dependencies=_auth)
+app.include_router(quiz.router,               dependencies=_auth)
 
 
 @app.get("/health", include_in_schema=False)

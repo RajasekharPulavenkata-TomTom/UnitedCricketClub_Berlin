@@ -132,12 +132,13 @@ def update_user(id: int, data: UserUpdate, current_user: User = Depends(require_
     return user
 
 
-@router.put("/me/password", status_code=204)
+@router.put("/me/password", status_code=200)
 def change_own_password(data: PasswordChange, current_user: User = Depends(get_current_user), db: Session = Depends(get_db)):
     if not verify_password(data.current_password, current_user.hashed_password):
         raise HTTPException(status_code=400, detail="Current password is incorrect")
     current_user.hashed_password = hash_password(data.new_password)
     db.commit()
+    return {"detail": "Password updated"}
 
 
 @router.put("/users/{id}/password", status_code=204)

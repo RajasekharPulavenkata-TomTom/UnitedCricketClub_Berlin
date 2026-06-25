@@ -34,7 +34,7 @@ def list_members(
 
 
 @router.post("/members", response_model=MemberOut, status_code=201)
-def create_member(data: MemberCreate, db: Session = Depends(get_db), current_user: User = Depends(get_current_user)):
+def create_member(data: MemberCreate, db: Session = Depends(get_db), current_user: User = Depends(require_admin)):
     existing = db.query(Member).filter(Member.name == data.name).first()
     if existing:
         raise HTTPException(status_code=400, detail="A member with this name already exists")

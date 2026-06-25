@@ -32,23 +32,28 @@ def browser_context_args(browser_context_args):
     return {**browser_context_args, "base_url": BASE_URL}
 
 
-@pytest.fixture
-def page(browser, _require_e2e):
-    """Authenticated page: logs in before each test."""
+@pytest.fixture(scope="session")
+def _auth_context(browser, _require_e2e):
+    """Login once per session; all tests share this authenticated browser context."""
     ctx = browser.new_context(base_url=BASE_URL)
     pg = ctx.new_page()
-
-    # Navigate to home and log in via the auth modal
     pg.goto("/")
     pg.wait_for_selector("#authModal.show", timeout=8000)
     pg.fill("#login-form [name=username]", USERNAME)
     pg.fill("#login-form [name=password]", PASSWORD)
     pg.click("#login-form button[type=submit]")
-    # Wait for modal to disappear (successful login)
     pg.wait_for_selector("#authModal.show", state="hidden", timeout=8000)
-
-    yield pg
+    pg.close()
+    yield ctx
     ctx.close()
+
+
+@pytest.fixture
+def page(_auth_context):
+    """Fresh page from the shared authenticated context; no login overhead per test."""
+    pg = _auth_context.new_page()
+    yield pg
+    pg.close()
 
 
 def nav_to(page, hash_fragment):

@@ -9,7 +9,7 @@ from tests.e2e.conftest import nav_to, no_backdrop
 
 pytestmark = pytest.mark.e2e
 
-# All sidebar pages that should load without a JS console error
+# All sidebar pages that should load without JS errors
 PAGES = [
     "home", "members", "calendar", "reporting", "practice-reporting",
     "field-editor", "match-results", "dashboard", "transactions",
@@ -22,18 +22,15 @@ PAGES = [
 
 class TestPageLoading:
     @pytest.mark.parametrize("page_name", PAGES)
-    def test_page_loads_without_js_error(self, page, page_name):
-        errors = []
-        page.on("pageerror", lambda e: errors.append(str(e)))
-        nav_to(page, f"#{page_name}")
-        assert errors == [], f"JS errors on #{page_name}: {errors}"
-
-    @pytest.mark.parametrize("page_name", PAGES)
-    def test_page_has_no_console_errors(self, page, page_name):
+    def test_page_loads_cleanly(self, page, page_name):
+        """Single navigation checks both JS exceptions and console errors."""
+        js_errors = []
         console_errors = []
+        page.on("pageerror", lambda e: js_errors.append(str(e)))
         page.on("console", lambda m: console_errors.append(m.text) if m.type == "error" else None)
         nav_to(page, f"#{page_name}")
-        # Filter out known non-critical network errors (e.g. weather API)
+        assert js_errors == [], f"JS errors on #{page_name}: {js_errors}"
+        # Filter out known non-critical network errors (e.g. weather API, missing favicon)
         critical = [e for e in console_errors if "weather" not in e.lower() and "favicon" not in e.lower()]
         assert critical == [], f"Console errors on #{page_name}: {critical}"
 
@@ -80,11 +77,11 @@ class TestOverlayCleanup:
         nav_to(page, "#calendar")
 
         # Click the first event badge if one exists
-        badge = page.locator("[data-eid]").first
-        if badge.count() == 0:
+        badges = page.locator("[data-eid]")
+        if badges.count() == 0:
             pytest.skip("No events on calendar to test detail modal")
 
-        badge.click()
+        badges.first.click()
         page.wait_for_selector("#eventDetailModal.show", timeout=5000)
 
         # Navigate away

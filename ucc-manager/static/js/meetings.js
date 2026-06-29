@@ -167,6 +167,7 @@ function renderAgendaItem(item, meeting, onAction) {
     const userId  = getUserId();
     const isOwner = String(item.raised_by_id) === String(userId);
     const inProgress = meeting.status === "in_progress";
+    const canEdit = (isOwner && meeting.status === "upcoming") || (admin && meeting.status !== "completed");
 
     const card = document.createElement("div");
     card.className = `agenda-item mb-2 status-${item.status}`;
@@ -184,12 +185,56 @@ function renderAgendaItem(item, meeting, onAction) {
       </div>
       <div class="d-flex align-items-center gap-2 flex-shrink-0 flex-wrap">
         <span class="badge rounded-pill px-2 ${STATUS_BADGE[item.status]}">${STATUS_LABEL[item.status]}</span>
+        ${canEdit
+            ? `<button class="btn btn-outline-secondary btn-sm py-0 px-1" style="font-size:.75rem" data-edit-item="${item.id}" title="Edit">
+                <i class="bi bi-pencil"></i></button>`
+            : ""}
         ${(isOwner || admin) && meeting.status !== "completed"
             ? `<button class="btn btn-outline-danger btn-sm py-0 px-1" style="font-size:.75rem" data-del-item="${item.id}">
                 <i class="bi bi-trash"></i></button>`
             : ""}
       </div>`;
     card.appendChild(headerRow);
+
+    // Edit item wiring
+    const editItemBtn = card.querySelector(`[data-edit-item="${item.id}"]`);
+    if (editItemBtn) {
+        editItemBtn.addEventListener("click", () => {
+            const contentDiv = headerRow.querySelector(".flex-grow-1");
+            const original = contentDiv.innerHTML;
+            contentDiv.innerHTML = `
+              <input class="form-control form-control-sm mb-1" id="edit-title-${item.id}" value="${item.title.replace(/"/g, '&quot;')}" />
+              <textarea class="form-control form-control-sm mb-1" id="edit-desc-${item.id}" rows="2" placeholder="Details (optional)">${item.description || ""}</textarea>
+              <div class="d-flex gap-1">
+                <button class="btn btn-sm btn-primary" id="edit-save-${item.id}"><i class="bi bi-floppy me-1"></i>Save</button>
+                <button class="btn btn-sm btn-secondary" id="edit-cancel-${item.id}">Cancel</button>
+              </div>`;
+            editItemBtn.disabled = true;
+
+            card.querySelector(`#edit-cancel-${item.id}`).addEventListener("click", () => {
+                contentDiv.innerHTML = original;
+                editItemBtn.disabled = false;
+            });
+
+            card.querySelector(`#edit-save-${item.id}`).addEventListener("click", async () => {
+                const newTitle = card.querySelector(`#edit-title-${item.id}`).value.trim();
+                const newDesc  = card.querySelector(`#edit-desc-${item.id}`).value.trim();
+                if (!newTitle) { alert("Title is required."); return; }
+                const saveBtn = card.querySelector(`#edit-save-${item.id}`);
+                saveBtn.disabled = true;
+                try {
+                    const updated = await apiFetch(`/meetings/${meeting.id}/items/${item.id}`, {
+                        method: "PATCH",
+                        body: JSON.stringify({ title: newTitle, description: newDesc || null }),
+                    });
+                    onAction(updated);
+                } catch (err) {
+                    saveBtn.disabled = false;
+                    alert(err.message || "Failed to save");
+                }
+            });
+        });
+    }
 
     // Second button
     if (meeting.status !== "completed") {

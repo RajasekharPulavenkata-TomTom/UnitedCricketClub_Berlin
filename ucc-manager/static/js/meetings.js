@@ -331,6 +331,85 @@ function renderAgendaItem(item, meeting, onAction) {
     return card;
 }
 
+// ── Minutes item (with inline edit for admins) ────────────────────────────────
+
+function renderMinutesItem(item, meetingId, onRefresh) {
+    const admin = isAdmin();
+    const row = document.createElement("div");
+    row.className = `minutes-item ${item.status}`;
+
+    function showView() {
+        row.innerHTML = `
+          <div class="d-flex align-items-start justify-content-between gap-2 mb-1">
+            <div class="d-flex align-items-start gap-2 flex-grow-1">
+              <span class="badge rounded-pill px-2 ${STATUS_BADGE[item.status]}">${STATUS_LABEL[item.status]}</span>
+              <span class="fw-semibold small">${item.title}</span>
+            </div>
+            ${admin ? `<button class="btn btn-outline-secondary btn-sm py-0 px-1 flex-shrink-0" style="font-size:.75rem" title="Edit"><i class="bi bi-pencil"></i></button>` : ""}
+          </div>
+          ${item.description ? `<div class="text-muted small">${item.description}</div>` : ""}
+          ${item.decision
+              ? `<div class="small mt-1"><i class="bi bi-check2-circle text-success me-1"></i><strong>Decision:</strong> ${item.decision}</div>`
+              : `<div class="small text-muted mt-1">No decision recorded.</div>`}`;
+
+        if (admin) {
+            row.querySelector("button").addEventListener("click", showEdit);
+        }
+    }
+
+    function showEdit() {
+        row.innerHTML = `
+          <div class="d-flex gap-2 mb-1 flex-wrap">
+            <select class="form-select form-select-sm" id="hi-status" style="width:auto;min-width:140px">
+              ${["pending","discussed","deferred","dropped"].map(s =>
+                  `<option value="${s}"${s === item.status ? " selected" : ""}>${STATUS_LABEL[s]}</option>`
+              ).join("")}
+            </select>
+          </div>
+          <input class="form-control form-control-sm mb-1" id="hi-title" value="${item.title.replace(/"/g, '&quot;')}" placeholder="Title" />
+          <textarea class="form-control form-control-sm mb-1" id="hi-desc" rows="2" placeholder="Details (optional)">${item.description || ""}</textarea>
+          <textarea class="form-control form-control-sm mb-2" id="hi-decision" rows="2" placeholder="Decision or action agreed…">${item.decision || ""}</textarea>
+          <div class="d-flex gap-1">
+            <button class="btn btn-sm btn-primary" id="hi-save"><i class="bi bi-floppy me-1"></i>Save</button>
+            <button class="btn btn-sm btn-secondary" id="hi-cancel">Cancel</button>
+          </div>`;
+
+        row.querySelector("#hi-cancel").addEventListener("click", showView);
+
+        row.querySelector("#hi-save").addEventListener("click", async () => {
+            const title    = row.querySelector("#hi-title").value.trim();
+            const desc     = row.querySelector("#hi-desc").value.trim();
+            const decision = row.querySelector("#hi-decision").value.trim();
+            const status   = row.querySelector("#hi-status").value;
+            if (!title) { alert("Title is required."); return; }
+            const saveBtn = row.querySelector("#hi-save");
+            saveBtn.disabled = true;
+            try {
+                const updated = await apiFetch(`/meetings/${meetingId}/items/${item.id}`, {
+                    method: "PATCH",
+                    body: JSON.stringify({ title, description: desc || null, decision: decision || null, status }),
+                });
+                // Update local item data from response item list
+                const updatedItem = updated.items?.find(i => i.id === item.id);
+                if (updatedItem) {
+                    item.title = updatedItem.title;
+                    item.description = updatedItem.description;
+                    item.decision = updatedItem.decision;
+                    item.status = updatedItem.status;
+                    row.className = `minutes-item ${item.status}`;
+                }
+                showView();
+            } catch (err) {
+                saveBtn.disabled = false;
+                alert(err.message || "Failed to save");
+            }
+        });
+    }
+
+    showView();
+    return row;
+}
+
 // ── Completed meeting (minutes) ───────────────────────────────────────────────
 
 function renderHistoryCard(m, onAction) {
@@ -364,18 +443,7 @@ function renderHistoryCard(m, onAction) {
 
     if (m.items.length) {
         m.items.forEach(item => {
-            const row = document.createElement("div");
-            row.className = `minutes-item ${item.status}`;
-            row.innerHTML = `
-              <div class="d-flex align-items-start gap-2 mb-1">
-                <span class="badge rounded-pill px-2 ${STATUS_BADGE[item.status]}">${STATUS_LABEL[item.status]}</span>
-                <span class="fw-semibold small">${item.title}</span>
-              </div>
-              ${item.description ? `<div class="text-muted small">${item.description}</div>` : ""}
-              ${item.decision
-                  ? `<div class="small mt-1"><i class="bi bi-check2-circle text-success me-1"></i><strong>Decision:</strong> ${item.decision}</div>`
-                  : `<div class="small text-muted mt-1">No decision recorded.</div>`}`;
-            collapse.appendChild(row);
+            collapse.appendChild(renderMinutesItem(item, m.id, onAction));
         });
     } else {
         collapse.innerHTML = `<p class="text-muted small">No agenda items were recorded.</p>`;

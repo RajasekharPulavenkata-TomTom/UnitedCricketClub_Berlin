@@ -151,10 +151,15 @@ function renderNotices(elections, meetings) {
 function renderFoundingDay() {
     const el = document.getElementById("home-founding-day");
     if (!el) return;
-    const now = new Date();
-    const year = now.getFullYear();
-    const founding = new Date(year, 5, 30); // June 30 (month is 0-indexed)
-    const diffDays = Math.round((founding - now) / 86400000);
+
+    // Use Berlin timezone so the banner flips at midnight Berlin time
+    const berlinToday = new Date().toLocaleDateString("en-CA", { timeZone: "Europe/Berlin" });
+    const [year, month, day] = berlinToday.split("-").map(Number);
+
+    const isFoundingDay = month === 6 && day === 30;
+    const afterFoundingDay = month > 6 || (month === 6 && day > 30);
+    const targetStr = afterFoundingDay ? `${year + 1}-06-30` : `${year}-06-30`;
+    const diffDays = isFoundingDay ? 0 : Math.round((new Date(targetStr) - new Date(berlinToday)) / 86400000);
 
     if (diffDays === 0) {
         el.innerHTML = `

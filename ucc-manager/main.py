@@ -345,6 +345,10 @@ def _run_migrations():
                     CONSTRAINT uq_feedback_submitter UNIQUE (session_id, user_id)
                 )
             """))
+        if "pain_points" in existing_tables:
+            pp_cols = _cols.get("pain_points", set())
+            if "discussion_note" not in pp_cols:
+                conn.execute(text("ALTER TABLE pain_points ADD COLUMN discussion_note TEXT"))
         # Drop legacy orphan tables
         conn.execute(text("DROP TABLE IF EXISTS assignments"))
         conn.execute(text("DROP TABLE IF EXISTS notification_logs"))

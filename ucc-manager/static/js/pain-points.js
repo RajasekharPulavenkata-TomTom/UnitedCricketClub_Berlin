@@ -109,12 +109,14 @@ function ppCard(p) {
     const statusBadge = _STATUS_BADGE[p.status] || `<span class="badge bg-secondary">${escHtml(p.status)}</span>`;
 
     let noteHtml = "";
+    if (p.discussion_note) {
+        noteHtml += `<div class="mt-2 p-2 rounded small bg-info bg-opacity-10 text-primary border border-primary border-opacity-25">
+            <i class="bi bi-chat-square-text-fill me-1"></i><strong>Discussed:</strong> ${escHtml(p.discussion_note)}
+        </div>`;
+    }
     if (p.resolution_note) {
-        const noteClass = p.status === "resolved"
-            ? "bg-success bg-opacity-10 text-success border border-success border-opacity-25"
-            : "bg-info bg-opacity-10 text-primary border border-primary border-opacity-25";
-        noteHtml = `<div class="mt-2 p-2 rounded small ${noteClass}">
-            <i class="bi bi-chat-square-text-fill me-1"></i>${escHtml(p.resolution_note)}
+        noteHtml += `<div class="mt-2 p-2 rounded small bg-success bg-opacity-10 text-success border border-success border-opacity-25">
+            <i class="bi bi-check-circle-fill me-1"></i><strong>Resolution:</strong> ${escHtml(p.resolution_note)}
         </div>`;
     }
 
@@ -206,6 +208,7 @@ window._ppEdit = (id) => {
     if (!pp) return;
     _editId = id;
     document.getElementById("pp-edit-status").value = pp.status;
+    document.getElementById("pp-edit-discussion").value = pp.discussion_note || "";
     document.getElementById("pp-edit-resolution").value = pp.resolution_note || "";
     document.getElementById("edit-pp-error").classList.add("d-none");
     new bootstrap.Modal(document.getElementById("editPPModal")).show();
@@ -213,6 +216,7 @@ window._ppEdit = (id) => {
 
 window._ppUpdate = async () => {
     const status          = document.getElementById("pp-edit-status").value;
+    const discussion_note = (document.getElementById("pp-edit-discussion").value || "").trim() || null;
     const resolution_note = (document.getElementById("pp-edit-resolution").value || "").trim() || null;
     const errEl           = document.getElementById("edit-pp-error");
     errEl.classList.add("d-none");
@@ -220,7 +224,7 @@ window._ppUpdate = async () => {
     try {
         const updated = await apiFetch(`/pain-points/${_editId}`, {
             method: "PATCH",
-            body: JSON.stringify({ status, resolution_note }),
+            body: JSON.stringify({ status, discussion_note, resolution_note }),
         });
         const idx = items.findIndex(p => p.id === _editId);
         if (idx !== -1) items[idx] = updated;

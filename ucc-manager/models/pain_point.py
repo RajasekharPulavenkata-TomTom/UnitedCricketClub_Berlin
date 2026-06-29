@@ -18,6 +18,7 @@ class PainPoint(Base):
     submitted_by_id = Column(Integer, ForeignKey("users.id", ondelete="SET NULL"), nullable=True, index=True)
     is_anonymous    = Column(Boolean, nullable=False, default=False)
     status          = Column(String(20), nullable=False, default="open", index=True)  # open | discussed | resolved
+    discussion_note = Column(Text)
     resolution_note = Column(Text)
     created_at      = Column(DateTime(timezone=True), default=_now)
     resolved_at     = Column(DateTime(timezone=True))

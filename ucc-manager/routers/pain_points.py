@@ -38,6 +38,7 @@ def _out(pp: PainPoint, current_user: User, umap: dict) -> dict:
         "is_mine":         is_mine,
         "submitted_by":    submitter,
         "status":          pp.status,
+        "discussion_note": pp.discussion_note,
         "resolution_note": pp.resolution_note,
         "created_at":      pp.created_at.isoformat() if pp.created_at else None,
         "resolved_at":     pp.resolved_at.isoformat() if pp.resolved_at else None,
@@ -53,6 +54,7 @@ class PainPointCreate(BaseModel):
 
 class PainPointUpdate(BaseModel):
     status: Optional[str] = None
+    discussion_note: Optional[str] = None
     resolution_note: Optional[str] = None
 
 
@@ -113,6 +115,8 @@ def update_pain_point(
             raise HTTPException(status_code=400, detail=f"Invalid status: {data.status}")
         pp.status = data.status
         pp.resolved_at = datetime.now(timezone.utc) if data.status == "resolved" else None
+    if data.discussion_note is not None:
+        pp.discussion_note = (data.discussion_note or "").strip() or None
     if data.resolution_note is not None:
         pp.resolution_note = (data.resolution_note or "").strip() or None
     db.commit()

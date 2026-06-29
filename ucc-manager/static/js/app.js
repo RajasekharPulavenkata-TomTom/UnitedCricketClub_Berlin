@@ -180,10 +180,32 @@ function bootApp() {
         }, { once: true });
     });
 
-    // Service Worker — serves cached assets on repeat visits
+    // Service Worker — cached assets on repeat visits; banner when a new version deploys
     if ("serviceWorker" in navigator) {
+        // Capture before registering: if there's already a controller this is a returning
+        // visit; a subsequent controllerchange means an actual update landed.
+        // On first-ever visit (no controller yet) we skip the banner.
+        const hadController = !!navigator.serviceWorker.controller;
         navigator.serviceWorker.register("/sw.js").catch(() => {});
+        let _swReloading = false;
+        navigator.serviceWorker.addEventListener("controllerchange", () => {
+            if (!hadController || _swReloading) return;
+            _swReloading = true;
+            _showUpdateBanner();
+        });
     }
+}
+
+function _showUpdateBanner() {
+    const el = document.createElement("div");
+    el.id = "ucc-update-banner";
+    el.innerHTML =
+        `<i class="bi bi-arrow-clockwise me-1"></i>` +
+        `<span>New version available.</span>` +
+        `<button class="btn btn-sm btn-light ms-3 fw-semibold" onclick="location.reload()">Refresh</button>` +
+        `<button class="btn-close btn-close-white ms-2" aria-label="Dismiss"></button>`;
+    el.querySelector(".btn-close").addEventListener("click", () => el.remove());
+    document.body.appendChild(el);
 }
 
 async function _loadSponsorsFooter() {

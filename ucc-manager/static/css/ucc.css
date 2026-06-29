@@ -260,6 +260,31 @@ body::before {
   body::before { left: 50%; }
 }
 
+/* ── Update available banner ─────────────────────────────────────────────────── */
+#ucc-update-banner {
+  position: fixed;
+  bottom: 1.25rem;
+  left: 50%;
+  transform: translateX(-50%);
+  z-index: 9999;
+  display: flex;
+  align-items: center;
+  gap: .25rem;
+  background: var(--ucc-blue);
+  color: #fff;
+  padding: .65rem 1rem;
+  border-radius: .5rem;
+  box-shadow: 0 4px 20px rgba(0,0,0,.3);
+  font-size: .875rem;
+  white-space: nowrap;
+  max-width: calc(100vw - 2rem);
+  animation: ucc-banner-in .25s ease;
+}
+@keyframes ucc-banner-in {
+  from { opacity: 0; transform: translateX(-50%) translateY(1rem); }
+  to   { opacity: 1; transform: translateX(-50%) translateY(0);    }
+}
+
 /* ── Print ───────────────────────────────────────────────────────────────────── */
 @media print {
   .no-print, .ucc-sidebar, .ucc-topbar, .btn, button { display: none !important; }

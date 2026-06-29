@@ -181,7 +181,6 @@ function adminCard(v) {
             </div>
             ${v.description ? `<p class="text-muted small mb-1">${escHtml(v.description)}</p>` : ""}
             <div class="text-muted small d-flex flex-wrap gap-3 mt-1">
-              ${v.logged_by ? `<span><i class="bi bi-person me-1"></i>Logged by ${escHtml(v.logged_by)}</span>` : ""}
               ${ackHtml}
             </div>
           </div>

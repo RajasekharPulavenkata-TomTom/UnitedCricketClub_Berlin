@@ -173,7 +173,7 @@ window._ppSubmit = async () => {
     const title        = (document.getElementById("pp-title").value || "").trim();
     const description  = (document.getElementById("pp-description").value || "").trim() || null;
     const category     = document.getElementById("pp-category").value || null;
-    const is_anonymous = document.getElementById("pp-anonymous").checked;
+    const is_anonymous = true;
     const errEl        = document.getElementById("raise-pp-error");
     errEl.classList.add("d-none");
 

@@ -25,9 +25,8 @@ def _resolve(db: Session, violations: list, all_for_strikes: list | None = None)
     return members, logged_by, strikes
 
 
-def _out(v: Violation, members: dict, logged_by: dict, strikes: dict) -> dict:
-    m  = members.get(v.member_id)
-    lb = logged_by.get(v.logged_by_id)
+def _out(v: Violation, members: dict, logged_by: dict, strikes: dict, is_admin: bool = True) -> dict:
+    m = members.get(v.member_id)
     return {
         "id":              v.id,
         "member_id":       v.member_id,
@@ -35,7 +34,7 @@ def _out(v: Violation, members: dict, logged_by: dict, strikes: dict) -> dict:
         "member_strikes":  strikes.get(v.member_id, 1),
         "rule_ref":        v.rule_ref,
         "description":     v.description,
-        "logged_by":       (lb.full_name or lb.username) if lb else None,
+        "logged_by":       None,
         "acknowledged_at": v.acknowledged_at.isoformat() if v.acknowledged_at else None,
         "created_at":      v.created_at.isoformat() if v.created_at else None,
     }
@@ -60,7 +59,7 @@ def list_violations(db: Session = Depends(get_db), current_user: User = Depends(
             Violation.member_id == current_user.member_id
         ).order_by(Violation.created_at.desc()).all()
         members, logged_by, strikes = _resolve(db, violations)
-    return [_out(v, members, logged_by, strikes) for v in violations]
+    return [_out(v, members, logged_by, strikes, is_admin=is_admin) for v in violations]
 
 
 @router.post("", status_code=201)
@@ -110,7 +109,7 @@ def acknowledge_violation(
     db.refresh(v)
     all_mv = db.query(Violation).filter(Violation.member_id == v.member_id).all()
     members, logged_by, strikes = _resolve(db, all_mv)
-    return _out(v, members, logged_by, strikes)
+    return _out(v, members, logged_by, strikes, is_admin=is_admin)
 
 
 @router.delete("/{v_id}", status_code=204)

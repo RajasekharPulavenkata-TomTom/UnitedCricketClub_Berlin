@@ -123,8 +123,8 @@ def get_player_feedback(
 ):
     _validate_type(t_type)
     t = _get_tournament(db, t_type, t_id)
-    if user.role not in ("manager", "developer") and user.member_id != t.captain_id:
-        raise HTTPException(status_code=403, detail="Only the captain or admin can view player reviews")
+    if user.member_id != t.captain_id:
+        raise HTTPException(status_code=403, detail="Only the captain can view player reviews")
     entries = db.query(TournamentFeedback).filter(
         TournamentFeedback.tournament_type == t_type,
         TournamentFeedback.tournament_id == t_id,
@@ -156,8 +156,8 @@ def save_player_feedback(
 ):
     _validate_type(t_type)
     t = _get_tournament(db, t_type, t_id)
-    if user.role not in ("manager", "developer") and user.member_id != t.captain_id:
-        raise HTTPException(status_code=403, detail="Only the captain or admin can submit player reviews")
+    if user.member_id != t.captain_id:
+        raise HTTPException(status_code=403, detail="Only the captain can submit player reviews")
     if body.rating is not None and not (1 <= body.rating <= 5):
         raise HTTPException(status_code=400, detail="Rating must be 1–5")
     entry = db.query(TournamentFeedback).filter(

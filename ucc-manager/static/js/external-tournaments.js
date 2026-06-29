@@ -494,7 +494,7 @@ async function renderFeedbackSection(tType, t) {
 
     const isAdmin = _isAdmin();
     const isCaptain = _user?.member_id != null && _user.member_id === t.captain_id;
-    const canSeePlayerReviews = isAdmin || isCaptain;
+    const canSeePlayerReviews = isCaptain;
 
     try {
         const captainFb = await apiFetch(`/tournament-feedback/${tType}/${t.id}/captain`);

@@ -52,6 +52,9 @@
       <!-- Meta row -->
       <div class="row g-3 mb-3" id="ext-detail-meta"></div>
 
+      <!-- Payment info banner -->
+      <div id="ext-payment-info" style="display:none"></div>
+
       <!-- Admin-only: Captain assignment -->
       <div class="mb-3" id="ext-captain-section" style="display:none">
         <label class="form-label fw-semibold"><i class="bi bi-crown-fill text-warning me-1"></i>Captain</label>
@@ -218,6 +221,10 @@
             <div class="col-md-6">
               <label class="form-label">Website / Info URL</label>
               <input type="url" class="form-control" name="website_url" maxlength="500" placeholder="https://…">
+            </div>
+            <div class="col-12">
+              <label class="form-label">Payment Info <span class="text-muted small">— who to pay, how, and where</span></label>
+              <textarea class="form-control" name="payment_info" rows="2" maxlength="1000" placeholder="e.g. Pay to John Smith · IBAN: DE89 3704 0044 0532 0130 00 · or via PayPal to john@example.com"></textarea>
             </div>
             <div class="col-12">
               <label class="form-label">Notes</label>

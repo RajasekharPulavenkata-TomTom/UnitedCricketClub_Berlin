@@ -181,6 +181,21 @@ function showDetail(t) {
     ].filter(Boolean).join("");
     document.getElementById("ext-detail-meta").innerHTML = meta || `<div class="col-12 text-muted">No additional details.</div>`;
 
+    // Payment info — shown as a prominent banner so players can't miss it
+    const paymentEl = document.getElementById("ext-payment-info");
+    if (paymentEl) {
+        if (t.payment_info) {
+            paymentEl.innerHTML = `
+              <div class="alert alert-warning d-flex gap-2 align-items-start mb-3 py-2">
+                <i class="bi bi-credit-card-2-front-fill fs-5 flex-shrink-0 mt-1"></i>
+                <div><strong>Payment Info</strong><br><span class="small" style="white-space:pre-line">${t.payment_info.replace(/</g,"&lt;")}</span></div>
+              </div>`;
+            paymentEl.style.display = "";
+        } else {
+            paymentEl.style.display = "none";
+        }
+    }
+
     // Admin-only captain select
     const captainSection = document.getElementById("ext-captain-section");
     if (isAdmin) {
@@ -317,6 +332,7 @@ function openModal(t = null) {
         form.registration_deadline.value = t.registration_deadline ?? "";
         form.registration_fee.value      = t.registration_fee ?? "";
         form.website_url.value           = t.website_url ?? "";
+        form.payment_info.value          = t.payment_info ?? "";
         form.notes.value                 = t.notes ?? "";
     }
     document.getElementById("ext-save-btn").dataset.editId = t ? t.id : "";
@@ -336,6 +352,7 @@ async function onSubmit(e) {
         registration_deadline: form.registration_deadline.value || null,
         registration_fee:      form.registration_fee.value ? parseFloat(form.registration_fee.value) : null,
         website_url:           form.website_url.value.trim() || null,
+        payment_info:          form.payment_info.value.trim() || null,
         notes:                 form.notes.value.trim() || null,
     };
     const editId = document.getElementById("ext-save-btn").dataset.editId;

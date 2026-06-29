@@ -173,6 +173,8 @@ def _run_migrations():
             et_cols = _cols.get("external_tournaments", set())
             if "captain_id" not in et_cols:
                 conn.execute(text("ALTER TABLE external_tournaments ADD COLUMN captain_id INTEGER REFERENCES members(id) ON DELETE SET NULL"))
+            if "payment_info" not in et_cols:
+                conn.execute(text("ALTER TABLE external_tournaments ADD COLUMN payment_info TEXT"))
         if "internal_tournament_teams" in existing_tables:
             itt_cols = _cols.get("internal_tournament_teams", set())
             if "captain_id" not in itt_cols:

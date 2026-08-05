@@ -34,11 +34,14 @@ async function load() {
     }
 }
 
-function checkboxCell(m, field) {
+// `target` decides which endpoint the toggle writes to:
+//   "payment" → /member-payments/{id} (fee/SEPA booleans on the yearly row)
+//   "member"  → /members/{id}         (static member fields like id_card_received)
+function checkboxCell(m, field, target = "payment") {
     const checked = m[field] ? "checked" : "";
     if (isAdmin()) {
         return `<td class="text-center"><input type="checkbox" ${checked}
-            onchange="window._togglePayment(${m.member_id}, '${field}', this.checked)" /></td>`;
+            onchange="window._toggleCell(${m.member_id}, '${field}', this.checked, '${target}')" /></td>`;
     }
     return `<td class="text-center">${m[field]
         ? '<i class="bi bi-check-lg text-success"></i>'
@@ -75,7 +78,7 @@ function render() {
           ${checkboxCell(m, "quarterly")}
           ${checkboxCell(m, "yearly")}
           ${checkboxCell(m, "sepa")}
-          ${checkboxCell(m, "id_card_received")}
+          ${checkboxCell(m, "id_card_received", "member")}
           <td class="small">${escHtml(m.spielerpass || "—")}</td>
         </tr>`).join("");
 
@@ -98,12 +101,12 @@ function render() {
         </tr>`;
 }
 
-window._togglePayment = async (memberId, field, value) => {
+window._toggleCell = async (memberId, field, value, target) => {
+    const url = target === "member"
+        ? `/members/${memberId}`
+        : `/member-payments/${memberId}?year=${currentYear}`;
     try {
-        await apiFetch(`/member-payments/${memberId}?year=${currentYear}`, {
-            method: "PUT",
-            body: JSON.stringify({ [field]: value }),
-        });
+        await apiFetch(url, { method: "PUT", body: JSON.stringify({ [field]: value }) });
         // Update local state + totals without a full reload.
         const m = data.members.find((r) => r.member_id === memberId);
         if (m) m[field] = value;

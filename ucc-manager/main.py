@@ -81,12 +81,15 @@ def _run_migrations():
                 conn.execute(text("ALTER TABLE members ADD COLUMN cricheroes BOOLEAN NOT NULL DEFAULT FALSE"))
             if "cricclubs" not in cols:
                 conn.execute(text("ALTER TABLE members ADD COLUMN cricclubs BOOLEAN NOT NULL DEFAULT FALSE"))
+            # IF NOT EXISTS guards against the 2-worker race: both workers snapshot
+            # `cols` before the advisory lock, so the second worker's guard can be
+            # stale and would otherwise crash on a duplicate ADD COLUMN.
             if "membership_no" not in cols:
-                conn.execute(text("ALTER TABLE members ADD COLUMN membership_no VARCHAR(30)"))
+                conn.execute(text("ALTER TABLE members ADD COLUMN IF NOT EXISTS membership_no VARCHAR(30)"))
             if "id_card_received" not in cols:
-                conn.execute(text("ALTER TABLE members ADD COLUMN id_card_received BOOLEAN NOT NULL DEFAULT FALSE"))
+                conn.execute(text("ALTER TABLE members ADD COLUMN IF NOT EXISTS id_card_received BOOLEAN NOT NULL DEFAULT FALSE"))
             if "spielerpass" not in cols:
-                conn.execute(text("ALTER TABLE members ADD COLUMN spielerpass VARCHAR(30)"))
+                conn.execute(text("ALTER TABLE members ADD COLUMN IF NOT EXISTS spielerpass VARCHAR(30)"))
         if "event_squads" in existing_tables:
             cols = _cols["event_squads"]
             if "batting_order" not in cols:

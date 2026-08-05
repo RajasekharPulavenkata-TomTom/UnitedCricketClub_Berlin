@@ -20,6 +20,9 @@ class MemberBase(BaseModel):
         v = v.strip().lower()
         return v or None
     dcb_id: Optional[str] = None
+    membership_no: Optional[str] = None
+    id_card_received: bool = False
+    spielerpass: Optional[str] = None
     cricheroes: bool = False
     cricclubs: bool = False
     notes: Optional[str] = None
@@ -38,6 +41,9 @@ class MemberUpdate(BaseModel):
     email: Optional[str] = None
     phone: Optional[str] = None
     dcb_id: Optional[str] = None
+    membership_no: Optional[str] = None
+    id_card_received: Optional[bool] = None
+    spielerpass: Optional[str] = None
     cricheroes: Optional[bool] = None
     cricclubs: Optional[bool] = None
     is_active: Optional[bool] = None

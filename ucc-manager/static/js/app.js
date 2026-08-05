@@ -295,6 +295,7 @@ const PAGES = {
     members:            { html: "/pages/members.html",             js: "/js/members.js"            },
     tasks:              { html: "/pages/tasks.html",               js: "/js/tasks.js"              },
     "club-fees":        { html: "/pages/club-fees.html",          js: "/js/club-fees.js"          },
+    "member-payments":  { html: "/pages/member-payments.html",     js: "/js/member-payments.js"    },
     "reporting":          { html: "/pages/reporting.html",           js: "/js/reporting.js"           },
     "practice-reporting": { html: "/pages/practice-reporting.html", js: "/js/practice-reporting.js"  },
     "field-editor":       { html: "/pages/field-editor.html",       js: "/js/field-editor.js"         },

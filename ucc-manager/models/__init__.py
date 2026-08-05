@@ -2,6 +2,7 @@ from .auth import User
 from .accounting import Category, Transaction
 from .inventory import EquipmentItem, MaintenanceNote
 from .member import Member
+from .member_payment import MemberPayment
 from .event import Event, EventAvailability
 from .audit import AuditLog
 from .setting import ClubSetting
@@ -25,4 +26,4 @@ from .feedback import FeedbackSession, FeedbackRating, FeedbackSubmitter
 from .meeting import Meeting, MeetingAgendaItem, MeetingItemSecond
 from .quiz import QuizQuestion
 
-__all__ = ["User", "Category", "Transaction", "EquipmentItem", "MaintenanceNote", "Member", "Event", "EventAvailability", "AuditLog", "ClubSetting", "PlayerAvailability", "EventSquad", "Task", "Tournament", "TournamentParticipant", "PlayerReporting", "Poll", "PollOption", "PollVote", "PollAnonymousVoter", "PainPoint", "Violation", "FieldFormation", "MatchResult", "Sponsor", "ExternalTournament", "ExternalTournamentPlayer", "InternalTournament", "InternalTournamentTeam", "InternalTournamentTeamPlayer", "PageView", "TournamentFeedback", "Election", "ElectionCandidate", "ElectionVote", "ElectionVoter", "ElectionNomination", "FeedbackSession", "FeedbackRating", "FeedbackSubmitter", "Meeting", "MeetingAgendaItem", "MeetingItemSecond", "QuizQuestion"]
+__all__ = ["User", "Category", "Transaction", "EquipmentItem", "MaintenanceNote", "Member", "MemberPayment", "Event", "EventAvailability", "AuditLog", "ClubSetting", "PlayerAvailability", "EventSquad", "Task", "Tournament", "TournamentParticipant", "PlayerReporting", "Poll", "PollOption", "PollVote", "PollAnonymousVoter", "PainPoint", "Violation", "FieldFormation", "MatchResult", "Sponsor", "ExternalTournament", "ExternalTournamentPlayer", "InternalTournament", "InternalTournamentTeam", "InternalTournamentTeamPlayer", "PageView", "TournamentFeedback", "Election", "ElectionCandidate", "ElectionVote", "ElectionVoter", "ElectionNomination", "FeedbackSession", "FeedbackRating", "FeedbackSubmitter", "Meeting", "MeetingAgendaItem", "MeetingItemSecond", "QuizQuestion"]

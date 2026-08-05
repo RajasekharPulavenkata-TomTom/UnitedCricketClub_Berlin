@@ -19,6 +19,9 @@ class Member(Base):
     email = Column(String(200))
     phone = Column(String(30))
     dcb_id = Column(String(20))
+    membership_no = Column(String(30))          # ACB registration no., e.g. CR1812250162
+    id_card_received = Column(Boolean, nullable=False, default=False)
+    spielerpass = Column(String(30))            # player-pass status, e.g. "All Set"
     cricheroes = Column(Boolean, nullable=False, default=False)
     cricclubs = Column(Boolean, nullable=False, default=False)
     is_active = Column(Boolean, nullable=False, default=True)

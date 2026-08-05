@@ -11,7 +11,7 @@ from dependencies.auth import get_current_user
 
 # Stable per-process version — changes on every deploy/restart, used as SW cache key
 _BOOT_VERSION = f"ucc-{int(time.time())}"
-from routers import accounting, inventory, members, events, audit, player_availability, tasks, reporting, auth, approvals, polls, pain_points, violations, field_formations, scoreboard, sponsors, external_tournament, internal_tournament, page_views, tournament_feedback, chatbot, elections, feedback, meetings, quiz
+from routers import accounting, inventory, members, member_payments, events, audit, player_availability, tasks, reporting, auth, approvals, polls, pain_points, violations, field_formations, scoreboard, sponsors, external_tournament, internal_tournament, page_views, tournament_feedback, chatbot, elections, feedback, meetings, quiz
 
 
 def _run_migrations():
@@ -81,6 +81,12 @@ def _run_migrations():
                 conn.execute(text("ALTER TABLE members ADD COLUMN cricheroes BOOLEAN NOT NULL DEFAULT FALSE"))
             if "cricclubs" not in cols:
                 conn.execute(text("ALTER TABLE members ADD COLUMN cricclubs BOOLEAN NOT NULL DEFAULT FALSE"))
+            if "membership_no" not in cols:
+                conn.execute(text("ALTER TABLE members ADD COLUMN membership_no VARCHAR(30)"))
+            if "id_card_received" not in cols:
+                conn.execute(text("ALTER TABLE members ADD COLUMN id_card_received BOOLEAN NOT NULL DEFAULT FALSE"))
+            if "spielerpass" not in cols:
+                conn.execute(text("ALTER TABLE members ADD COLUMN spielerpass VARCHAR(30)"))
         if "event_squads" in existing_tables:
             cols = _cols["event_squads"]
             if "batting_order" not in cols:
@@ -351,6 +357,21 @@ def _run_migrations():
             pp_cols = _cols.get("pain_points", set())
             if "discussion_note" not in pp_cols:
                 conn.execute(text("ALTER TABLE pain_points ADD COLUMN discussion_note TEXT"))
+        conn.execute(text("""
+            CREATE TABLE IF NOT EXISTS member_payments (
+                id SERIAL PRIMARY KEY,
+                member_id INTEGER NOT NULL REFERENCES members(id) ON DELETE CASCADE,
+                year INTEGER NOT NULL,
+                anmeldung BOOLEAN NOT NULL DEFAULT FALSE,
+                dezember  BOOLEAN NOT NULL DEFAULT FALSE,
+                quarterly BOOLEAN NOT NULL DEFAULT FALSE,
+                yearly    BOOLEAN NOT NULL DEFAULT FALSE,
+                sepa      BOOLEAN NOT NULL DEFAULT FALSE,
+                notes TEXT,
+                CONSTRAINT uq_member_payment_year UNIQUE (member_id, year)
+            )
+        """))
+        conn.execute(text("CREATE INDEX IF NOT EXISTS ix_member_payments_member_id ON member_payments (member_id)"))
         # Drop legacy orphan tables
         conn.execute(text("DROP TABLE IF EXISTS assignments"))
         conn.execute(text("DROP TABLE IF EXISTS notification_logs"))
@@ -439,6 +460,7 @@ app.include_router(approvals.router)
 app.include_router(accounting.router,          dependencies=_auth)
 app.include_router(inventory.router,           dependencies=_auth)
 app.include_router(members.router,             dependencies=_auth)
+app.include_router(member_payments.router,     dependencies=_auth)
 app.include_router(events.router,              dependencies=_auth)
 app.include_router(audit.router,               dependencies=_auth)
 app.include_router(player_availability.router, dependencies=_auth)

@@ -1,0 +1,44 @@
+<h3 class="page-header"><i class="bi bi-cash-coin me-2"></i>Member Dues</h3>
+
+<div class="card mb-3 no-print">
+  <div class="card-body">
+    <div class="row g-2 align-items-end">
+      <div class="col-auto">
+        <label class="form-label mb-1 small text-muted">Year</label>
+        <select id="year-select" class="form-select form-select-sm"></select>
+      </div>
+      <div class="col">
+        <input type="search" id="filter-search" class="form-control form-control-sm" placeholder="Search by name…" />
+      </div>
+      <div class="col-auto ms-auto small text-muted" id="edit-hint"></div>
+    </div>
+  </div>
+</div>
+
+<div class="card">
+  <div class="card-body p-0">
+    <div class="table-responsive">
+      <table class="table table-hover table-sm mb-0 align-middle">
+        <thead class="table-light">
+          <tr>
+            <th>#</th>
+            <th>Name</th>
+            <th>Membership No.</th>
+            <th>DCB ID</th>
+            <th class="text-center" title="€20 registration">Anmeldung<div class="small text-muted fw-normal">€20</div></th>
+            <th class="text-center" title="€13">Dezember<div class="small text-muted fw-normal">€13</div></th>
+            <th class="text-center" title="€45">Quarterly<div class="small text-muted fw-normal">€45</div></th>
+            <th class="text-center" title="€156">Yearly<div class="small text-muted fw-normal">€156</div></th>
+            <th class="text-center">SEPA</th>
+            <th class="text-center">ID Card</th>
+            <th>SpielerPass</th>
+          </tr>
+        </thead>
+        <tbody id="payments-tbody">
+          <tr><td colspan="11" class="text-center py-4 text-muted">Loading…</td></tr>
+        </tbody>
+        <tfoot class="table-light fw-semibold" id="payments-tfoot"></tfoot>
+      </table>
+    </div>
+  </div>
+</div>

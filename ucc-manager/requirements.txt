@@ -8,5 +8,4 @@ python-jose[cryptography]==3.3.0
 bcrypt==4.2.1
 python-multipart==0.0.9
 httpx==0.28.1
-google-generativeai>=0.8.0
 sendgrid==6.11.0

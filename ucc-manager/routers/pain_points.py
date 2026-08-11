@@ -25,7 +25,7 @@ def _out(pp: PainPoint, current_user: User, umap: dict) -> dict:
     is_admin = current_user.role in ("manager", "developer")
     is_mine = pp.submitted_by_id == current_user.id
     u = umap.get(pp.submitted_by_id)
-    if pp.is_anonymous and not is_admin and not is_mine:
+    if pp.is_anonymous:
         submitter = None
     else:
         submitter = (u.full_name or u.username) if u else None

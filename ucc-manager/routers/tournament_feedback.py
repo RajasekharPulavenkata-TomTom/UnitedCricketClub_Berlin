@@ -122,9 +122,7 @@ def get_player_feedback(
     user: User = Depends(get_current_user),
 ):
     _validate_type(t_type)
-    t = _get_tournament(db, t_type, t_id)
-    if user.role not in ("manager", "developer") and user.member_id != t.captain_id:
-        raise HTTPException(status_code=403, detail="Only the captain can view player reviews")
+    _get_tournament(db, t_type, t_id)  # 404 check
     entries = db.query(TournamentFeedback).filter(
         TournamentFeedback.tournament_type == t_type,
         TournamentFeedback.tournament_id == t_id,

@@ -1,0 +1,11 @@
+.venv/
+__pycache__/
+*.pyc
+*.db
+.env
+.pytest_cache/
+.idea/
+.claude/
+
+# static/ is deliberately NOT ignored — Vercel promotes the mounted
+# StaticFiles directory to the CDN at build time.

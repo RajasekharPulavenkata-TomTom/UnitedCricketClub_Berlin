@@ -503,17 +503,13 @@ async function renderFeedbackSection(tType, t) {
     if (!el) return;
     el.innerHTML = `<div class="text-center py-2"><div class="spinner-border spinner-border-sm"></div></div>`;
 
-    const isAdmin = _isAdmin();
     const isCaptain = _user?.member_id != null && _user.member_id === t.captain_id;
-    const canSeePlayerReviews = isCaptain;
 
     try {
         const captainFb = await apiFetch(`/tournament-feedback/${tType}/${t.id}/captain`);
-        const playerFb = canSeePlayerReviews
-            ? await apiFetch(`/tournament-feedback/${tType}/${t.id}/players`)
-            : null;
+        const playerFb = await apiFetch(`/tournament-feedback/${tType}/${t.id}/players`);
 
-        el.innerHTML = _renderFeedbackHTML(t, tType, captainFb, playerFb, canSeePlayerReviews);
+        el.innerHTML = _renderFeedbackHTML(t, tType, captainFb, playerFb, isCaptain);
         _bindFeedbackEvents(t, tType, el);
     } catch (e) {
         el.innerHTML = `<p class="text-danger small">${e.message}</p>`;
@@ -535,7 +531,7 @@ function _stars(rating, interactive = false, prefix = "") {
     </div>`;
 }
 
-function _renderFeedbackHTML(t, tType, captainFb, playerFb, canSeePlayerReviews) {
+function _renderFeedbackHTML(t, tType, captainFb, playerFb, canEditReviews) {
     // ── Captain feedback section ──
     const avgBlock = captainFb.count
         ? `<span class="fw-semibold">${captainFb.avg_rating ?? "—"}</span> / 5
@@ -573,36 +569,34 @@ function _renderFeedbackHTML(t, tType, captainFb, playerFb, canSeePlayerReviews)
         </div>`;
 
     // ── Player reviews section ──
-    let playerSection = "";
-    if (canSeePlayerReviews && playerFb) {
-        const rows = playerFb.length
-            ? playerFb.map(p => `
-                <tr>
-                    <td class="fw-semibold">${p.member_name}</td>
-                    <td>${_stars(p.rating)}</td>
-                    <td class="text-muted small">${p.comment ?? "—"}</td>
-                    <td class="text-end">
-                        <button class="btn btn-sm btn-outline-secondary"
-                            onclick="window._openPlayerFbModal(${p.member_id}, '${p.member_name.replace(/'/g, "\\'")}', ${p.rating ?? "null"}, \`${(p.comment ?? "").replace(/`/g, "\\`")}\`)">
-                            <i class="bi bi-pencil"></i>
-                        </button>
-                    </td>
-                </tr>`).join("")
-            : `<tr><td colspan="4" class="text-muted text-center py-2">No players in this tournament.</td></tr>`;
+    const colSpan = canEditReviews ? 4 : 3;
+    const rows = playerFb.length
+        ? playerFb.map(p => `
+            <tr>
+                <td class="fw-semibold">${p.member_name}</td>
+                <td>${_stars(p.rating)}</td>
+                <td class="text-muted small">${p.comment ?? "—"}</td>
+                ${canEditReviews ? `<td class="text-end">
+                    <button class="btn btn-sm btn-outline-secondary"
+                        onclick="window._openPlayerFbModal(${p.member_id}, '${p.member_name.replace(/'/g, "\\'")}', ${p.rating ?? "null"}, \`${(p.comment ?? "").replace(/`/g, "\\`")}\`)">
+                        <i class="bi bi-pencil"></i>
+                    </button>
+                </td>` : ""}
+            </tr>`).join("")
+        : `<tr><td colspan="${colSpan}" class="text-muted text-center py-2">No players in this tournament.</td></tr>`;
 
-        playerSection = `
-            <div>
-                <h6 class="fw-semibold mb-2"><i class="bi bi-person-lines-fill me-1 text-primary"></i>Player Reviews (Captain Only)</h6>
-                <div class="table-responsive">
-                    <table class="table table-sm table-hover mb-0">
-                        <thead class="table-light">
-                            <tr><th>Player</th><th>Rating</th><th>Comment</th><th></th></tr>
-                        </thead>
-                        <tbody>${rows}</tbody>
-                    </table>
-                </div>
-            </div>`;
-    }
+    const playerSection = `
+        <div>
+            <h6 class="fw-semibold mb-2"><i class="bi bi-person-lines-fill me-1 text-primary"></i>Player Reviews</h6>
+            <div class="table-responsive">
+                <table class="table table-sm table-hover mb-0">
+                    <thead class="table-light">
+                        <tr><th>Player</th><th>Rating</th><th>Comment</th>${canEditReviews ? "<th></th>" : ""}</tr>
+                    </thead>
+                    <tbody>${rows}</tbody>
+                </table>
+            </div>
+        </div>`;
 
     return captainSection + playerSection;
 }

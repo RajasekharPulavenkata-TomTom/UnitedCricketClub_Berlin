@@ -274,8 +274,11 @@ Two notes:
 
 `fly.toml`, `Dockerfile`, `start.sh`, and `.dockerignore` are **kept** through the
 migration and deleted in a separate follow-up commit only after production traffic is
-confirmed healthy on Vercel. `seed.py` is retained — CI and local development still use it —
-but is no longer invoked at container start.
+confirmed healthy on Vercel. `seed.py` is retained — CI, local development, and
+`vercel_build.py` still use it — but is no longer invoked at container start.
+
+**Status: done (2026-08-11).** The user destroyed the Fly app; all four files were
+deleted, and the Fly/Docker sections of both READMEs were rewritten for Vercel.
 
 ## Cutover plan
 

@@ -1,15 +1,15 @@
-"""One-time script to import historical transactions. Run via: fly ssh console -C 'python3 /app/import_transactions.py'"""
-import os
+"""One-time script to import historical transactions. Idempotent — safe to re-run.
+
+Uses the app's DATABASE_URL, so run it against the target DB:
+    DATABASE_URL=<neon-pooled-url> python3 import_transactions.py
+"""
 import sys
 from datetime import date
 from decimal import Decimal
-from sqlalchemy import create_engine
-from sqlalchemy.orm import sessionmaker
 
-_db_path = os.environ.get("UCC_DB_PATH", "./ucc.db")
-engine = create_engine(f"sqlite:///{_db_path}", connect_args={"check_same_thread": False})
-Session = sessionmaker(bind=engine)
-db = Session()
+from database import SessionLocal
+
+db = SessionLocal()
 
 from models.accounting import Category, Transaction
 from models.auth import User
@@ -30,8 +30,11 @@ def uid(username):
     u = db.query(User).filter(User.username == username).first()
     return u.id if u else None
 
-raj    = uid("ucc_manager")          # Root user who made most purchases
-pratik = uid("ucc_accouting_manager") # Fallback to accounting manager for Pratik
+# `ucc_accouting_manager` used to be resolved here as a fallback, but the migrations
+# delete that account — the per-row payer is recorded in `reference` instead.
+raj = uid("ucc_manager")  # Root user who made most purchases
+if raj is None:
+    print("ERROR: user 'ucc_manager' not found"); sys.exit(1)
 
 TRANSACTIONS = [
     # (date,              amount,  category,  description,                           reference)

@@ -5,8 +5,8 @@ Keyed on DCB ID (reliable; present for every row). Sets the static member fields
 payment row. Idempotent on (member, year) — safe to re-run. Rows whose DCB ID is
 not found in the DB are reported and skipped (no members are auto-created).
 
-Uses the app's DATABASE_URL, so run it against the target DB, e.g. on prod:
-    fly ssh console -C 'python3 /app/import_member_payments.py'
+Uses the app's DATABASE_URL, so run it against the target DB:
+    DATABASE_URL=<neon-pooled-url> python3 import_member_payments.py
 
 NOTE: The source sheet's own footer tallies SEPA = 7, but only 5 rows carry a
 visible SEPA mark below. The 5 are imported; verify the other 2 in the UI.

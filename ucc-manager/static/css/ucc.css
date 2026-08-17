@@ -556,3 +556,102 @@ html[data-bs-theme="dark"][data-weather="rain"] .wx-p,
 html[data-bs-theme="dark"][data-weather="storm"] .wx-p {
   background: linear-gradient(180deg, transparent, rgba(150, 180, 230, .6));
 }
+
+/* ── Dark theme: light-hardcoded surfaces ─────────────────────────────────────
+   Three layers of fixes for things Bootstrap's data-bs-theme cannot flip:
+   1. Bootstrap utility classes (.bg-white/.bg-light are always light by design)
+   2. Inline light backgrounds in JS-rendered templates (attribute selectors;
+      :not(img) protects the round white logo chips)
+   3. Page-<style>-block classes — generated hue-preserving dark counterparts */
+html[data-bs-theme="dark"] .bg-white { background-color: var(--bs-body-bg) !important; }
+html[data-bs-theme="dark"] .bg-light { background-color: var(--bs-tertiary-bg) !important; }
+
+html[data-bs-theme="dark"] :not(img)[style*="background:#fff;"],
+html[data-bs-theme="dark"] :not(img)[style*="background: #fff;"] { background: var(--bs-secondary-bg) !important; }
+html[data-bs-theme="dark"] [style*="background:#f8f9fa"],
+html[data-bs-theme="dark"] [style*="background: #f8f9fa"] { background: #1c2230 !important; }
+html[data-bs-theme="dark"] [style*="background:#e8f4fd"] { background: #12263f !important; }
+html[data-bs-theme="dark"] [style*="background:#fff3e0"] { background: #3a2a10 !important; }
+html[data-bs-theme="dark"] [style*="background:#e8f5e9"] { background: #12301f !important; }
+html[data-bs-theme="dark"] [style*="background:#f3e5f5"] { background: #2e1f33 !important; }
+html[data-bs-theme="dark"] [style*="background:#fff8e1"] { background: #332a10 !important; }
+html[data-bs-theme="dark"] [style*="background:#f8faff"] { background: #161e2e !important; }
+html[data-bs-theme="dark"] [style*="background:#f1f5f9"] { background: #232c3a !important; color: #aab7c8 !important; }
+html[data-bs-theme="dark"] [style*="background:#f0f0f0"] { background: #262b33 !important; }
+/* calendar.html */
+html[data-bs-theme="dark"] .cal-cell { background: #292929; }
+html[data-bs-theme="dark"] .cal-cell:hover { background: #141f3d; }
+html[data-bs-theme="dark"] .cal-cell.other-month { background: #23292f; }
+html[data-bs-theme="dark"] .cal-cell.today { background: #173a29; }
+html[data-bs-theme="dark"] .event-badge.match { background: #14253d; color: #a5c0e9; }
+html[data-bs-theme="dark"] .event-badge.training { background: #1e342a; color: #a5e9ca; }
+html[data-bs-theme="dark"] .event-badge.other { background: #23173b; color: #c0aedf; }
+html[data-bs-theme="dark"] .squad-row.in-squad { background: #14223d; }
+html[data-bs-theme="dark"] .report-time-badge { background: #3d3314; color: #e9d8a5; }
+/* election.html */
+html[data-bs-theme="dark"] .phase-badge-nominating { background: #14263d; color: #a5b5e9; }
+html[data-bs-theme="dark"] .phase-badge-voting { background: #143d28; color: #a5e9d6; }
+html[data-bs-theme="dark"] .phase-badge-closed { background: #1b2937; color: #bdc5d1; }
+html[data-bs-theme="dark"] .candidate-card { background: #292929; }
+html[data-bs-theme="dark"] .candidate-card.clickable:hover { background: #141f3d; }
+html[data-bs-theme="dark"] .candidate-card.selected { background: #14233d; }
+html[data-bs-theme="dark"] .candidate-card.winner { background: #3d2714 !important; }
+html[data-bs-theme="dark"] .result-bar-bg { background: #292929; }
+html[data-bs-theme="dark"] .anon-notice { background: #141f3d; color: #a5b8e9; }
+html[data-bs-theme="dark"] .phase-step { background: #23292f; }
+html[data-bs-theme="dark"] .phase-step.done { background: #143d28; color: #a5e9d6; }
+/* field-editor.html */
+html[data-bs-theme="dark"] .fe-player-item.placed { background: #1e342a; }
+html[data-bs-theme="dark"] .fe-player-item.unplaced { background: #23292f; }
+html[data-bs-theme="dark"] .fe-formation-item:hover { background: #23292f; }
+html[data-bs-theme="dark"] .fe-formation-item.active-formation { background: #14253d; }
+/* home.html */
+html[data-bs-theme="dark"] .event-row-match { background: #14223d; }
+html[data-bs-theme="dark"] .event-row-training { background: #173a25; }
+html[data-bs-theme="dark"] .event-row-other { background: #23292f; }
+html[data-bs-theme="dark"] .result-badge-won { background: #1e342a; color: #a5e9ca; }
+html[data-bs-theme="dark"] .result-badge-lost { background: #3d1418; color: #e6a8ae; }
+html[data-bs-theme="dark"] .result-badge-tied { background: #3d3314; color: #e9d8a5; }
+html[data-bs-theme="dark"] .result-badge-nr { background: #27282b; color: #c3c7cb; }
+/* management-charter.html */
+html[data-bs-theme="dark"] .icon-blue { background: #14263d; color: #a5b5e9; }
+html[data-bs-theme="dark"] .icon-orange { background: #3d2c14; color: #e9b9a5; }
+html[data-bs-theme="dark"] .icon-green { background: #143d22; color: #a6e7bf; }
+html[data-bs-theme="dark"] .icon-indigo { background: #1c143d; color: #bfa5e9; }
+/* meetings.html */
+html[data-bs-theme="dark"] .meeting-upcoming { background: #14263d; }
+html[data-bs-theme="dark"] .meeting-inprogress { background: #3d3514; }
+html[data-bs-theme="dark"] .meeting-completed { background: #143d21; }
+html[data-bs-theme="dark"] .agenda-item { background: #292929; }
+html[data-bs-theme="dark"] .agenda-item.status-discussed { background: #143d21; }
+html[data-bs-theme="dark"] .agenda-item.status-deferred { background: #3d3514; }
+html[data-bs-theme="dark"] .agenda-item.status-dropped { background: #3d1414; }
+html[data-bs-theme="dark"] .btn-second { background: #222930; color: #bdc5d1; }
+html[data-bs-theme="dark"] .btn-second:hover { background: #14263d; color: #a5b7e9; }
+html[data-bs-theme="dark"] .btn-second.active { background: #14263d; color: #a5b7e9; }
+html[data-bs-theme="dark"] .badge-pending { background: #24272e; color: #c2c5cb; }
+html[data-bs-theme="dark"] .badge-discussed { background: #143d28; color: #a5e9d6; }
+html[data-bs-theme="dark"] .badge-deferred { background: #3d3514; color: #e9bfa5; }
+html[data-bs-theme="dark"] .badge-dropped { background: #3d1414; color: #e9a5a5; }
+/* performance.html */
+html[data-bs-theme="dark"] .perf-bar-bg { background: #23292e; }
+/* polls.html */
+html[data-bs-theme="dark"] .poll-opt-btn { background: #292929; }
+html[data-bs-theme="dark"] .poll-opt-btn:hover { background: #14223d; }
+html[data-bs-theme="dark"] .poll-opt-btn.selected { background: #14233d; }
+html[data-bs-theme="dark"] .poll-result-bar-bg { background: #292929; }
+html[data-bs-theme="dark"] .poll-winner { background: #3d3314 !important; }
+/* scoreboard.html */
+html[data-bs-theme="dark"] .result-won { background: #1e342a; }
+html[data-bs-theme="dark"] .result-lost { background: #3d1418; }
+html[data-bs-theme="dark"] .result-tied { background: #3d3314; }
+html[data-bs-theme="dark"] .result-no-result { background: #27282b; }
+/* tenure-feedback.html */
+html[data-bs-theme="dark"] .pillar-row { background: #292929; }
+html[data-bs-theme="dark"] .pillar-row.rated { background: #3d3514; }
+html[data-bs-theme="dark"] .dist-bar-bg { background: #24272e; }
+html[data-bs-theme="dark"] .anon-notice { background: #141f3d; color: #a5b8e9; }
+/* avail.html */
+html[data-bs-theme="dark"] .type-badge-match { background: #14253d; color: #a5c0e9; }
+html[data-bs-theme="dark"] .type-badge-training { background: #1e342a; color: #a5e9ca; }
+html[data-bs-theme="dark"] .type-badge-other { background: #23173b; color: #c0aedf; }

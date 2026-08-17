@@ -39,9 +39,7 @@
       </picture>
       United Cricket Club
     </a>
-    <button class="btn btn-outline-light btn-sm" id="theme-cycle" title="Theme (light / dark / auto)">
-      <i class="bi bi-circle-half"></i>
-    </button>
+    <button class="btn btn-outline-light btn-sm" id="theme-cycle" title="Theme (light / dark / auto)">Auto</button>
   </div>
 </nav>
 
@@ -91,18 +89,18 @@ async function apiFetch(path, opts = {}) {
 
 // Theme cycle button — window._setTheme comes from suntheme.js (module, loads
 // after this classic script parses, but always before any click can happen).
-const _themeIcons = { light: "bi-sun", dark: "bi-moon-stars", auto: "bi-circle-half" };
-function _syncThemeIcon() {
+const _themeLabels = { light: "Light", dark: "Dark", auto: "Auto" };
+function _syncThemeLabel() {
     const mode = localStorage.getItem("ucc_theme") || "auto";
-    document.querySelector("#theme-cycle i").className = "bi " + _themeIcons[mode];
+    document.getElementById("theme-cycle").textContent = _themeLabels[mode];
 }
 document.getElementById("theme-cycle").addEventListener("click", () => {
     const order = ["auto", "light", "dark"];
     const cur = localStorage.getItem("ucc_theme") || "auto";
     window._setTheme(order[(order.indexOf(cur) + 1) % order.length]);
-    _syncThemeIcon();
+    _syncThemeLabel();
 });
-_syncThemeIcon();
+_syncThemeLabel();
 
 function showToast(msg, type = "success") {
     const id = "t" + Date.now();

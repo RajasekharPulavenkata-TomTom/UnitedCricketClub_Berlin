@@ -1,6 +1,6 @@
 from typing import List
 from fastapi import APIRouter, Depends, HTTPException
-from sqlalchemy.orm import Session
+from sqlalchemy.orm import Session, joinedload
 from database import get_db
 from models.accounting import Transaction
 from models.auth import User
@@ -24,8 +24,10 @@ def get_pending(db: Session = Depends(get_db), _=Depends(require_admin)):
 def get_pending_transactions(db: Session = Depends(get_db), _=Depends(require_admin)):
     return (
         db.query(Transaction)
+        .options(joinedload(Transaction.category))
         .filter(Transaction.status == "pending")
         .order_by(Transaction.created_at.asc())
+        .limit(200)
         .all()
     )
 

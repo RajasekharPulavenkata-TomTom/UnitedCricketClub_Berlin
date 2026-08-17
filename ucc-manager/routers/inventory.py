@@ -1,6 +1,6 @@
 from typing import List, Optional
 from fastapi import APIRouter, Depends, HTTPException, Query
-from sqlalchemy.orm import Session
+from sqlalchemy.orm import Session, selectinload
 from database import get_db
 from models.inventory import EquipmentItem
 from schemas.inventory import (
@@ -23,7 +23,8 @@ def list_equipment(
     active_only: bool = True,
     db: Session = Depends(get_db),
 ):
-    q = db.query(EquipmentItem)
+    # eager-load: EquipmentOut serializes maintenance_notes, one lazy query per item otherwise
+    q = db.query(EquipmentItem).options(selectinload(EquipmentItem.maintenance_notes))
     if active_only:
         q = q.filter(EquipmentItem.is_active == True)
     if type:

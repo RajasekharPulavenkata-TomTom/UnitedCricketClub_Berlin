@@ -1,6 +1,6 @@
+from datetime import date as date_type
 from fastapi import APIRouter, Depends, HTTPException
 from sqlalchemy.orm import Session
-from sqlalchemy import extract
 from pydantic import BaseModel
 from database import get_db
 from models.player_availability import PlayerAvailability
@@ -17,12 +17,12 @@ class AvailSet(BaseModel):
 
 @router.get("")
 def get_availability(year: int, month: int, db: Session = Depends(get_db)):
+    # half-open range keeps the filter sargable (extract() would force a full scan)
+    start = date_type(year, month, 1)
+    end = date_type(year + 1, 1, 1) if month == 12 else date_type(year, month + 1, 1)
     rows = (
         db.query(PlayerAvailability)
-        .filter(
-            extract("year",  PlayerAvailability.date) == year,
-            extract("month", PlayerAvailability.date) == month,
-        )
+        .filter(PlayerAvailability.date >= start, PlayerAvailability.date < end)
         .all()
     )
     return [

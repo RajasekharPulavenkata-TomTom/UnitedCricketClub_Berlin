@@ -1,7 +1,9 @@
 from typing import List, Optional
+from collections import Counter
 from datetime import datetime, timezone
 from fastapi import APIRouter, Depends, HTTPException
 from pydantic import BaseModel
+from sqlalchemy import func
 from sqlalchemy.orm import Session, selectinload
 from database import get_db
 from models.poll import Poll, PollOption, PollVote, PollAnonymousVoter
@@ -25,19 +27,60 @@ def _is_closed(poll: Poll) -> bool:
     return False
 
 
-def _poll_out(poll: Poll, current_user: User, creator_map: dict) -> dict:
+def _vote_aggregates(db: Session, poll_ids: list[int], user_id: int) -> dict:
+    """Per-poll vote counts, voter counts and this-user's votes, computed in
+    SQL — never loads a row per vote."""
+    agg = {
+        pid: {
+            "option_counts": Counter(), "named_voter_count": 0, "anon_voter_count": 0,
+            "anon_has_voted": False, "voted_option_ids": [],
+        }
+        for pid in poll_ids
+    }
+    if not poll_ids:
+        return agg
+    for pid, oid, count in (
+        db.query(PollVote.poll_id, PollVote.option_id, func.count())
+        .filter(PollVote.poll_id.in_(poll_ids))
+        .group_by(PollVote.poll_id, PollVote.option_id)
+    ):
+        agg[pid]["option_counts"][oid] = count
+    for pid, count in (
+        db.query(PollVote.poll_id, func.count(func.distinct(PollVote.user_id)))
+        .filter(PollVote.poll_id.in_(poll_ids), PollVote.user_id.isnot(None))
+        .group_by(PollVote.poll_id)
+    ):
+        agg[pid]["named_voter_count"] = count
+    for pid, count in (
+        db.query(PollAnonymousVoter.poll_id, func.count())
+        .filter(PollAnonymousVoter.poll_id.in_(poll_ids))
+        .group_by(PollAnonymousVoter.poll_id)
+    ):
+        agg[pid]["anon_voter_count"] = count
+    for (pid,) in (
+        db.query(PollAnonymousVoter.poll_id)
+        .filter(PollAnonymousVoter.poll_id.in_(poll_ids), PollAnonymousVoter.user_id == user_id)
+    ):
+        agg[pid]["anon_has_voted"] = True
+    for pid, oid in (
+        db.query(PollVote.poll_id, PollVote.option_id)
+        .filter(PollVote.poll_id.in_(poll_ids), PollVote.user_id == user_id)
+    ):
+        agg[pid]["voted_option_ids"].append(oid)
+    return agg
+
+
+def _poll_out(poll: Poll, current_user: User, creator_map: dict, agg: dict) -> dict:
     closed = _is_closed(poll)
-    votes  = poll.votes  # pre-loaded
 
     if poll.is_anonymous:
-        has_voted        = any(v.user_id == current_user.id for v in poll.anonymous_voters)
+        has_voted        = agg["anon_has_voted"]
         voted_option_ids = []
-        voter_count      = len(poll.anonymous_voters)
+        voter_count      = agg["anon_voter_count"]
     else:
-        user_votes       = [v for v in votes if v.user_id == current_user.id]
-        has_voted        = len(user_votes) > 0
-        voted_option_ids = [v.option_id for v in user_votes]
-        voter_count      = len({v.user_id for v in votes if v.user_id is not None})
+        voted_option_ids = agg["voted_option_ids"]
+        has_voted        = len(voted_option_ids) > 0
+        voter_count      = agg["named_voter_count"]
 
     reveal = has_voted or closed
 
@@ -46,7 +89,7 @@ def _poll_out(poll: Poll, current_user: User, creator_map: dict) -> dict:
 
     options = []
     for opt in poll.options:
-        count = sum(1 for v in votes if v.option_id == opt.id) if reveal else None
+        count = agg["option_counts"][opt.id] if reveal else None
         pct   = round(count / voter_count * 100) if (reveal and voter_count > 0 and count is not None) else 0
         options.append({
             "id":         opt.id,
@@ -76,14 +119,16 @@ def _poll_out(poll: Poll, current_user: User, creator_map: dict) -> dict:
 def _load_poll(db: Session, poll_id: int) -> Poll | None:
     return (
         db.query(Poll)
-        .options(
-            selectinload(Poll.options),
-            selectinload(Poll.votes),
-            selectinload(Poll.anonymous_voters),
-        )
+        .options(selectinload(Poll.options))
         .filter(Poll.id == poll_id)
         .first()
     )
+
+
+def _poll_out_single(db: Session, poll: Poll, current_user: User) -> dict:
+    creators = _creator_map(db, [poll])
+    agg = _vote_aggregates(db, [poll.id], current_user.id)[poll.id]
+    return _poll_out(poll, current_user, creators, agg)
 
 
 def _creator_map(db: Session, polls: list) -> dict:
@@ -127,16 +172,13 @@ class PollUpdate(BaseModel):
 def list_polls(db: Session = Depends(get_db), current_user: User = Depends(get_current_user)):
     polls = (
         db.query(Poll)
-        .options(
-            selectinload(Poll.options),
-            selectinload(Poll.votes),
-            selectinload(Poll.anonymous_voters),
-        )
+        .options(selectinload(Poll.options))
         .order_by(Poll.created_at.desc())
         .all()
     )
     creators = _creator_map(db, polls)
-    return [_poll_out(p, current_user, creators) for p in polls]
+    agg = _vote_aggregates(db, [p.id for p in polls], current_user.id)
+    return [_poll_out(p, current_user, creators, agg[p.id]) for p in polls]
 
 
 @router.post("", status_code=201)
@@ -163,14 +205,13 @@ def create_poll(data: PollCreate, db: Session = Depends(get_db), current_user: U
             db.add(PollOption(poll_id=poll.id, text=opt.text.strip(), position=i))
     db.commit()
     poll = _load_poll(db, poll.id)
-    creators = _creator_map(db, [poll])
     members = db.query(Member).filter(Member.is_active == True, Member.email.isnot(None)).all()
     _notify_poll(
         poll.title, poll.description,
         [opt.text for opt in poll.options],
         [m.email for m in members],
     )
-    return _poll_out(poll, current_user, creators)
+    return _poll_out_single(db, poll, current_user)
 
 
 @router.get("/{poll_id}")
@@ -178,8 +219,7 @@ def get_poll(poll_id: int, db: Session = Depends(get_db), current_user: User = D
     poll = _load_poll(db, poll_id)
     if not poll:
         raise HTTPException(status_code=404, detail="Poll not found")
-    creators = _creator_map(db, [poll])
-    return _poll_out(poll, current_user, creators)
+    return _poll_out_single(db, poll, current_user)
 
 
 @router.post("/{poll_id}/vote", status_code=200)
@@ -214,8 +254,7 @@ def cast_vote(poll_id: int, data: VoteCast, db: Session = Depends(get_db), curre
 
     db.commit()
     poll = _load_poll(db, poll_id)
-    creators = _creator_map(db, [poll])
-    return _poll_out(poll, current_user, creators)
+    return _poll_out_single(db, poll, current_user)
 
 
 @router.put("/{poll_id}/vote", status_code=200)
@@ -251,8 +290,7 @@ def change_vote(poll_id: int, data: VoteCast, db: Session = Depends(get_db), cur
 
     db.commit()
     poll = _load_poll(db, poll_id)
-    creators = _creator_map(db, [poll])
-    return _poll_out(poll, current_user, creators)
+    return _poll_out_single(db, poll, current_user)
 
 
 @router.patch("/{poll_id}", status_code=200)
@@ -287,8 +325,7 @@ def update_poll(poll_id: int, data: PollUpdate, db: Session = Depends(get_db), c
 
     db.commit()
     poll = _load_poll(db, poll_id)
-    creators = _creator_map(db, [poll])
-    return _poll_out(poll, current_user, creators)
+    return _poll_out_single(db, poll, current_user)
 
 
 @router.patch("/{poll_id}/close", status_code=200)
@@ -301,8 +338,7 @@ def close_poll(poll_id: int, db: Session = Depends(get_db), current_user: User =
     poll.is_closed = True
     db.commit()
     poll = _load_poll(db, poll_id)
-    creators = _creator_map(db, [poll])
-    return _poll_out(poll, current_user, creators)
+    return _poll_out_single(db, poll, current_user)
 
 
 @router.delete("/{poll_id}", status_code=204)

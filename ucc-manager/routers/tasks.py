@@ -1,6 +1,7 @@
 from typing import List, Optional
 from fastapi import APIRouter, Depends, HTTPException, Query
-from sqlalchemy.orm import Session
+from sqlalchemy import func
+from sqlalchemy.orm import Session, selectinload
 from database import get_db
 from models.task import Task
 from models.member import Member
@@ -31,7 +32,8 @@ def list_tasks(
     priority: Optional[str] = None,
     db: Session = Depends(get_db),
 ):
-    q = db.query(Task)
+    # eager-load: TaskOut serializes assigned_to and event
+    q = db.query(Task).options(selectinload(Task.assigned_to), selectinload(Task.event))
     if member_id:
         q = q.filter(Task.assigned_to_id == member_id)
     if event_id:
@@ -76,14 +78,17 @@ def create_task(
 def tasks_summary(
     db: Session = Depends(get_db),
 ):
-    rows = db.query(Task).all()
+    rows = (
+        db.query(Task.assigned_to_id, Task.status, func.count(Task.id))
+        .group_by(Task.assigned_to_id, Task.status)
+        .all()
+    )
     summary: dict = {}
-    for t in rows:
-        key = t.assigned_to_id
-        if key not in summary:
-            summary[key] = {"member_id": key, "todo": 0, "in_progress": 0, "done": 0, "total": 0}
-        summary[key][t.status] = summary[key].get(t.status, 0) + 1
-        summary[key]["total"] += 1
+    for member_id, status, count in rows:
+        if member_id not in summary:
+            summary[member_id] = {"member_id": member_id, "todo": 0, "in_progress": 0, "done": 0, "total": 0}
+        summary[member_id][status] = summary[member_id].get(status, 0) + count
+        summary[member_id]["total"] += count
     return list(summary.values())
 
 
@@ -172,9 +177,15 @@ def bulk_assign(
         created.append(task)
 
     db.commit()
-    for t in created:
-        db.refresh(t)
-    return created
+    created_ids = [t.id for t in created]
+    tasks = (
+        db.query(Task)
+        .options(selectinload(Task.assigned_to), selectinload(Task.event))
+        .filter(Task.id.in_(created_ids))
+        .all()
+    )
+    by_id = {t.id: t for t in tasks}
+    return [by_id[i] for i in created_ids]
 
 
 @router.delete("/{task_id}", status_code=204)

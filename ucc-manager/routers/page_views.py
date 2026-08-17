@@ -1,9 +1,8 @@
-from collections import defaultdict
 from datetime import datetime, timedelta, timezone
 from typing import Optional
 from fastapi import APIRouter, Depends, HTTPException
 from pydantic import BaseModel
-from sqlalchemy import func
+from sqlalchemy import case, func
 from sqlalchemy.orm import Session
 from database import get_db
 from dependencies.auth import get_current_user
@@ -57,69 +56,72 @@ def get_perf(db: Session = Depends(get_db), current_user=Depends(get_current_use
     since_7d  = now - timedelta(days=7)
     since_14d = now - timedelta(days=14)
 
-    rows = (
-        db.query(PageView)
-        .filter(PageView.visited_at >= since_30d, PageView.nav_ms.isnot(None))
+    def _round(v):
+        return round(v) if v is not None else None
+
+    base_filter = (PageView.visited_at >= since_30d, PageView.nav_ms.isnot(None))
+    mobile_ms  = case((PageView.device == "mobile", PageView.nav_ms))
+    desktop_ms = case((PageView.device == "desktop", PageView.nav_ms))
+
+    summary = (
+        db.query(
+            func.count().label("total"),
+            func.avg(PageView.nav_ms).label("avg_ms"),
+            func.percentile_cont(0.75).within_group(PageView.nav_ms).label("p75_ms"),
+            func.avg(mobile_ms).label("mobile_avg_ms"),
+            func.avg(desktop_ms).label("desktop_avg_ms"),
+            func.count(mobile_ms).label("mobile_count"),
+            func.avg(case((PageView.visited_at >= since_7d, PageView.nav_ms))).label("tw_avg"),
+            func.avg(case(
+                ((PageView.visited_at >= since_14d) & (PageView.visited_at < since_7d), PageView.nav_ms)
+            )).label("lw_avg"),
+        )
+        .filter(*base_filter)
+        .one()
+    )
+
+    page_rows = (
+        db.query(
+            PageView.page,
+            func.count().label("visits"),
+            func.avg(PageView.nav_ms).label("avg_ms"),
+            func.percentile_cont(0.75).within_group(PageView.nav_ms).label("p75_ms"),
+            func.avg(mobile_ms).label("mobile_avg_ms"),
+            func.avg(desktop_ms).label("desktop_avg_ms"),
+        )
+        .filter(*base_filter)
+        .group_by(PageView.page)
+        .order_by(func.count().desc())
+        .limit(25)
         .all()
     )
 
-    def _avg(lst):
-        return round(sum(lst) / len(lst)) if lst else None
+    pages = [
+        {
+            "page": r.page,
+            "visits": r.visits,
+            "avg_ms": _round(r.avg_ms),
+            "p75_ms": _round(r.p75_ms),
+            "mobile_avg_ms": _round(r.mobile_avg_ms),
+            "desktop_avg_ms": _round(r.desktop_avg_ms),
+        }
+        for r in page_rows
+    ]
 
-    def _p75(lst):
-        if not lst:
-            return None
-        s = sorted(lst)
-        return s[min(int(len(s) * 0.75), len(s) - 1)]
-
-    # Aggregate per page
-    page_buckets = defaultdict(lambda: {"all": [], "mobile": [], "desktop": []})
-    all_ms, mobile_ms, desktop_ms = [], [], []
-    this_week, last_week = [], []
-
-    for r in rows:
-        page_buckets[r.page]["all"].append(r.nav_ms)
-        all_ms.append(r.nav_ms)
-        if r.device == "mobile":
-            page_buckets[r.page]["mobile"].append(r.nav_ms)
-            mobile_ms.append(r.nav_ms)
-        elif r.device == "desktop":
-            page_buckets[r.page]["desktop"].append(r.nav_ms)
-            desktop_ms.append(r.nav_ms)
-        if r.visited_at.replace(tzinfo=timezone.utc) >= since_7d:
-            this_week.append(r.nav_ms)
-        elif r.visited_at.replace(tzinfo=timezone.utc) >= since_14d:
-            last_week.append(r.nav_ms)
-
-    pages = sorted(
-        [
-            {
-                "page": page,
-                "visits": len(d["all"]),
-                "avg_ms": _avg(d["all"]),
-                "p75_ms": _p75(d["all"]),
-                "mobile_avg_ms": _avg(d["mobile"]),
-                "desktop_avg_ms": _avg(d["desktop"]),
-            }
-            for page, d in page_buckets.items()
-        ],
-        key=lambda x: -x["visits"],
-    )[:25]
-
-    tw_avg = _avg(this_week)
-    lw_avg = _avg(last_week)
+    tw_avg = _round(summary.tw_avg)
+    lw_avg = _round(summary.lw_avg)
     trend_pct = (
         round((lw_avg - tw_avg) / lw_avg * 100) if tw_avg and lw_avg else None
     )
 
     return {
         "summary": {
-            "total_navigations": len(all_ms),
-            "avg_ms": _avg(all_ms),
-            "p75_ms": _p75(all_ms),
-            "mobile_avg_ms": _avg(mobile_ms),
-            "desktop_avg_ms": _avg(desktop_ms),
-            "mobile_pct": round(len(mobile_ms) / len(all_ms) * 100) if all_ms else 0,
+            "total_navigations": summary.total,
+            "avg_ms": _round(summary.avg_ms),
+            "p75_ms": _round(summary.p75_ms),
+            "mobile_avg_ms": _round(summary.mobile_avg_ms),
+            "desktop_avg_ms": _round(summary.desktop_avg_ms),
+            "mobile_pct": round(summary.mobile_count / summary.total * 100) if summary.total else 0,
         },
         "pages": pages,
         "trend": {

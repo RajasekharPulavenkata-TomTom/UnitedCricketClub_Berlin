@@ -219,6 +219,19 @@ def _run_migrations():
         conn.execute(text("CREATE INDEX IF NOT EXISTS ix_page_views_device ON page_views (device) WHERE device IS NOT NULL"))
         conn.execute(text("CREATE INDEX IF NOT EXISTS ix_int_tournament_teams_tournament_id ON internal_tournament_teams (tournament_id)"))
         conn.execute(text("CREATE INDEX IF NOT EXISTS ix_int_tournament_team_players_team_id ON internal_tournament_team_players (team_id)"))
+        # Legacy quiz_questions predates the JSON `options` column; no version of
+        # the current model can read it (every query 500s on UndefinedColumn), so
+        # its rows are unreachable seed content. Drop it — create_all then
+        # recreates the table with the current schema and _seed_quiz_questions
+        # repopulates it.
+        if "quiz_questions" in existing_tables and "options" not in _cols.get("quiz_questions", set()):
+            conn.execute(text("DROP TABLE quiz_questions"))
+        # Approvals queue: nearly all rows are 'approved', so a partial index on the
+        # pending slice is far more selective than a full status index
+        conn.execute(text("CREATE INDEX IF NOT EXISTS ix_transactions_pending ON transactions (created_at) WHERE status = 'pending'"))
+        # Date-range filters (routers use sargable half-open ranges on these columns)
+        conn.execute(text("CREATE INDEX IF NOT EXISTS ix_events_date ON events (date)"))
+        conn.execute(text("CREATE INDEX IF NOT EXISTS ix_player_availability_date ON player_availability (date)"))
         if "tournament_feedback" not in existing_tables:
             conn.execute(text("""
                 CREATE TABLE tournament_feedback (
@@ -439,20 +452,38 @@ def _seed_founding_events():
                 )
 
 
+def _seed_quiz_questions():
+    """Seed quiz questions at deploy time. Previously this ran lazily inside
+    GET /quiz/questions, where two concurrent cold starts could double-seed."""
+    from database import SessionLocal
+    from routers.quiz import _seed
+    db = SessionLocal()
+    try:
+        _seed(db)
+    finally:
+        db.close()
+
+
 def _stamp_service_worker():
-    """Bake a deploy-stable cache key into static/sw.js.
+    """Bake a deploy-stable cache key into static assets.
 
     The version must be identical across every instance of a deployment and must
     change on every deployment. A per-process value (the old boot timestamp) makes
     clients thrash between service-worker caches once more than one instance exists.
+
+    Besides sw.js, the same key is stamped into the ?v= asset URLs in the HTML
+    entry points and into app.js's _SV: stable URLs within a deploy make the
+    immutable Cache-Control headers effective, and a new deploy rotates every
+    URL at once so updates propagate.
     """
     version = os.environ.get("VERCEL_GIT_COMMIT_SHA") or os.environ.get("VERCEL_DEPLOYMENT_ID")
     if not version:
-        print("==> No Vercel deploy identifier; leaving service worker placeholder intact")
+        print("==> No Vercel deploy identifier; leaving cache-version placeholders intact")
         return
-    sw = ROOT / "static" / "sw.js"
-    sw.write_text(sw.read_text().replace("__CACHE_VERSION__", f"ucc-{version}"))
-    print(f"==> Stamped service worker cache version: ucc-{version}")
+    for rel in ("static/sw.js", "static/index.html", "static/avail.html", "static/js/app.js"):
+        f = ROOT / rel
+        f.write_text(f.read_text().replace("__CACHE_VERSION__", f"ucc-{version}"))
+    print(f"==> Stamped cache version into sw.js, index.html, avail.html, app.js: ucc-{version}")
 
 
 def _apply_schema():
@@ -473,6 +504,8 @@ def _apply_schema():
     print("==> Seeding sponsors and founding events...")
     _seed_sponsors()
     _seed_founding_events()
+    print("==> Seeding quiz questions...")
+    _seed_quiz_questions()
 
 
 def main():

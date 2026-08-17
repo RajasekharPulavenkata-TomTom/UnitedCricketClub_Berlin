@@ -1,9 +1,8 @@
 from typing import List, Optional
 from datetime import date
 import asyncio
-from fastapi import APIRouter, Depends, HTTPException
+from fastapi import APIRouter, Depends, HTTPException, Query
 from sqlalchemy.orm import Session
-from sqlalchemy import extract
 from pydantic import BaseModel
 import httpx
 from database import get_db
@@ -356,17 +355,15 @@ async def cricclubs_scorecard(match_id: int):
 @router.get("", response_model=List[MatchResultOut])
 def list_results(
     year: Optional[int] = None,
-    limit: Optional[int] = None,
+    limit: int = Query(default=100, le=500),
     offset: int = 0,
     db: Session = Depends(get_db),
 ):
     q = db.query(MatchResult)
     if year:
-        q = q.filter(extract("year", MatchResult.date) == year)
-    q = q.order_by(MatchResult.date.desc())
-    if limit is not None:
-        q = q.offset(offset).limit(limit)
-    return q.all()
+        # half-open range keeps the filter sargable (extract() would force a full scan)
+        q = q.filter(MatchResult.date >= date(year, 1, 1), MatchResult.date < date(year + 1, 1, 1))
+    return q.order_by(MatchResult.date.desc()).offset(offset).limit(limit).all()
 
 
 @router.post("", response_model=MatchResultOut, status_code=201)

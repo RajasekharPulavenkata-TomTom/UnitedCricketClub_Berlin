@@ -16,14 +16,18 @@ from services.notification_service import notify_event_created as _notify_event
 router = APIRouter(prefix="/api", tags=["events"])
 
 
-def _attach_counts(events: list) -> list[dict]:
+def _attach_counts(events: list, member_id: Optional[int] = None) -> list[dict]:
     result = []
     for e in events:
         counts = {"available": 0, "unavailable": 0, "maybe": 0}
+        my_status = None
         for a in e.availability:
             if a.status in counts:
                 counts[a.status] += 1
+            if member_id and a.member_id == member_id:
+                my_status = a.status
         result.append({
+            "my_status": my_status,
             "id": e.id,
             "date": e.date,
             "title": e.title,
@@ -47,15 +51,22 @@ def _attach_counts(events: list) -> list[dict]:
 def list_events(
     year: Optional[int] = None,
     month: Optional[int] = None,
+    member_id: Optional[int] = None,
     db: Session = Depends(get_db),
 ):
+    from datetime import date as date_type
     q = db.query(Event).options(joinedload(Event.availability))
-    if year:
-        q = q.filter(func.extract("year", Event.date) == year)
-    if month:
+    # half-open ranges keep the filters sargable (extract() would force a full scan)
+    if year and month:
+        start = date_type(year, month, 1)
+        end = date_type(year + 1, 1, 1) if month == 12 else date_type(year, month + 1, 1)
+        q = q.filter(Event.date >= start, Event.date < end)
+    elif year:
+        q = q.filter(Event.date >= date_type(year, 1, 1), Event.date < date_type(year + 1, 1, 1))
+    elif month:
         q = q.filter(func.extract("month", Event.date) == month)
     events = q.order_by(Event.date).all()
-    return _attach_counts(events)
+    return _attach_counts(events, member_id=member_id)
 
 
 @router.post("/events", response_model=EventOut, status_code=201)

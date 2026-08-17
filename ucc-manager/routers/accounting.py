@@ -1,6 +1,6 @@
 from typing import List, Optional
 from fastapi import APIRouter, Depends, HTTPException, Query
-from sqlalchemy.orm import Session
+from sqlalchemy.orm import Session, joinedload
 from sqlalchemy import or_
 from database import get_db
 from models.accounting import Category, Transaction
@@ -54,7 +54,7 @@ def delete_category(id: int, db: Session = Depends(get_db)):
     cat = db.query(Category).filter(Category.id == id).first()
     if not cat:
         raise HTTPException(status_code=404, detail="Category not found")
-    if cat.transactions:
+    if db.query(Transaction.id).filter(Transaction.category_id == id).limit(1).first():
         raise HTTPException(status_code=400, detail="Cannot delete category with existing transactions")
     db.delete(cat)
     db.commit()
@@ -73,7 +73,8 @@ def list_transactions(
     db: Session = Depends(get_db),
 ):
     from sqlalchemy import func
-    q = db.query(Transaction)
+    # eager-load: TransactionOut serializes category
+    q = db.query(Transaction).options(joinedload(Transaction.category))
     if type:
         q = q.filter(Transaction.type == type)
     if category_id:

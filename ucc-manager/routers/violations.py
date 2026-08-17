@@ -17,9 +17,9 @@ RULE_REFS = {"MISCONDUCT", "PUNCTUALITY", "EQUIPMENT", "FINANCIAL", "COMMUNICATI
 
 def _resolve(db: Session, violations: list, all_for_strikes: list | None = None) -> tuple:
     member_ids = {v.member_id for v in violations if v.member_id}
-    user_ids   = {v.logged_by_id for v in violations if v.logged_by_id}
     members   = {m.id: m for m in db.query(Member).filter(Member.id.in_(member_ids)).all()} if member_ids else {}
-    logged_by = {u.id: u for u in db.query(User).filter(User.id.in_(user_ids)).all()} if user_ids else {}
+    # _out never exposes logged_by (privacy), so don't pay a users query for it
+    logged_by = {}
     src       = all_for_strikes if all_for_strikes is not None else violations
     strikes   = dict(Counter(v.member_id for v in src))
     return members, logged_by, strikes

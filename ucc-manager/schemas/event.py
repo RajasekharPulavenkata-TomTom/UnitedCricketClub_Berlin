@@ -49,5 +49,7 @@ class EventOut(BaseModel):
     available_count: int = 0
     unavailable_count: int = 0
     maybe_count: int = 0
+    # requesting member's own status; only set when list_events gets ?member_id=
+    my_status: Optional[str] = None
 
     model_config = {"from_attributes": True}

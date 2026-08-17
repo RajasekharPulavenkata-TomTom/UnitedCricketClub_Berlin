@@ -3,6 +3,7 @@ from collections import Counter
 from datetime import datetime, timezone
 from fastapi import APIRouter, Depends, HTTPException
 from pydantic import BaseModel
+from sqlalchemy import func
 from sqlalchemy.orm import Session, selectinload
 from database import get_db
 from models.election import Election, ElectionCandidate, ElectionVote, ElectionVoter, ElectionNomination
@@ -33,26 +34,52 @@ def _load(db: Session, election_id: int) -> Election | None:
         .options(
             selectinload(Election.candidates).selectinload(ElectionCandidate.member),
             selectinload(Election.nominations).selectinload(ElectionNomination.member),
-            selectinload(Election.votes),
-            selectinload(Election.voters),
         )
         .filter(Election.id == election_id)
         .first()
     )
 
 
-def _out(election: Election, current_user: User) -> dict:
+def _aggregates(db: Session, election_ids: list[int], user_id: int) -> dict:
+    """Per-election vote counts, voter counts and did-this-user-vote, computed
+    in SQL — never loads a row per vote."""
+    agg = {
+        eid: {"vote_counts": Counter(), "voter_count": 0, "has_voted": False}
+        for eid in election_ids
+    }
+    if not election_ids:
+        return agg
+    for eid, cid, count in (
+        db.query(ElectionVote.election_id, ElectionVote.candidate_id, func.count())
+        .filter(ElectionVote.election_id.in_(election_ids))
+        .group_by(ElectionVote.election_id, ElectionVote.candidate_id)
+    ):
+        agg[eid]["vote_counts"][cid] = count
+    for eid, count in (
+        db.query(ElectionVoter.election_id, func.count())
+        .filter(ElectionVoter.election_id.in_(election_ids))
+        .group_by(ElectionVoter.election_id)
+    ):
+        agg[eid]["voter_count"] = count
+    for (eid,) in (
+        db.query(ElectionVoter.election_id)
+        .filter(ElectionVoter.election_id.in_(election_ids), ElectionVoter.user_id == user_id)
+    ):
+        agg[eid]["has_voted"] = True
+    return agg
+
+
+def _out(election: Election, current_user: User, agg: dict) -> dict:
     closed    = election.status == "closed"
     voting    = election.status == "voting"
-    has_voted = any(v.user_id == current_user.id for v in election.voters)
+    has_voted = agg["has_voted"]
     reveal    = has_voted or closed
-    total     = len(election.votes)
 
     # Use unique voter count for percentages (not total vote rows)
-    voter_count = len(election.voters)
+    voter_count = agg["voter_count"]
 
     # Candidates (only present during voting / closed)
-    vote_counts = Counter(v.candidate_id for v in election.votes)
+    vote_counts = agg["vote_counts"]
     candidates = []
     for c in election.candidates:
         count = vote_counts[c.id]
@@ -104,6 +131,10 @@ def _out(election: Election, current_user: User) -> dict:
     }
 
 
+def _out_single(db: Session, election: Election, current_user: User) -> dict:
+    return _out(election, current_user, _aggregates(db, [election.id], current_user.id)[election.id])
+
+
 def _maybe_open_voting(db: Session, election: Election) -> Election | None:
     """Auto-transition nominating → voting when deadline passes and enough nominations exist.
     Returns the reloaded election if transitioned, None if no action taken."""
@@ -145,13 +176,12 @@ def list_elections(db: Session = Depends(get_db), current_user: User = Depends(g
         .options(
             selectinload(Election.candidates).selectinload(ElectionCandidate.member),
             selectinload(Election.nominations).selectinload(ElectionNomination.member),
-            selectinload(Election.votes),
-            selectinload(Election.voters),
         )
         .order_by(Election.created_at.desc())
         .all()
     )
-    return [_out(_maybe_open_voting(db, e) or e, current_user) for e in elections]
+    agg = _aggregates(db, [e.id for e in elections], current_user.id)
+    return [_out(_maybe_open_voting(db, e) or e, current_user, agg[e.id]) for e in elections]
 
 
 @router.post("", status_code=201)
@@ -179,7 +209,7 @@ def create_election(
     db.commit()
     close_str = election.nominations_close_at.strftime("%d %b %Y %H:%M UTC") if election.nominations_close_at else None
     _notify_noms(election.title, election.description, election.seats, close_str, _member_emails(db))
-    return _out(_load(db, election.id), current_user)
+    return _out_single(db, _load(db, election.id), current_user)
 
 
 @router.get("/{election_id}")
@@ -187,7 +217,7 @@ def get_election(election_id: int, db: Session = Depends(get_db), current_user: 
     election = _load(db, election_id)
     if not election:
         raise HTTPException(status_code=404, detail="Election not found")
-    return _out(_maybe_open_voting(db, election) or election, current_user)
+    return _out_single(db, _maybe_open_voting(db, election) or election, current_user)
 
 
 @router.post("/{election_id}/nominate")
@@ -212,7 +242,7 @@ def nominate(
         user_id=current_user.id,
     ))
     db.commit()
-    return _out(_load(db, election_id), current_user)
+    return _out_single(db, _load(db, election_id), current_user)
 
 
 @router.delete("/{election_id}/nominate")
@@ -232,7 +262,7 @@ def withdraw_nomination(
         raise HTTPException(status_code=404, detail="No nomination found to withdraw")
     db.delete(nom)
     db.commit()
-    return _out(_load(db, election_id), current_user)
+    return _out_single(db, _load(db, election_id), current_user)
 
 
 class ElectionDeadlineUpdate(BaseModel):
@@ -255,7 +285,7 @@ def set_deadline(
         raise HTTPException(status_code=400, detail="Deadline can only be set during the nomination phase")
     election.nominations_close_at = data.nominations_close_at
     db.commit()
-    return _out(_load(db, election_id), current_user)
+    return _out_single(db, _load(db, election_id), current_user)
 
 
 @router.patch("/{election_id}/revert-to-nominating")
@@ -278,7 +308,7 @@ def revert_to_nominating(
     election.status = "nominating"
     db.flush()
     db.commit()
-    return _out(_load(db, election_id), current_user)
+    return _out_single(db, _load(db, election_id), current_user)
 
 
 @router.patch("/{election_id}/start-voting")
@@ -308,7 +338,7 @@ def start_voting(
     loaded = _load(db, election_id)
     candidate_names = [c.member.name for c in loaded.candidates if c.member]
     _notify_voting(election.title, candidate_names, election.seats, _member_emails(db))
-    return _out(loaded, current_user)
+    return _out_single(db, loaded, current_user)
 
 
 @router.patch("/{election_id}/close")
@@ -328,15 +358,15 @@ def close_election(
     election.closed_at = datetime.now(timezone.utc)
     db.commit()
     loaded = _load(db, election_id)
-    vote_counts = Counter(v.candidate_id for v in loaded.votes)
+    agg = _aggregates(db, [election_id], current_user.id)[election_id]
     candidate_votes = sorted(
-        [(c.member.name if c.member else "Unknown", vote_counts[c.id])
+        [(c.member.name if c.member else "Unknown", agg["vote_counts"][c.id])
          for c in loaded.candidates],
         key=lambda x: -x[1],
     )
     winners = [name for name, _ in candidate_votes[:election.seats]]
     _notify_closed(election.title, winners, _member_emails(db))
-    return _out(loaded, current_user)
+    return _out(loaded, current_user, agg)
 
 
 @router.post("/{election_id}/vote")
@@ -373,7 +403,7 @@ def cast_vote(
     for cid in candidate_ids:
         db.add(ElectionVote(election_id=election_id, candidate_id=cid))
     db.commit()
-    return _out(_load(db, election_id), current_user)
+    return _out_single(db, _load(db, election_id), current_user)
 
 
 @router.delete("/{election_id}", status_code=204)

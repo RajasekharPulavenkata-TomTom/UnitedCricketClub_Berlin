@@ -39,9 +39,13 @@ def _available_ids(event_id: int, db: Session) -> list[int]:
 
 @router.get("")
 def list_events(year: Optional[int] = None, event_type: str = "match", db: Session = Depends(get_db)):
+    from datetime import date as date_type
+    # the UI always sends a year; default it server-side so a bare call can't
+    # fetch every event (plus squad/availability rows) ever recorded
+    if not year:
+        year = date_type.today().year
     query = db.query(Event).filter(Event.type == event_type)
-    if year:
-        query = query.filter(Event.date.between(f"{year}-01-01", f"{year}-12-31"))
+    query = query.filter(Event.date.between(f"{year}-01-01", f"{year}-12-31"))
     events = query.order_by(Event.date.desc()).all()
     if not events:
         return []

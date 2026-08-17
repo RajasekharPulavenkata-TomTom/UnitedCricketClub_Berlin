@@ -35,7 +35,11 @@ router = APIRouter(prefix="/api/int-tournaments", tags=["int-tournaments"])
 def _get_or_404(db: Session, id: int) -> InternalTournament:
     t = (
         db.query(InternalTournament)
-        .options(selectinload(InternalTournament.teams).selectinload(InternalTournamentTeam.players))
+        .options(
+            selectinload(InternalTournament.teams)
+            .selectinload(InternalTournamentTeam.players)
+            .selectinload(InternalTournamentTeamPlayer.member)
+        )
         .filter(InternalTournament.id == id)
         .first()
     )
@@ -48,7 +52,11 @@ def _get_or_404(db: Session, id: int) -> InternalTournament:
 def list_tournaments(db: Session = Depends(get_db)):
     return (
         db.query(InternalTournament)
-        .options(selectinload(InternalTournament.teams).selectinload(InternalTournamentTeam.players))
+        .options(
+            selectinload(InternalTournament.teams)
+            .selectinload(InternalTournamentTeam.players)
+            .selectinload(InternalTournamentTeamPlayer.member)
+        )
         .order_by(InternalTournament.start_date.desc())
         .all()
     )

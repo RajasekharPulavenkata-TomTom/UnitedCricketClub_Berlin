@@ -31,7 +31,7 @@ router = APIRouter(prefix="/api/ext-tournaments", tags=["ext-tournaments"])
 def _get_or_404(db: Session, id: int) -> ExternalTournament:
     t = (
         db.query(ExternalTournament)
-        .options(selectinload(ExternalTournament.players))
+        .options(selectinload(ExternalTournament.players).selectinload(ExternalTournamentPlayer.member))
         .filter(ExternalTournament.id == id)
         .first()
     )
@@ -52,7 +52,7 @@ def _enrich(t: ExternalTournament) -> ExternalTournament:
 def list_tournaments(db: Session = Depends(get_db)):
     return [_enrich(t) for t in (
         db.query(ExternalTournament)
-        .options(selectinload(ExternalTournament.players))
+        .options(selectinload(ExternalTournament.players).selectinload(ExternalTournamentPlayer.member))
         .order_by(ExternalTournament.start_date.desc())
         .all()
     )]

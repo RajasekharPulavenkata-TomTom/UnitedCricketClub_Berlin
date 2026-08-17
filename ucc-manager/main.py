@@ -19,19 +19,38 @@ from routers import accounting, inventory, members, member_payments, events, aud
 app = FastAPI(title="UCC Manager")
 app.add_middleware(GZipMiddleware, minimum_size=500)
 
+# API responses that are identical for every user and change rarely — safe to
+# cache on Vercel's CDN. Only list endpoints whose payload contains no
+# user-specific or sensitive data (public match scores, sponsor logos).
+_CDN_CACHEABLE_API = ("/api/scoreboard/cricclubs", "/api/sponsors")
+
+
 @app.middleware("http")
 async def cache_control(request: Request, call_next):
     response = await call_next(request)
     path = request.url.path
     if path.startswith("/api/") or path == "/sw.js":
-        # /sw.js must stay no-store: it ends in .js, so without this guard the
-        # branch below would clobber the no-store the route itself sets.
-        response.headers["Cache-Control"] = "no-store"
+        if (request.method == "GET" and response.status_code == 200
+                and path.startswith(_CDN_CACHEABLE_API)):
+            # served stale for up to 15 min while the CDN revalidates in background
+            response.headers["Cache-Control"] = "private, no-store"
+            response.headers["Vercel-CDN-Cache-Control"] = "s-maxage=900, stale-while-revalidate=3600"
+        else:
+            # /sw.js must stay no-store: it ends in .js, so without this guard the
+            # branch below would clobber the no-store the route itself sets.
+            response.headers["Cache-Control"] = "no-store"
     elif path.endswith((".js", ".css", ".png", ".jpg", ".webp", ".ico", ".woff2", ".svg", ".gif")):
         # versioned via ?v= query param — safe to cache for a long time
         response.headers["Cache-Control"] = "public, max-age=31536000, immutable"
     elif path.endswith(".html") or path == "/":
+        # Browser must revalidate (no-cache) so deploys propagate, but Vercel's
+        # CDN may hold the shell at the edge near the user — the function runs
+        # in iad1 (colocated with Neon) and serving HTML from there costs users
+        # in Europe/Asia ~700ms per refresh. Safe: the shell is identical for
+        # every user (auth/data are client-side) and Vercel purges its CDN on
+        # every deployment.
         response.headers["Cache-Control"] = "no-cache"
+        response.headers["Vercel-CDN-Cache-Control"] = "s-maxage=86400, stale-while-revalidate=604800"
     return response
 
 _auth = [Depends(get_current_user)]

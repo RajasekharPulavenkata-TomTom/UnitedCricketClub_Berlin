@@ -1,6 +1,7 @@
 {
   "$schema": "https://openapi.vercel.sh/vercel.json",
   "buildCommand": "python vercel_build.py",
+  "regions": ["fra1"],
   "functions": {
     "main.py": {
       "maxDuration": 60,

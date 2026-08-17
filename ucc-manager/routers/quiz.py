@@ -284,6 +284,10 @@ _SEED_QUESTIONS = [
 
 
 def _seed(db: Session) -> None:
+    """Idempotent seed, invoked from vercel_build.py at deploy time — never per
+    request: two concurrent cold starts both seeing count==0 would double-seed."""
+    if db.query(QuizQuestion).count() > 0:
+        return
     for q in _SEED_QUESTIONS:
         db.add(QuizQuestion(**q))
     db.commit()
@@ -291,9 +295,6 @@ def _seed(db: Session) -> None:
 
 @router.get("/quiz/questions")
 def get_questions(db: Session = Depends(get_db)):
-    if db.query(QuizQuestion).count() == 0:
-        _seed(db)
-
     questions = (
         db.query(QuizQuestion)
         .order_by(func.random())

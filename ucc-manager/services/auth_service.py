@@ -1,3 +1,4 @@
+import hashlib
 import os
 import bcrypt
 from datetime import datetime, timedelta, timezone
@@ -35,6 +36,39 @@ def decode_token(token: str) -> dict:
         return jwt.decode(token, SECRET_KEY, algorithms=[ALGORITHM])
     except JWTError:
         raise HTTPException(status_code=401, detail="Invalid or expired token")
+
+
+RESET_TOKEN_EXPIRE_MINUTES = 30
+
+
+def _pw_fingerprint(hashed_password: str) -> str:
+    return hashlib.sha256(hashed_password.encode()).hexdigest()[:16]
+
+
+def create_reset_token(user: User) -> str:
+    """Stateless single-use reset token: the fingerprint of the current password
+    hash is baked in, so the token dies the moment the password changes."""
+    expire = datetime.now(timezone.utc) + timedelta(minutes=RESET_TOKEN_EXPIRE_MINUTES)
+    payload = {
+        "sub": str(user.id),
+        "purpose": "pwreset",
+        "fp": _pw_fingerprint(user.hashed_password),
+        "exp": expire,
+    }
+    return jwt.encode(payload, SECRET_KEY, algorithm=ALGORITHM)
+
+
+def verify_reset_token(db: Session, token: str) -> User | None:
+    try:
+        payload = jwt.decode(token, SECRET_KEY, algorithms=[ALGORITHM])
+    except JWTError:
+        return None
+    if payload.get("purpose") != "pwreset":
+        return None
+    user = db.query(User).filter(User.id == int(payload["sub"]), User.is_active == True).first()
+    if not user or _pw_fingerprint(user.hashed_password) != payload.get("fp"):
+        return None
+    return user
 
 
 def authenticate_user(db: Session, username: str, password: str) -> User | None:

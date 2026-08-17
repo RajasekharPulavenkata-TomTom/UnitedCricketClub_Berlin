@@ -191,6 +191,29 @@ def notify_user_approved(
     _send([recipient_email], "[UCC] Your account has been approved", _html("Account Approved", body))
 
 
+def notify_password_reset(
+    username: str,
+    reset_url: str,
+    recipient_email: str,
+) -> None:
+    body = f"""
+    <p style="margin:0 0 16px;color:#212529;font-size:16px;">
+      Hi <strong>{_esc(username)}</strong>,
+    </p>
+    <p style="margin:0 0 24px;color:#6c757d;font-size:14px;line-height:1.6;">
+      We received a request to reset your UCC Manager password. Click the button
+      below to choose a new one. The link is valid for 30 minutes and can be
+      used once.
+    </p>
+    <p style="margin:0;">{_btn("Reset Password", reset_url)}</p>
+    <p style="margin:24px 0 0;color:#adb5bd;font-size:12px;line-height:1.6;">
+      If you didn't request this, you can safely ignore this email — your
+      password is unchanged.
+    </p>
+    """
+    _send([recipient_email], "[UCC] Password reset", _html("Password Reset", body))
+
+
 def notify_election_nominations_open(
     title: str,
     description: str | None,

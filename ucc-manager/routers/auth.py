@@ -1,14 +1,26 @@
+import os
 from typing import List
 from fastapi import APIRouter, Depends, HTTPException
 from sqlalchemy import text
 from sqlalchemy.orm import Session
 from database import get_db
 from models.auth import User
-from schemas.auth import LoginRequest, TokenOut, UserCreate, UserUpdate, PasswordReset, PasswordChange, UserOut, RegisterRequest
-from services.auth_service import create_access_token, hash_password, verify_password
+from schemas.auth import (
+    LoginRequest, TokenOut, UserCreate, UserUpdate, PasswordReset, PasswordChange,
+    UserOut, RegisterRequest, ForgotPasswordRequest, ResetPasswordRequest,
+)
+from services.auth_service import (
+    create_access_token, hash_password, verify_password,
+    create_reset_token, verify_reset_token,
+)
 from dependencies.auth import get_current_user, require_root
 from models.member import Member
-from services.notification_service import notify_user_approved as _notify_approved
+from services.notification_service import (
+    notify_user_approved as _notify_approved,
+    notify_password_reset as _notify_reset,
+)
+
+_APP_URL = os.getenv("APP_URL", "").rstrip("/")
 
 router = APIRouter(prefix="/api/auth", tags=["auth"])
 
@@ -45,6 +57,36 @@ def register(data: RegisterRequest, db: Session = Depends(get_db)):
     db.add(user)
     db.commit()
     return {"message": "Account created. You can now log in."}
+
+
+@router.post("/forgot-password", status_code=200)
+def forgot_password(data: ForgotPasswordRequest, db: Session = Depends(get_db)):
+    # Same response no matter what — never reveals whether an account exists
+    # or has an email on file.
+    generic = {"message": "If this account has an email on file, a reset link has been sent."}
+    user = db.query(User).filter(
+        User.username == data.username.strip(),
+        User.is_active == True,
+        User.status == "active",
+    ).first()
+    if not user or not user.member_id:
+        return generic
+    member = db.query(Member).filter(Member.id == user.member_id).first()
+    if not member or not member.email:
+        return generic
+    reset_url = f"{_APP_URL or ''}/?reset={create_reset_token(user)}"
+    _notify_reset(user.username, reset_url, member.email)
+    return generic
+
+
+@router.post("/reset-password", status_code=200)
+def reset_password_with_token(data: ResetPasswordRequest, db: Session = Depends(get_db)):
+    user = verify_reset_token(db, data.token)
+    if not user:
+        raise HTTPException(status_code=400, detail="Invalid or expired reset link. Please request a new one.")
+    user.hashed_password = hash_password(data.new_password)
+    db.commit()
+    return {"message": "Password updated. You can now log in."}
 
 
 @router.get("/me", response_model=UserOut)

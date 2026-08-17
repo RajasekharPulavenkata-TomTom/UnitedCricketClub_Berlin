@@ -4,10 +4,16 @@
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1" />
   <title>UCC – My Availability</title>
+  <!-- Apply the saved theme before first paint — avoids a light flash on dark devices -->
+  <script>try{var m=localStorage.getItem("ucc_theme")||"auto";document.documentElement.setAttribute("data-bs-theme",m==="dark"||(m==="auto"&&matchMedia("(prefers-color-scheme: dark)").matches)?"dark":"light")}catch(e){}</script>
+  <!-- Icon font is two hops deep (HTML → CSS → WOFF2); preload skips the wait -->
+  <link rel="preload" href="/font/bootstrap-icons.woff2" as="font" type="font/woff2" crossorigin />
   <link rel="stylesheet" href="/css/bootstrap.min.css?v=5.3.3" />
   <!-- Local 175-icon subset (13 KB WOFF2); every icon this page uses is in it -->
-  <link rel="stylesheet" href="/css/bootstrap-icons.css" />
-  <link rel="stylesheet" href="/css/ucc.css" />
+  <!-- ?v= is stamped per deploy by vercel_build.py; must match index.html's refs
+       or the same file gets cached twice under two URLs -->
+  <link rel="stylesheet" href="/css/bootstrap-icons.css?v=__CACHE_VERSION__" />
+  <link rel="stylesheet" href="/css/ucc.css?v=__CACHE_VERSION__" />
   <style>
     body { background: #f4f6f8; }
     .event-card { transition: box-shadow .15s; }
@@ -33,6 +39,9 @@
       </picture>
       United Cricket Club
     </a>
+    <button class="btn btn-outline-light btn-sm" id="theme-cycle" title="Theme (light / dark / auto)">
+      <i class="bi bi-circle-half"></i>
+    </button>
   </div>
 </nav>
 
@@ -65,6 +74,7 @@
 </div>
 
 <script src="/js/bootstrap.bundle.min.js?v=5.3.3"></script>
+<script type="module" src="/js/suntheme.js?v=__CACHE_VERSION__"></script>
 <script>
 const BASE = "/api";
 
@@ -78,6 +88,21 @@ async function apiFetch(path, opts = {}) {
     if (!res.ok) throw new Error(data.detail || "Error");
     return data;
 }
+
+// Theme cycle button — window._setTheme comes from suntheme.js (module, loads
+// after this classic script parses, but always before any click can happen).
+const _themeIcons = { light: "bi-sun", dark: "bi-moon-stars", auto: "bi-circle-half" };
+function _syncThemeIcon() {
+    const mode = localStorage.getItem("ucc_theme") || "auto";
+    document.querySelector("#theme-cycle i").className = "bi " + _themeIcons[mode];
+}
+document.getElementById("theme-cycle").addEventListener("click", () => {
+    const order = ["auto", "light", "dark"];
+    const cur = localStorage.getItem("ucc_theme") || "auto";
+    window._setTheme(order[(order.indexOf(cur) + 1) % order.length]);
+    _syncThemeIcon();
+});
+_syncThemeIcon();
 
 function showToast(msg, type = "success") {
     const id = "t" + Date.now();
@@ -100,8 +125,30 @@ function fmtDate(d) {
 
 let memberId = null;
 let memberName = "";
+let _eventsPromise = null;
+let _eventsPromiseFor = null;
+
+function fetchUpcomingEvents(mid) {
+    // Next 3 months of events, with this member's availability inlined
+    // (?member_id= → my_status) — no per-event availability round trips.
+    const today = new Date();
+    const months = [0, 1, 2].map(delta => {
+        const d = new Date(today.getFullYear(), today.getMonth() + delta, 1);
+        return { year: d.getFullYear(), month: d.getMonth() + 1 };
+    });
+    return Promise.all(months.map(m => apiFetch(`/events?year=${m.year}&month=${m.month}&member_id=${mid}`)))
+        .then(results => results.flat());
+}
 
 async function init() {
+    // Returning player: the saved id is known synchronously, so the events fetch
+    // can run in parallel with /members instead of after it.
+    const savedId = localStorage.getItem("ucc_member_id");
+    if (savedId) {
+        _eventsPromiseFor = parseInt(savedId);
+        _eventsPromise = fetchUpcomingEvents(_eventsPromiseFor);
+        _eventsPromise.catch(() => {}); // surfaced when awaited in loadEvents
+    }
     const members = await apiFetch("/members?active_only=true");
     const sel = document.getElementById("member-select");
     members.forEach(m => {
@@ -166,17 +213,12 @@ async function loadEvents() {
     list.innerHTML = `<div class="text-center py-4"><div class="spinner-border text-success"></div></div>`;
 
     try {
-        // Fetch next 3 months of events
-        const today = new Date();
-        const months = [0, 1, 2].map(delta => {
-            const d = new Date(today.getFullYear(), today.getMonth() + delta, 1);
-            return { year: d.getFullYear(), month: d.getMonth() + 1 };
-        });
-        const fetches = months.map(m => apiFetch(`/events?year=${m.year}&month=${m.month}`));
-        const results = await Promise.all(fetches);
-        const allEvents = results.flat();
+        const allEvents = (_eventsPromise && _eventsPromiseFor === memberId)
+            ? await _eventsPromise
+            : await fetchUpcomingEvents(memberId);
+        _eventsPromise = null;
 
-        const todayStr = today.toISOString().split("T")[0];
+        const todayStr = new Date().toISOString().split("T")[0];
         const upcoming = allEvents.filter(e => e.date >= todayStr).sort((a, b) => a.date.localeCompare(b.date));
 
         if (!upcoming.length) {
@@ -184,13 +226,8 @@ async function loadEvents() {
             return;
         }
 
-        // Fetch this player's availability for each event
         const availMap = {};
-        await Promise.all(upcoming.map(async ev => {
-            const avail = await apiFetch(`/events/${ev.id}/availability`);
-            const mine = avail.find(a => a.member_id === memberId);
-            availMap[ev.id] = mine ? mine.status : "unknown";
-        }));
+        upcoming.forEach(ev => { availMap[ev.id] = ev.my_status || "unknown"; });
 
         renderEvents(upcoming, availMap);
     } catch (e) {

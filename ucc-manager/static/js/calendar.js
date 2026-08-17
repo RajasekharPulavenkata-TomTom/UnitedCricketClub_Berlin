@@ -1,5 +1,5 @@
 import { apiFetch, showToast, escHtml } from "/js/api.js";
-import { fetchWeather, fetchWeatherRange, weatherHtml, wmoInfo } from "/js/weather.js?v=4";
+import { fetchWeather, fetchWeatherRange, weatherHtml, wmoInfo } from "/js/weather.js?v=5";
 
 let eventModal, detailModal;
 let editingId = null;
@@ -380,7 +380,10 @@ window._viewEvent = async (id) => {
         rtEl.style.display = "none";
     }
 
-    fetchWeather(ev.date).then(w => {
+    // The render() range call usually already holds this date — reuse it and
+    // only hit the network for dates outside the 15-day window.
+    const cachedWx = weatherByDate[ev.date];
+    (cachedWx ? Promise.resolve(cachedWx) : fetchWeather(ev.date)).then(w => {
         const el = document.getElementById("det-weather");
         if (el) el.innerHTML = weatherHtml(w);
     });

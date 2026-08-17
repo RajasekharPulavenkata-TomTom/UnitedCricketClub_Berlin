@@ -29,9 +29,14 @@ self.addEventListener('fetch', e => {
         e.request.method !== 'GET'
     ) return;
 
+    // ?v=-keyed asset directories are immutable: a deploy changes their URLs,
+    // so a cache hit needs no background revalidation (or Cache Storage rewrite).
+    const immutable = ['/css/', '/js/', '/font/', '/img/'].some(p => pathname.startsWith(p));
+
     e.respondWith(
         caches.open(CACHE).then(cache =>
             cache.match(e.request).then(cached => {
+                if (cached && immutable) return cached; // cache-first, no revalidate
                 const network = fetch(e.request).then(res => {
                     if (res.ok) cache.put(e.request, res.clone());
                     return res;

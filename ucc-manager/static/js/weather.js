@@ -33,7 +33,7 @@ export function wmoInfo(code) {
 }
 
 export async function fetchWeatherRange(startDate, endDate) {
-    const params = `daily=temperature_2m_max,temperature_2m_min,weather_code&start_date=${startDate}&end_date=${endDate}`;
+    const params = `daily=temperature_2m_max,temperature_2m_min,precipitation_sum,weather_code&start_date=${startDate}&end_date=${endDate}`;
     // Try historical-forecast first (covers past + future); fall back to archive for past dates
     let d = await _fetchDaily(FORECAST_API, params);
     if (!d) {
@@ -49,6 +49,7 @@ export async function fetchWeatherRange(startDate, endDate) {
             code: codes[i],
             maxT: Math.round(d.daily.temperature_2m_max[i]),
             minT: Math.round(d.daily.temperature_2m_min[i]),
+            precip: d.daily.precipitation_sum?.[i] ?? 0,
         };
     });
     return result;

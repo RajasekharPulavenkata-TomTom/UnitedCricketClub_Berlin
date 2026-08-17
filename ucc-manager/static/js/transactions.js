@@ -21,8 +21,14 @@ export async function init() {
         populateFormCategories(e.target.value);
     });
     document.getElementById("btn-add-tx").addEventListener("click", () => openModal());
-    ["filter-type", "filter-cat", "filter-month", "filter-search"].forEach((id) => {
-        document.getElementById(id).addEventListener("input", loadTransactions);
+    ["filter-type", "filter-cat", "filter-month"].forEach((id) => {
+        document.getElementById(id).addEventListener("input", () => loadTransactions());
+    });
+    // Search is a network round trip per change — debounce typing
+    let searchTimer = null;
+    document.getElementById("filter-search").addEventListener("input", () => {
+        clearTimeout(searchTimer);
+        searchTimer = setTimeout(loadTransactions, 250);
     });
     document.getElementById("tx-form").addEventListener("submit", onSubmit);
 }
@@ -40,7 +46,12 @@ function populateFormCategories(type) {
         filtered.map((c) => `<option value="${c.id}">${c.name}</option>`).join("");
 }
 
+// Sequence stamp: a slow response for an older filter state must never
+// overwrite the results of a newer one.
+let _loadSeq = 0;
+
 async function loadTransactions() {
+    const seq = ++_loadSeq;
     const params = new URLSearchParams();
     const type   = document.getElementById("filter-type").value;
     const cat    = document.getElementById("filter-cat").value;
@@ -56,6 +67,7 @@ async function loadTransactions() {
 
     try {
         const data = await apiFetch("/transactions?" + params.toString());
+        if (seq !== _loadSeq) return; // superseded by a newer filter change
         if (!data.length) {
             tbody.innerHTML = `<tr><td colspan="7" class="text-center py-4 text-muted">No transactions found.</td></tr>`;
             return;

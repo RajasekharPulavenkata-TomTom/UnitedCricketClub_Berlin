@@ -7,10 +7,17 @@
   <!-- Bootstrap is self-hosted rather than loaded from a CDN: same origin means no extra
        DNS/TLS handshake, it inherits our immutable cache headers, and — unlike a
        cross-origin URL — the service worker can cache it for offline use. -->
+  <!-- Apply the saved theme before first paint — avoids a light flash on dark devices -->
+  <script>try{var m=localStorage.getItem("ucc_theme")||"auto";document.documentElement.setAttribute("data-bs-theme",m==="dark"||(m==="auto"&&matchMedia("(prefers-color-scheme: dark)").matches)?"dark":"light")}catch(e){}</script>
+  <!-- Icon font is two hops deep (HTML → CSS → WOFF2); preload skips the wait -->
+  <link rel="preload" href="/font/bootstrap-icons.woff2" as="font" type="font/woff2" crossorigin />
+  <!-- Weather widgets (home, calendar) hit open-meteo; warm the connection early -->
+  <link rel="preconnect" href="https://historical-forecast-api.open-meteo.com" crossorigin />
   <link rel="stylesheet" href="/css/bootstrap.min.css?v=5.3.3" />
   <!-- Bootstrap Icons: local 175-icon subset (13 KB WOFF2) instead of full CDN (127 KB) -->
-  <link rel="stylesheet" href="/css/bootstrap-icons.css" />
-  <link rel="stylesheet" href="/css/ucc.css?v=7" />
+  <!-- ?v= is stamped per deploy by vercel_build.py (same value as avail.html/sw.js) -->
+  <link rel="stylesheet" href="/css/bootstrap-icons.css?v=__CACHE_VERSION__" />
+  <link rel="stylesheet" href="/css/ucc.css?v=__CACHE_VERSION__" />
   <link rel="icon" type="image/webp" href="/img/ucc-logo-128.webp" />
 </head>
 <body>
@@ -81,6 +88,11 @@
   </nav>
 
   <div class="ucc-sidebar-footer">
+    <div class="btn-group w-100 mb-2" role="group" aria-label="Theme">
+      <button class="btn btn-outline-light btn-sm ucc-theme-btn" data-theme-opt="light" title="Light theme"><i class="bi bi-sun"></i></button>
+      <button class="btn btn-outline-light btn-sm ucc-theme-btn" data-theme-opt="dark" title="Dark theme"><i class="bi bi-moon-stars"></i></button>
+      <button class="btn btn-outline-light btn-sm ucc-theme-btn" data-theme-opt="auto" title="Follow device setting"><i class="bi bi-circle-half"></i></button>
+    </div>
     <div id="sidebar-user-area" style="display:none">
       <div class="d-flex align-items-center gap-2 mb-2">
         <i class="bi bi-person-circle text-white-50 fs-5"></i>
@@ -199,6 +211,9 @@
             </div>
             <div id="login-error" class="alert alert-danger py-2 small d-none"></div>
             <button type="submit" class="btn btn-success w-100">Login</button>
+            <div class="text-center mt-2">
+              <a href="#" id="forgot-link" class="small text-muted">Forgot password?</a>
+            </div>
           </form>
         </div>
 
@@ -225,6 +240,43 @@
             <button type="submit" class="btn btn-primary w-100">Create Account</button>
           </form>
         </div>
+
+        <div id="auth-forgot" class="d-none">
+          <div id="forgot-sent" class="alert alert-success py-2 small d-none">
+            If this account has an email on file, a reset link has been sent.
+            Check your inbox (and spam folder).
+          </div>
+          <form id="forgot-form" autocomplete="on">
+            <p class="text-muted small">Enter your username and we'll email a reset link
+              to the address on your member profile.</p>
+            <div class="mb-3">
+              <label class="form-label fw-semibold">Username</label>
+              <input name="username" class="form-control" required autocomplete="username" />
+            </div>
+            <button type="submit" class="btn btn-success w-100">Send Reset Link</button>
+          </form>
+          <div class="text-center mt-2">
+            <a href="#" class="small text-muted" onclick="window._authTab('login');return false">Back to login</a>
+          </div>
+        </div>
+
+        <div id="auth-reset" class="d-none">
+          <form id="reset-form">
+            <p class="text-muted small">Choose a new password for your account.</p>
+            <div class="mb-3">
+              <label class="form-label fw-semibold">New Password</label>
+              <input name="new_password" type="password" class="form-control" required
+                     minlength="8" autocomplete="new-password" />
+            </div>
+            <div class="mb-3">
+              <label class="form-label fw-semibold">Confirm New Password</label>
+              <input name="confirm_password" type="password" class="form-control" required
+                     minlength="8" autocomplete="new-password" />
+            </div>
+            <div id="reset-error" class="alert alert-danger py-2 small d-none"></div>
+            <button type="submit" class="btn btn-success w-100">Set New Password</button>
+          </form>
+        </div>
       </div>
     </div>
   </div>
@@ -238,6 +290,6 @@
 }
 </script>
 <script src="/js/bootstrap.bundle.min.js?v=5.3.3" defer></script>
-<script type="module" src="/js/app.js?v=7"></script>
+<script type="module" src="/js/app.js?v=__CACHE_VERSION__"></script>
 </body>
 </html>

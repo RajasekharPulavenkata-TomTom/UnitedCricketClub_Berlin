@@ -1,4 +1,5 @@
 import { apiFetch } from "/js/api.js";
+import "/js/suntheme.js?v=5"; // theme + time-of-day + weather ambience (self-initializing)
 
 // ── Auth gate ──────────────────────────────────────────────────────────────────
 
@@ -59,6 +60,55 @@ function initAuth() {
         }
     });
 
+    document.getElementById("forgot-link").addEventListener("click", (e) => {
+        e.preventDefault();
+        window._authTab("forgot");
+    });
+
+    document.getElementById("forgot-form").addEventListener("submit", async (e) => {
+        e.preventDefault();
+        try {
+            await fetch("/api/auth/forgot-password", {
+                method: "POST",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify({ username: e.target.username.value }),
+            });
+        } catch { /* response is intentionally identical either way */ }
+        document.getElementById("forgot-sent").classList.remove("d-none");
+        e.target.classList.add("d-none");
+    });
+
+    document.getElementById("reset-form").addEventListener("submit", async (e) => {
+        e.preventDefault();
+        const form = e.target;
+        const errEl = document.getElementById("reset-error");
+        errEl.classList.add("d-none");
+        if (form.new_password.value !== form.confirm_password.value) {
+            errEl.textContent = "Passwords do not match";
+            errEl.classList.remove("d-none");
+            return;
+        }
+        try {
+            const res = await fetch("/api/auth/reset-password", {
+                method: "POST",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify({ token: _resetToken, new_password: form.new_password.value }),
+            });
+            const data = await res.json();
+            if (!res.ok) {
+                errEl.textContent = data.detail || "Reset failed. Please request a new link.";
+                errEl.classList.remove("d-none");
+                return;
+            }
+            history.replaceState(null, "", location.pathname); // drop ?reset= from the URL
+            window._authTab("login");
+            document.getElementById("login-error").classList.add("d-none");
+        } catch {
+            errEl.textContent = "Network error. Please try again.";
+            errEl.classList.remove("d-none");
+        }
+    });
+
     window.addEventListener("ucc:logout", () => {
         document.getElementById("page-content").innerHTML = "";
         document.getElementById("sidebar-user").textContent = "";
@@ -70,8 +120,9 @@ function initAuth() {
 }
 
 window._authTab = (tab) => {
-    document.getElementById("auth-login").classList.toggle("d-none", tab !== "login");
-    document.getElementById("auth-register").classList.toggle("d-none", tab !== "register");
+    for (const pane of ["login", "register", "forgot", "reset"]) {
+        document.getElementById(`auth-${pane}`).classList.toggle("d-none", tab !== pane);
+    }
     document.getElementById("tab-login-btn").classList.toggle("active", tab === "login");
     document.getElementById("tab-register-btn").classList.toggle("active", tab === "register");
 };
@@ -171,13 +222,24 @@ function bootApp() {
 
     // Prefetch the next page's HTML + JS module when the user hovers a nav link.
     // By the time they click (~150 ms later) the resources are already cached.
+    // 100 ms intent delay: the mouse crossing a link on its way down the sidebar
+    // shouldn't prefetch it. modulepreload downloads+compiles without executing,
+    // unlike import(), so speculative prefetch stays cheap.
     document.querySelectorAll(".ucc-nav-link[data-page]").forEach(a => {
-        a.addEventListener("mouseenter", () => {
+        let hoverTimer = null;
+        let prefetched = false;
+        const prefetch = () => {
             const p = PAGES[a.dataset.page];
-            if (!p) return;
+            if (!p || prefetched) return;
+            prefetched = true;
             fetch(p.html + "?v=" + _SV).catch(() => {});
-            import(p.js  + "?v=" + _SV).catch(() => {});
-        }, { once: true });
+            const link = document.createElement("link");
+            link.rel = "modulepreload";
+            link.href = p.js + "?v=" + _SV;
+            document.head.appendChild(link);
+        };
+        a.addEventListener("mouseenter", () => { hoverTimer = setTimeout(prefetch, 100); });
+        a.addEventListener("mouseleave", () => clearTimeout(hoverTimer));
     });
 
     // Service Worker — cached assets on repeat visits; banner when a new version deploys
@@ -246,7 +308,31 @@ document.getElementById("sidebar-date").textContent = new Date().toLocaleDateStr
 
 initAuth();
 
-if (localStorage.getItem("ucc_token")) {
+// Theme switch (sidebar footer) — the logic lives in suntheme.js (window._setTheme)
+function _syncThemeButtons() {
+    const mode = localStorage.getItem("ucc_theme") || "auto";
+    document.querySelectorAll(".ucc-theme-btn").forEach(b =>
+        b.classList.toggle("active", b.dataset.themeOpt === mode));
+}
+document.querySelectorAll(".ucc-theme-btn").forEach(b =>
+    b.addEventListener("click", () => { window._setTheme(b.dataset.themeOpt); _syncThemeButtons(); }));
+_syncThemeButtons();
+
+// Bare URL → /#home so the address bar always names the page. replaceState
+// keeps the query string (e.g. ?reset=) and fires no hashchange — the router's
+// own empty-hash default renders home either way.
+if (!location.hash) {
+    history.replaceState(null, "", location.pathname + location.search + "#home");
+}
+
+// Arriving via an emailed reset link (/?reset=<token>) takes priority over
+// any stored session — show the set-new-password form immediately.
+const _resetToken = new URLSearchParams(location.search).get("reset");
+
+if (_resetToken) {
+    authModal.show();
+    window._authTab("reset");
+} else if (localStorage.getItem("ucc_token")) {
     bootApp();
 } else {
     authModal.show();
@@ -254,9 +340,12 @@ if (localStorage.getItem("ucc_token")) {
 
 // ── Pages ──────────────────────────────────────────────────────────────────────
 
-// Single timestamp for the whole session — busts cache on page load/deploy
-// but allows the browser to cache files across in-session navigations.
-const _SV = Date.now();
+// Deploy-stable cache key, stamped by vercel_build.py — the same value baked
+// into index.html's asset URLs and sw.js. Stable URLs let the immutable-cache
+// headers and the service worker actually hit across page loads; a new deploy
+// changes the key everywhere at once. Local dev (nothing stamps the
+// placeholder) falls back to a per-load timestamp so edits always show up.
+const _SV = "__CACHE_VERSION__".includes("__CACHE") ? Date.now() : "__CACHE_VERSION__";
 
 // Monotonically-increasing counter. Each router() call stamps its own seq;
 // any async step that runs after a newer navigation has started is a no-op.

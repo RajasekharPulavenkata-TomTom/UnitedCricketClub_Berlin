@@ -1,11 +1,15 @@
 import { apiFetch, fmt } from "/js/api.js";
-import { fetchWeather, wmoInfo, swingInfo } from "/js/weather.js?v=4";
+import { fetchWeatherRange, wmoInfo, swingInfo } from "/js/weather.js?v=5";
 
-// Deduplicate weather fetches — two events on the same date share one API call
-const _wxCache = new Map();
+// One ranged open-meteo call covers every date this page can show (weather is
+// only rendered ≤15 days out) — instead of one call per distinct event date.
+let _wxRange = null;
 function _weather(date) {
-    if (!_wxCache.has(date)) _wxCache.set(date, fetchWeather(date));
-    return _wxCache.get(date);
+    if (!_wxRange) {
+        const iso = d => `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}-${String(d.getDate()).padStart(2, "0")}`;
+        _wxRange = fetchWeatherRange(iso(new Date()), iso(new Date(Date.now() + 15 * 86400000)));
+    }
+    return _wxRange.then(map => map[date] ?? null);
 }
 
 export async function init() {
@@ -28,7 +32,6 @@ export async function init() {
     const equipmentP   = apiFetch("/equipment?active_only=true");
     const scoresP      = apiFetch(`/scoreboard?year=${now.getFullYear()}`);
     const tasksP       = apiFetch("/tasks");
-    const pageStatsP   = apiFetch("/page-views/stats");
 
     // Guard: don't render into a page the user has already navigated away from
     const mounted = () => !!document.getElementById("home-next-event");
@@ -56,7 +59,6 @@ export async function init() {
     equipmentP.then(d => { if (mounted()) renderEquipment(d); });
     scoresP.then(d    => { if (mounted()) { renderSeasonRecord(d); renderRecentResults(d); } });
     tasksP.then(d     => { if (mounted()) renderTasks(d); });
-    pageStatsP.then(d => { if (mounted()) renderPageStats(d); });
 
     // Return after the critical path so nav_ms captures meaningful load time
     await Promise.all([eventsP, membersP, electionsP, meetingsP]);
@@ -495,63 +497,6 @@ function renderTasks(tasks) {
         }).join("")}
     </ul>`;
 }
-
-const _PAGE_LABEL = {
-    home:                   "Home",
-    dashboard:              "Finance Dashboard",
-    transactions:           "Transactions",
-    categories:             "Categories",
-    reports:                "Reports",
-    equipment:              "Equipment",
-    members:                "Members",
-    tasks:                  "Tasks",
-    "club-fees":            "Club Fees",
-    reporting:              "Match Reporting",
-    "practice-reporting":   "Practice Reporting",
-    "field-editor":         "Field Editor",
-    "match-results":        "Match Results",
-    "external-tournaments": "External Tournaments",
-    "internal-tournaments": "Internal Tournaments",
-    calendar:               "Calendar",
-    rules:                  "Rules",
-    history:                "Club History",
-    polls:                  "Polls",
-    "pain-points":          "Pain Points",
-    violations:             "Violations",
-    approvals:              "Approvals",
-    "user-management":      "User Management",
-    sponsors:               "Sponsors",
-    election:               "Elections",
-    meetings:               "Meetings",
-    "tenure-feedback":      "Tenure Feedback",
-};
-
-function renderPageStats(stats) {
-    const el = document.getElementById("home-page-stats");
-    if (!el) return;
-    if (!stats.length) {
-        el.innerHTML = `<p class="text-muted small text-center py-2">No page views recorded yet.</p>`;
-        return;
-    }
-    const max = stats[0].count;
-    el.innerHTML = `<div class="d-flex flex-column gap-2">
-        ${stats.map(s => {
-            const label = _PAGE_LABEL[s.page] || s.page;
-            const barPct = max ? Math.round(s.count / max * 100) : 0;
-            return `
-            <div>
-              <div class="d-flex justify-content-between align-items-center mb-1">
-                <span class="small">${label}</span>
-                <span class="text-muted small">${s.count} visit${s.count !== 1 ? "s" : ""}</span>
-              </div>
-              <div class="progress" style="height:8px">
-                <div class="progress-bar bg-primary" style="width:${barPct}%"></div>
-              </div>
-            </div>`;
-        }).join("")}
-    </div>`;
-}
-
 
 function renderFinance(data) {
     const bal = document.getElementById("home-balance");

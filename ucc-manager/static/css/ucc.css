@@ -248,7 +248,8 @@ body::before {
   transform: translate(-50%, -50%);
   width: 380px;
   height: 380px;
-  background: url('/img/ucc-logo.webp') no-repeat center center;
+  /* 128px asset (7 KB vs 51 KB full-size) — upscaling is invisible at 14% opacity */
+  background: url('/img/ucc-logo-128.webp') no-repeat center center;
   background-size: contain;
   opacity: .14;
   pointer-events: none;
@@ -290,4 +291,268 @@ body::before {
   .no-print, .ucc-sidebar, .ucc-topbar, .btn, button { display: none !important; }
   .ucc-main { margin-left: 0 !important; }
   .card { box-shadow: none; border: 1px solid #ddd; }
+}
+
+/* ── Time-of-day ambience ──────────────────────────────────────────────────────
+   suntheme.js stamps <html data-sun-phase="...">; the page canvas follows the
+   real sun. In the app the canvas is .ucc-main (it covers the body); on
+   avail.html it is the body itself — tint both. Cards, tables and modals keep
+   their own solid backgrounds. No rule for "day": pages keep their default
+   background so daytime looks exactly as before. */
+html[data-sun-phase="dawn"] body,
+html[data-sun-phase="dawn"] .ucc-main {
+  background: linear-gradient(180deg, #ffe3cf 0%, #fbdccb 15%, #f4f6f8 55%) fixed;
+}
+html[data-sun-phase="dusk"] body,
+html[data-sun-phase="dusk"] .ucc-main {
+  background: linear-gradient(180deg, #ffd9ab 0%, #f5bd92 14%, #ddb8c9 34%, #f4f6f8 60%) fixed;
+}
+html[data-sun-phase="night"] body,
+html[data-sun-phase="night"] .ucc-main {
+  background: linear-gradient(180deg, #b3bed4 0%, #c5cddc 30%, #dfe3ec 70%, #eef1f5 100%) fixed;
+}
+html[data-sun-phase="deep-night"] body,
+html[data-sun-phase="deep-night"] .ucc-main {
+  background: linear-gradient(180deg, #9fabc6 0%, #b6c0d3 30%, #d6dbe6 70%, #e8ebf1 100%) fixed;
+}
+
+/* ── Meteor shower ─────────────────────────────────────────────────────────────
+   Overlay injected by suntheme.js. transform/opacity only (GPU-composited);
+   pointer-events:none so it never blocks clicks. z-index sits above content
+   but below Bootstrap modals (1050+). Streak color follows data-sun-phase. */
+.meteor-layer {
+  position: fixed;
+  inset: 0;
+  pointer-events: none;
+  z-index: 1040;
+  overflow: hidden;
+  --meteor-color: rgba(26, 58, 139, .40);   /* day: quiet brand blue */
+}
+html[data-sun-phase="dawn"] .meteor-layer,
+html[data-sun-phase="dusk"] .meteor-layer { --meteor-color: rgba(255, 190, 120, .75); }
+html[data-sun-phase="night"] .meteor-layer,
+html[data-sun-phase="deep-night"] .meteor-layer { --meteor-color: rgba(255, 244, 214, .90); }
+
+.meteor {
+  position: absolute;
+  width: 110px;
+  height: 1.5px;
+  border-radius: 999px;
+  /* bright at the right edge — the leading end of the streak */
+  background: linear-gradient(270deg, var(--meteor-color), transparent);
+  opacity: 0;
+  animation: meteor-streak 9s linear infinite;
+}
+.meteor::before { /* glowing head */
+  content: "";
+  position: absolute;
+  right: -1px;
+  top: -1.25px;
+  width: 4px;
+  height: 4px;
+  border-radius: 50%;
+  background: var(--meteor-color);
+  box-shadow: 0 0 6px 1px var(--meteor-color);
+}
+
+/* streak occupies ~1/8 of each cycle; the rest is quiet sky */
+@keyframes meteor-streak {
+  0%   { opacity: 0; transform: rotate(35deg) translateX(0); }
+  1%   { opacity: 1; }
+  12%  { opacity: 0; transform: rotate(35deg) translateX(65vmin); }
+  100% { opacity: 0; transform: rotate(35deg) translateX(65vmin); }
+}
+
+.meteor-1 { top: 8%;  left: 12%; animation-duration: 8s;  }
+.meteor-2 { top: 3%;  left: 52%; animation-duration: 11s; animation-delay: 3.4s; }
+.meteor-3 { top: 17%; left: 33%; animation-duration: 9s;  animation-delay: 6.1s; }
+.meteor-4 { top: 11%; left: 72%; animation-duration: 10s; animation-delay: 1.7s; }
+
+@media (prefers-reduced-motion: reduce) {
+  .meteor { animation: none; opacity: 0; }
+}
+
+/* ── Weather ambience ─────────────────────────────────────────────────────────
+   suntheme.js stamps <html data-weather="rain|snow|storm|overcast"> from live
+   open-meteo conditions (attribute absent when clear). Same rules as the
+   meteor layer: transform/opacity only, pointer-events:none, hidden for
+   reduced motion (the layer is never injected). */
+
+/* No shooting stars through cloud cover */
+html[data-weather] .meteor-layer { display: none; }
+
+/* Overcast/fog: no particles, just a muted canvas */
+html[data-weather="overcast"] body,
+html[data-weather="overcast"] .ucc-main {
+  background: linear-gradient(180deg, #d4d9df 0%, #e4e7eb 35%, #eef0f3 100%) fixed;
+}
+
+.weather-layer {
+  position: fixed;
+  inset: 0;
+  pointer-events: none;
+  z-index: 1040;
+  overflow: hidden;
+  display: none;
+}
+html[data-weather="rain"] .weather-layer,
+html[data-weather="snow"] .weather-layer,
+html[data-weather="storm"] .weather-layer { display: block; }
+
+.wx-p {
+  position: absolute;
+  top: -30px;
+  opacity: 0;
+}
+
+/* Rain (also the base for storm) */
+html[data-weather="rain"] .wx-p,
+html[data-weather="storm"] .wx-p {
+  width: 1.5px;
+  height: 26px;
+  background: linear-gradient(180deg, transparent, rgba(90, 120, 170, .55));
+  animation: wx-fall calc(1.1s * var(--v)) linear infinite;
+  animation-delay: calc(1.1s * var(--dl));
+}
+
+html[data-weather="snow"] .wx-p {
+  width: 7px;
+  height: 7px;
+  border-radius: 50%;
+  background: rgba(255, 255, 255, .9);
+  box-shadow: 0 0 4px rgba(160, 175, 200, .7);
+  animation: wx-snow calc(6s * var(--v)) linear infinite;
+  animation-delay: calc(6s * var(--dl));
+}
+
+/* Storm: soft full-sky flash roughly every 12 s on top of the rain */
+html[data-weather="storm"] .weather-layer::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  background: rgba(240, 245, 255, .9);
+  opacity: 0;
+  animation: wx-flash 12s linear infinite;
+}
+
+@keyframes wx-fall {
+  0%   { opacity: 0; transform: translateY(0); }
+  8%   { opacity: 1; }
+  100% { opacity: .4; transform: translateY(110vh); }
+}
+@keyframes wx-snow {
+  0%   { opacity: 0; transform: translateY(0) translateX(0); }
+  8%   { opacity: .95; }
+  50%  { transform: translateY(55vh) translateX(18px); }
+  100% { opacity: .7; transform: translateY(110vh) translateX(-14px); }
+}
+@keyframes wx-flash {
+  0%, 88.5%, 92.5%, 100% { opacity: 0; }
+  89%   { opacity: .5; }
+  90%   { opacity: .08; }
+  91%   { opacity: .3; }
+}
+
+/* Particle spread: position + speed/delay factors consumed by the rules above */
+.wx-p-1  { left: 4%;  --v: 1.00; --dl: 0;   }
+.wx-p-2  { left: 12%; --v: 1.25; --dl: .48; }
+.wx-p-3  { left: 21%; --v: .90;  --dl: .21; }
+.wx-p-4  { left: 29%; --v: 1.15; --dl: .74; }
+.wx-p-5  { left: 38%; --v: 1.05; --dl: .10; }
+.wx-p-6  { left: 47%; --v: .85;  --dl: .58; }
+.wx-p-7  { left: 55%; --v: 1.30; --dl: .33; }
+.wx-p-8  { left: 63%; --v: .95;  --dl: .87; }
+.wx-p-9  { left: 72%; --v: 1.10; --dl: .05; }
+.wx-p-10 { left: 80%; --v: 1.20; --dl: .66; }
+.wx-p-11 { left: 88%; --v: .88;  --dl: .40; }
+.wx-p-12 { left: 96%; --v: 1.08; --dl: .93; }
+
+/* ── Clouds ───────────────────────────────────────────────────────────────────
+   Drift across the upper sky whenever any weather is active: a few for
+   "clouds" (partly cloudy), and above rain/snow/storm too — precipitation
+   falls FROM somewhere. Negative delays start them mid-sky on page load. */
+html[data-weather="clouds"] .weather-layer,
+html[data-weather="overcast"] .weather-layer { display: block; }
+
+.wx-cloud {
+  display: none;
+  position: absolute;
+  left: -260px;
+  width: 170px;
+  height: 46px;
+  border-radius: 60px;
+  background: rgba(255, 255, 255, .75);
+  box-shadow:
+    44px -20px 0 8px  rgba(255, 255, 255, .68),
+    96px -10px 0 12px rgba(255, 255, 255, .72),
+    0 6px 22px        rgba(120, 135, 160, .22);
+  animation: wx-drift calc(90s * var(--v)) linear infinite;
+  animation-delay: calc(-90s * var(--dl));
+}
+html[data-weather] .wx-cloud { display: block; }
+
+/* partly-cloudy shows only three light clouds; heavier weather shows all five */
+html[data-weather="clouds"] .wx-c-4,
+html[data-weather="clouds"] .wx-c-5 { display: none; }
+
+@keyframes wx-drift {
+  0%   { transform: translateX(0); }
+  100% { transform: translateX(calc(100vw + 520px)); }
+}
+
+.wx-c-1 { top: 4%;  --v: 1.00; --dl: .15; scale: 1;    opacity: .9; }
+.wx-c-2 { top: 11%; --v: 1.45; --dl: .55; scale: .72;  opacity: .7; }
+.wx-c-3 { top: 7%;  --v: 1.20; --dl: .82; scale: 1.25; opacity: .8; }
+.wx-c-4 { top: 15%; --v: .85;  --dl: .35; scale: .6;   opacity: .6; }
+.wx-c-5 { top: 2%;  --v: 1.65; --dl: .68; scale: .9;   opacity: .75; }
+
+/* ── Dark theme ───────────────────────────────────────────────────────────────
+   Bootstrap 5.3 restyles cards/tables/modals/forms via data-bs-theme="dark";
+   below are the hand-rolled bits. These come after the ambience rules, so at
+   equal specificity the dark canvas wins over the light pastels; the
+   dark-tuned phase variants below then outrank the dark base. */
+html[data-bs-theme="dark"] body,
+html[data-bs-theme="dark"] .ucc-main {
+  background: linear-gradient(180deg, #10141d 0%, #161b27 40%, #1a2030 100%) fixed;
+}
+html[data-bs-theme="dark"][data-sun-phase="dawn"] body,
+html[data-bs-theme="dark"][data-sun-phase="dawn"] .ucc-main {
+  background: linear-gradient(180deg, #3a2a2a 0%, #2b2331 30%, #161b27 65%) fixed;
+}
+html[data-bs-theme="dark"][data-sun-phase="dusk"] body,
+html[data-bs-theme="dark"][data-sun-phase="dusk"] .ucc-main {
+  background: linear-gradient(180deg, #43301f 0%, #37263a 30%, #161b27 65%) fixed;
+}
+html[data-bs-theme="dark"][data-sun-phase="night"] body,
+html[data-bs-theme="dark"][data-sun-phase="night"] .ucc-main,
+html[data-bs-theme="dark"][data-sun-phase="deep-night"] body,
+html[data-bs-theme="dark"][data-sun-phase="deep-night"] .ucc-main {
+  background: linear-gradient(180deg, #0b0f18 0%, #10141f 40%, #141927 100%) fixed;
+}
+html[data-bs-theme="dark"][data-weather="overcast"] body,
+html[data-bs-theme="dark"][data-weather="overcast"] .ucc-main {
+  background: linear-gradient(180deg, #171a20 0%, #1b1f27 40%, #1e222c 100%) fixed;
+}
+
+html[data-bs-theme="dark"] .ucc-topbar {
+  background: #161b27;
+  border-bottom-color: #2a3040;
+}
+html[data-bs-theme="dark"] .page-header {
+  color: #8fb0ff;
+  border-bottom-color: #2f4dad;
+}
+html[data-bs-theme="dark"] .table-hover tbody tr:hover {
+  background-color: rgba(120, 150, 255, .08);
+}
+/* status rows: dark backgrounds so Bootstrap's light-on-dark text stays readable */
+html[data-bs-theme="dark"] .overdue-row          { background-color: #4a3c14 !important; }
+html[data-bs-theme="dark"] .task-row-done td     { background-color: #14372a !important; }
+html[data-bs-theme="dark"] .task-row-progress td { background-color: #142b47 !important; }
+html[data-bs-theme="dark"] .task-row-todo td     { background-color: #46301c !important; }
+html[data-bs-theme="dark"] .card { box-shadow: 0 1px 6px rgba(0, 0, 0, .45); }
+/* rain drops need a lighter streak to read against the dark canvas */
+html[data-bs-theme="dark"][data-weather="rain"] .wx-p,
+html[data-bs-theme="dark"][data-weather="storm"] .wx-p {
+  background: linear-gradient(180deg, transparent, rgba(150, 180, 230, .6));
 }

@@ -123,6 +123,8 @@ function renderQuittung(r) {
 
 // ── List ───────────────────────────────────────────────────────────────────────
 
+let _isAdmin = false;
+
 async function loadList() {
     const el = document.getElementById("receipts-list");
     const rows = await apiFetch("/receipts");
@@ -131,21 +133,39 @@ async function loadList() {
         return;
     }
     el.innerHTML = rows.map(r => `
-      <button class="list-group-item list-group-item-action d-flex justify-content-between align-items-center"
-              data-id="${r.id}">
-        <span>
-          <span class="fw-semibold">${escHtml(r.receipt_no)}</span>
-          <span class="text-muted small ms-2">${escHtml(r.recipient_name)}</span>
-        </span>
-        <span class="text-end">
-          <span class="fw-semibold">${fmt.currency(r.amount)}</span>
-          <span class="text-muted small ms-2">${fmt.date(r.date)}</span>
-        </span>
-      </button>`).join("");
+      <div class="list-group-item d-flex justify-content-between align-items-center gap-2">
+        <button class="btn btn-link text-decoration-none text-start text-reset flex-grow-1 p-0 d-flex justify-content-between align-items-center gap-2"
+                data-id="${r.id}">
+          <span>
+            <span class="fw-semibold">${escHtml(r.receipt_no)}</span>
+            <span class="text-muted small ms-2">${escHtml(r.recipient_name)}</span>
+          </span>
+          <span class="text-end">
+            <span class="fw-semibold">${fmt.currency(r.amount)}</span>
+            <span class="text-muted small ms-2">${fmt.date(r.date)}</span>
+          </span>
+        </button>
+        ${_isAdmin ? `<button class="btn btn-outline-danger btn-sm" data-del="${r.id}"
+            title="Delete ${escHtml(r.receipt_no)}"><i class="bi bi-trash"></i></button>` : ""}
+      </div>`).join("");
     el.querySelectorAll("[data-id]").forEach(btn =>
         btn.addEventListener("click", async () => {
             renderQuittung(await apiFetch(`/receipts/${btn.dataset.id}`));
             document.getElementById("quittung-view").scrollIntoView({ behavior: "smooth" });
+        }));
+    el.querySelectorAll("[data-del]").forEach(btn =>
+        btn.addEventListener("click", async () => {
+            if (!confirm("Delete this receipt? It is a bookkeeping document — only remove clear mistakes.")) return;
+            try {
+                await apiFetch(`/receipts/${btn.dataset.del}`, { method: "DELETE" });
+                showToast("Receipt deleted");
+                // the deleted receipt may be the one on display
+                document.getElementById("quittung-view").classList.add("d-none");
+                document.getElementById("quittung-actions").classList.add("d-none");
+                loadList();
+            } catch (err) {
+                showToast(err.message, "danger");
+            }
         }));
 }
 
@@ -154,6 +174,9 @@ async function loadList() {
 export async function init() {
     initSigPad();
     document.getElementById("btn-print").addEventListener("click", () => window.print());
+
+    const me = await apiFetch("/auth/me").catch(() => null);
+    _isAdmin = me?.role === "manager" || me?.role === "developer";
 
     const form = document.getElementById("receipt-form");
     const today = new Date().toISOString().split("T")[0];

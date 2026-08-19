@@ -8,7 +8,7 @@ from database import get_db
 from models.receipt import Receipt
 from models.event import Event
 from models.auth import User
-from dependencies.auth import get_current_user, require_root
+from dependencies.auth import get_current_user, require_admin
 
 router = APIRouter(prefix="/api/receipts", tags=["receipts"])
 
@@ -95,7 +95,7 @@ def get_receipt(id: int, db: Session = Depends(get_db)):
 
 
 @router.delete("/{id}", status_code=204)
-def delete_receipt(id: int, db: Session = Depends(get_db), current_user: User = Depends(require_root)):
+def delete_receipt(id: int, db: Session = Depends(get_db), current_user: User = Depends(require_admin)):
     r = db.query(Receipt).filter(Receipt.id == id).first()
     if not r:
         raise HTTPException(status_code=404, detail="Receipt not found")

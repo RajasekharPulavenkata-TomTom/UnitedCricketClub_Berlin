@@ -74,6 +74,12 @@ class TestDelete:
         assert client.delete(f"/api/receipts/{rid}", headers=auth).status_code == 204
         assert client.get(f"/api/receipts/{rid}", headers=auth).status_code == 404
 
+    def test_manager_can_delete(self, client, auth, make_user):
+        from services.auth_service import create_access_token
+        manager = {"Authorization": f"Bearer {create_access_token(make_user('rcpt_manager', role='manager'))}"}
+        rid = client.post("/api/receipts", headers=auth, json=_payload()).json()["id"]
+        assert client.delete(f"/api/receipts/{rid}", headers=manager).status_code == 204
+
     def test_player_cannot_delete(self, client, auth, user_token):
         token, _ = user_token
         rid = client.post("/api/receipts", headers=auth, json=_payload()).json()["id"]

@@ -655,3 +655,6 @@ html[data-bs-theme="dark"] .anon-notice { background: #141f3d; color: #a5b8e9; }
 html[data-bs-theme="dark"] .type-badge-match { background: #14253d; color: #a5c0e9; }
 html[data-bs-theme="dark"] .type-badge-training { background: #1e342a; color: #a5e9ca; }
 html[data-bs-theme="dark"] .type-badge-other { background: #23173b; color: #c0aedf; }
+
+/* Bootstrap's .table-light thead stays light even in dark mode */
+html[data-bs-theme="dark"] .table-light { --bs-table-bg: #1c2230; --bs-table-color: #cfd6e2; }

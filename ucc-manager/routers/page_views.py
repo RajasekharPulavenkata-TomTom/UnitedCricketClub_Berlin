@@ -68,6 +68,8 @@ def get_perf(db: Session = Depends(get_db), current_user=Depends(get_current_use
             func.count().label("total"),
             func.avg(PageView.nav_ms).label("avg_ms"),
             func.percentile_cont(0.75).within_group(PageView.nav_ms).label("p75_ms"),
+            func.percentile_cont(0.95).within_group(PageView.nav_ms).label("p95_ms"),
+            func.avg(case((PageView.nav_ms >= 1200, 1.0), else_=0.0)).label("slow_rate"),
             func.avg(mobile_ms).label("mobile_avg_ms"),
             func.avg(desktop_ms).label("desktop_avg_ms"),
             func.count(mobile_ms).label("mobile_count"),
@@ -78,6 +80,18 @@ def get_perf(db: Session = Depends(get_db), current_user=Depends(get_current_use
         )
         .filter(*base_filter)
         .one()
+    )
+
+    daily_rows = (
+        db.query(
+            func.date(PageView.visited_at).label("day"),
+            func.count().label("count"),
+            func.avg(PageView.nav_ms).label("avg_ms"),
+        )
+        .filter(*base_filter)
+        .group_by(func.date(PageView.visited_at))
+        .order_by(func.date(PageView.visited_at))
+        .all()
     )
 
     page_rows = (
@@ -119,10 +133,16 @@ def get_perf(db: Session = Depends(get_db), current_user=Depends(get_current_use
             "total_navigations": summary.total,
             "avg_ms": _round(summary.avg_ms),
             "p75_ms": _round(summary.p75_ms),
+            "p95_ms": _round(summary.p95_ms),
+            "slow_pct": round(summary.slow_rate * 100) if summary.slow_rate is not None else 0,
             "mobile_avg_ms": _round(summary.mobile_avg_ms),
             "desktop_avg_ms": _round(summary.desktop_avg_ms),
             "mobile_pct": round(summary.mobile_count / summary.total * 100) if summary.total else 0,
         },
+        "daily": [
+            {"date": str(r.day), "count": r.count, "avg_ms": _round(r.avg_ms)}
+            for r in daily_rows
+        ],
         "pages": pages,
         "trend": {
             "this_week_avg": tw_avg,

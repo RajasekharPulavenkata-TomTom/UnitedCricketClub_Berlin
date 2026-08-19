@@ -226,6 +226,9 @@ def _run_migrations():
         # repopulates it.
         if "quiz_questions" in existing_tables and "options" not in _cols.get("quiz_questions", set()):
             conn.execute(text("DROP TABLE quiz_questions"))
+        # page_views is the highest-write table and only feeds 30/90-day stats —
+        # prune on every production deploy so it can't grow without bound
+        conn.execute(text("DELETE FROM page_views WHERE visited_at < NOW() - INTERVAL '90 days'"))
         # receipts.location ("Ort") was added after the table first shipped
         if "receipts" in existing_tables and "location" not in _cols.get("receipts", set()):
             conn.execute(text("ALTER TABLE receipts ADD COLUMN location VARCHAR(100) NOT NULL DEFAULT 'Berlin'"))

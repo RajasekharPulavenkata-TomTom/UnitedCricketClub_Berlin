@@ -3,6 +3,7 @@ import { apiFetch } from "/js/api.js";
 export async function init() {
     const data = await apiFetch("/page-views/perf");
     renderSummary(data.summary);
+    renderDaily(data.daily || []);
     renderTrend(data.trend);
     renderTable(data.pages, data.summary);
 }
@@ -29,12 +30,14 @@ function renderSummary(s) {
         { icon: "bi-activity",       label: "Navigations (30d)",  value: s.total_navigations?.toLocaleString() ?? "—", cls: "text-primary" },
         { icon: "bi-stopwatch",      label: "Avg load time",      value: s.avg_ms ? `${s.avg_ms.toLocaleString()} ms` : "—", cls: _msClass(s.avg_ms) || "text-secondary" },
         { icon: "bi-bar-chart-line", label: "P75 load time",      value: s.p75_ms ? `${s.p75_ms.toLocaleString()} ms` : "—", cls: _msClass(s.p75_ms) || "text-secondary" },
+        { icon: "bi-bar-chart-line", label: "P95 load time",      value: s.p95_ms ? `${s.p95_ms.toLocaleString()} ms` : "—", cls: _msClass(s.p95_ms) || "text-secondary" },
+        { icon: "bi-exclamation-circle", label: "Slow navs (≥1.2s)", value: noData ? "—" : `${s.slow_pct}%`, cls: s.slow_pct >= 20 ? "perf-ms-slow" : s.slow_pct >= 5 ? "perf-ms-ok" : "perf-ms-good" },
         { icon: "bi-phone",          label: "Mobile avg",         value: s.mobile_avg_ms ? `${s.mobile_avg_ms.toLocaleString()} ms` : "—", cls: _msClass(s.mobile_avg_ms) || "text-secondary" },
         { icon: "bi-display",        label: "Desktop avg",        value: s.desktop_avg_ms ? `${s.desktop_avg_ms.toLocaleString()} ms` : "—", cls: _msClass(s.desktop_avg_ms) || "text-secondary" },
         { icon: "bi-pie-chart",      label: "Mobile traffic",     value: noData ? "—" : `${s.mobile_pct}%`, cls: "text-info" },
     ];
     document.getElementById("perf-summary").innerHTML = cards.map(c => `
-        <div class="col-6 col-md-4 col-xl-2">
+        <div class="col-6 col-md-4 col-xl-3">
           <div class="card h-100">
             <div class="card-body py-3 px-3">
               <div class="text-muted small mb-1"><i class="bi ${c.icon} me-1"></i>${c.label}</div>
@@ -50,6 +53,27 @@ function renderSummary(s) {
               <div class="mt-2">No data yet — metrics are collected as users navigate the app.</div>
             </div>`;
     }
+}
+
+// ── daily trend bars ──────────────────────────────────────────────────────────
+
+function renderDaily(daily) {
+    if (daily.length < 2) return; // one day of data isn't a trend
+    document.getElementById("perf-daily-card").style.display = "";
+    const max = Math.max(...daily.map(d => d.avg_ms ?? 0), 1);
+    const barCls = (ms) => ms < 500 ? "bg-success" : ms < 1200 ? "bg-warning" : "bg-danger";
+    const short = (iso) => new Date(iso + "T00:00:00").toLocaleDateString("en-GB", { day: "numeric", month: "short" });
+    // label roughly every 7th bar plus the last — enough orientation without collisions
+    const labelStep = Math.max(1, Math.floor(daily.length / 4));
+    document.getElementById("perf-daily").innerHTML = daily.map((d, i) => {
+        const h = d.avg_ms ? Math.max(Math.round(d.avg_ms / max * 92), 2) : 2;
+        const showLabel = i % labelStep === 0 || i === daily.length - 1;
+        return `
+        <div class="pd-col" title="${short(d.date)} — avg ${d.avg_ms?.toLocaleString() ?? "—"} ms (${d.count} nav${d.count !== 1 ? "s" : ""})">
+          <div class="pd-bar ${d.avg_ms ? barCls(d.avg_ms) : "bg-secondary"}" style="height:${h}%"></div>
+          <div class="pd-label">${showLabel ? short(d.date) : ""}</div>
+        </div>`;
+    }).join("");
 }
 
 // ── week-over-week trend ──────────────────────────────────────────────────────

@@ -24,9 +24,13 @@
             <label class="form-label fw-semibold small">Received by (umpire)</label>
             <input name="recipient_name" class="form-control" required minlength="2" placeholder="Full name" />
           </div>
-          <div class="mb-3">
-            <label class="form-label fw-semibold small">Purpose / Zweck</label>
+          <div class="mb-2">
+            <label class="form-label fw-semibold small">Purpose / Zweck (für)</label>
             <input name="purpose" class="form-control" required value="Schiedsrichtergebühr / Umpire fee" />
+          </div>
+          <div class="mb-3">
+            <label class="form-label fw-semibold small">Ort</label>
+            <input name="location" class="form-control" required value="Berlin" />
           </div>
           <div class="mb-1 d-flex justify-content-between align-items-center">
             <label class="form-label fw-semibold small mb-0">Signature <span class="text-muted fw-normal">(sign below)</span></label>
@@ -75,7 +79,24 @@
   color: #212529 !important;
 }
 #quittung-view .q-label { color: #6c757d; font-size: .78rem; }
-#quittung-view .q-sig img { max-height: 90px; }
+#quittung-view .q-sig img { max-height: 80px; }
+/* classic receipt-pad look: green header block, ruled lines */
+#quittung-view .q-head-box { border: 2px solid #12957e; border-radius: 4px; min-width: 230px; }
+#quittung-view .q-head-title {
+  background: #12957e; color: #fff; font-weight: 800; font-size: 1.5rem;
+  text-align: center; padding: .35rem 1rem; letter-spacing: .5px;
+}
+#quittung-view .q-head-no { padding: .4rem .75rem .55rem; font-size: .85rem; color: #0b6153; }
+#quittung-view .q-amounts td { padding: .15rem 0; font-size: .9rem; }
+#quittung-view .q-line { border-bottom: 1px solid #495057; padding: 0 .35rem .1rem; min-width: 90px; }
+#quittung-view .q-total { border-bottom: 3px double #495057; }
+#quittung-view .q-row { display: flex; align-items: baseline; gap: .5rem; margin-bottom: .65rem; }
+#quittung-view .q-book-box {
+  border: 1.5px solid #12957e; border-radius: 4px; flex: 1;
+  min-height: 95px; padding: .4rem .6rem; align-self: stretch;
+}
+#quittung-view .q-book-box .q-label { color: #0b6153; font-style: italic; }
+/* the club (legal entity) name appears on the "Von" line; small print at top-right of nothing else */
 @media print {
   body * { visibility: hidden; }
   #quittung-view, #quittung-view * { visibility: visible; }

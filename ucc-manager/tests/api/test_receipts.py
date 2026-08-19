@@ -28,6 +28,7 @@ class TestCreateReceipt:
         assert data["receipt_no"] == f"UCC-2026-{data['id']:03d}"
         assert data["recipient_name"] == "Hans Umpire"
         assert float(data["amount"]) == 60
+        assert data["location"] == "Berlin"  # Ort defaults when not sent
         assert data["paid_by"] is not None
         second = client.post("/api/receipts", headers=auth, json=_payload(amount=45.5))
         assert second.json()["id"] > data["id"]

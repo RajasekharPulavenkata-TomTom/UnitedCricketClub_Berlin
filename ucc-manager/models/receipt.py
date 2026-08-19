@@ -18,6 +18,7 @@ class Receipt(Base):
     recipient_name = Column(String(150), nullable=False)
     amount         = Column(Numeric(10, 2), nullable=False)
     purpose        = Column(String(300), nullable=False)
+    location       = Column(String(100), nullable=False, default="Berlin")  # "Ort" on the printed form
     event_id       = Column(Integer, ForeignKey("events.id", ondelete="SET NULL"), nullable=True, index=True)
     paid_by_id     = Column(Integer, ForeignKey("users.id", ondelete="SET NULL"), nullable=True)
     signature      = Column(Text, nullable=False)  # data:image/png;base64,...

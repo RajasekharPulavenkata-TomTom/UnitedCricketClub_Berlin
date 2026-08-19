@@ -47,38 +47,75 @@ function clearSig() {
     _hasInk = false;
 }
 
-// ── Quittung rendering ─────────────────────────────────────────────────────────
+// ── German amount in words ("Gesamtbetrag in Worten") ────────────────────────
+
+const _ONES = ["", "ein", "zwei", "drei", "vier", "fünf", "sechs", "sieben", "acht", "neun",
+    "zehn", "elf", "zwölf", "dreizehn", "vierzehn", "fünfzehn", "sechzehn", "siebzehn", "achtzehn", "neunzehn"];
+const _TENS = ["", "", "zwanzig", "dreißig", "vierzig", "fünfzig", "sechzig", "siebzig", "achtzig", "neunzig"];
+
+function _two(n) {
+    if (n < 20) return _ONES[n];
+    return (n % 10 ? _ONES[n % 10] + "und" : "") + _TENS[Math.floor(n / 10)];
+}
+function _three(n) {
+    return (n >= 100 ? _ONES[Math.floor(n / 100)] + "hundert" : "") + _two(n % 100);
+}
+function amountInWords(amount) {
+    const euros = Math.floor(amount);
+    const cents = Math.round((amount - euros) * 100);
+    let words = euros === 0 ? "null"
+        : (euros >= 1000 ? (Math.floor(euros / 1000) === 1 ? "ein" : _three(Math.floor(euros / 1000))) + "tausend" : "")
+          + _three(euros % 1000);
+    words += " Euro";
+    if (cents) words += " und " + _two(cents) + " Cent";
+    return words.charAt(0).toUpperCase() + words.slice(1);
+}
+
+// ── Quittung rendering (mirrors the classic German receipt-pad layout) ────────
+
+const CLUB_LEGAL_NAME = "HELLERSDORFER ATHLETIK-CLUB BERLIN e. V.";
+const _eur = (n) => n.toLocaleString("de-DE", { style: "currency", currency: "EUR" });
+const _deDate = (d) => new Date(d + "T00:00:00").toLocaleDateString("de-DE");
 
 function renderQuittung(r) {
+    const fuer = r.purpose + (r.event_title ? ` — ${r.event_title}` : "");
     document.getElementById("quittung-body").innerHTML = `
-      <div class="d-flex justify-content-between align-items-start mb-3">
-        <div>
-          <!-- legal entity name (registered Verein), not the club brand -->
-          <div class="fw-bold fs-6" style="color:#1a3a8b">HELLERSDORFER ATHLETIK-CLUB BERLIN e.&nbsp;V.</div>
-          <div class="q-label">Quittung / Receipt</div>
+      <div class="d-flex justify-content-between align-items-start mb-3 gap-3">
+        <div class="q-head-box">
+          <div class="q-head-title">Quittung</div>
+          <div class="q-head-no">Quittung Nr.: <strong>${escHtml(r.receipt_no)}</strong></div>
         </div>
-        <div class="text-end">
-          <div class="fw-semibold">${escHtml(r.receipt_no)}</div>
-          <div class="q-label">${fmt.date(r.date)}</div>
+        <table class="q-amounts"><tbody>
+          <tr><td class="q-label pe-2 text-end">Netto:</td><td class="q-line text-end">${_eur(r.amount)}</td></tr>
+          <tr><td class="q-label pe-2 text-end">+ 0&nbsp;% MwSt:</td><td class="q-line text-end">${_eur(0)}</td></tr>
+          <tr><td class="q-label pe-2 text-end fw-bold">Gesamtbetrag:</td><td class="q-line q-total text-end fw-bold">${_eur(r.amount)}</td></tr>
+        </tbody></table>
+      </div>
+
+      <div class="q-row"><span class="q-label">Gesamtbetrag in Worten:</span>
+        <span class="q-line flex-grow-1">${escHtml(amountInWords(r.amount))}</span></div>
+      <div class="q-label fst-italic mb-3">(Im Gesamtbetrag sind 0&nbsp;% Mehrwertsteuer enthalten.)</div>
+
+      <div class="q-row"><span class="q-label">Von</span>
+        <span class="q-line flex-grow-1">${CLUB_LEGAL_NAME}${r.paid_by ? ` (${escHtml(r.paid_by)})` : ""}</span></div>
+      <div class="q-row"><span class="q-label">für</span>
+        <span class="q-line flex-grow-1">${escHtml(fuer)}</span></div>
+      <div class="q-label fst-italic mb-3">dankend erhalten.</div>
+
+      <div class="q-row mb-3">
+        <span class="q-label">Ort:</span><span class="q-line flex-grow-1">${escHtml(r.location || "Berlin")}</span>
+        <span class="q-label ms-3">Datum:</span><span class="q-line" style="min-width:110px">${_deDate(r.date)}</span>
+      </div>
+
+      <div class="d-flex justify-content-between align-items-end gap-4">
+        <div class="q-book-box">
+          <div class="q-label">Buchungsvermerke:</div>
         </div>
-      </div>
-      <hr />
-      <div class="row g-3 mb-2">
-        <div class="col-6"><div class="q-label">Betrag / Amount</div>
-          <div class="fw-bold fs-4">${fmt.currency(r.amount)}</div></div>
-        <div class="col-6"><div class="q-label">Zweck / Purpose</div>
-          <div class="fw-semibold">${escHtml(r.purpose)}</div></div>
-        ${r.event_title ? `<div class="col-12"><div class="q-label">Spiel / Match</div>
-          <div>${escHtml(r.event_title)}</div></div>` : ""}
-        <div class="col-6"><div class="q-label">Gezahlt von / Paid by</div>
-          <div>${escHtml(r.paid_by || "—")}</div></div>
-        <div class="col-6"><div class="q-label">Erhalten von / Received by</div>
-          <div>${escHtml(r.recipient_name)}</div></div>
-      </div>
-      <div class="q-sig mt-3">
-        <div class="q-label mb-1">Betrag dankend erhalten — Unterschrift / Signature</div>
-        <img src="${r.signature}" alt="Signature" />
-        <div class="border-top mt-1 pt-1 q-label">${escHtml(r.recipient_name)}, ${fmt.date(r.date)}</div>
+        <div class="q-sig text-center">
+          <img src="${r.signature}" alt="Signature" />
+          <div class="border-top border-dark mt-1 pt-1 q-label">Stempel / Unterschrift des Empfängers</div>
+          <div class="q-label">${escHtml(r.recipient_name)}</div>
+        </div>
       </div>`;
     document.getElementById("quittung-view").classList.remove("d-none");
     document.getElementById("quittung-actions").classList.remove("d-none");
@@ -152,6 +189,7 @@ export async function init() {
                     recipient_name: form.recipient_name.value,
                     amount: parseFloat(form.amount.value),
                     purpose: form.purpose.value,
+                    location: form.location.value,
                     event_id: form.event_id.value ? parseInt(form.event_id.value) : null,
                     signature: _canvas.toDataURL("image/png"),
                 }),

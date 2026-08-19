@@ -18,6 +18,7 @@ class ReceiptCreate(BaseModel):
     recipient_name: str = Field(min_length=2, max_length=150)
     amount: Decimal = Field(gt=0)
     purpose: str = Field(min_length=2, max_length=300)
+    location: str = Field(default="Berlin", min_length=2, max_length=100)
     event_id: Optional[int] = None
     signature: str
 
@@ -43,6 +44,7 @@ def _out(r: Receipt, db: Session, with_signature: bool) -> dict:
         "recipient_name": r.recipient_name,
         "amount":         float(r.amount),
         "purpose":        r.purpose,
+        "location":       r.location,
         "event_id":       r.event_id,
         "event_title":    event.title if event else None,
         "paid_by":        (paid_by.full_name or paid_by.username) if paid_by else None,
@@ -66,6 +68,7 @@ def create_receipt(
         recipient_name=data.recipient_name.strip(),
         amount=data.amount,
         purpose=data.purpose.strip(),
+        location=data.location.strip(),
         event_id=data.event_id,
         paid_by_id=current_user.id,
         signature=data.signature,

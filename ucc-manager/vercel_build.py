@@ -217,6 +217,8 @@ def _run_migrations():
             if "device" not in pv_cols:
                 conn.execute(text("ALTER TABLE page_views ADD COLUMN device VARCHAR(10)"))
         conn.execute(text("CREATE INDEX IF NOT EXISTS ix_page_views_device ON page_views (device) WHERE device IS NOT NULL"))
+        if "page_views" in existing_tables and "is_first" not in _cols.get("page_views", set()):
+            conn.execute(text("ALTER TABLE page_views ADD COLUMN is_first BOOLEAN"))
         conn.execute(text("CREATE INDEX IF NOT EXISTS ix_int_tournament_teams_tournament_id ON internal_tournament_teams (tournament_id)"))
         conn.execute(text("CREATE INDEX IF NOT EXISTS ix_int_tournament_team_players_team_id ON internal_tournament_team_players (team_id)"))
         # Legacy quiz_questions predates the JSON `options` column; no version of

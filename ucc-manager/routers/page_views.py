@@ -15,6 +15,7 @@ class PageViewCreate(BaseModel):
     page: str
     nav_ms: Optional[int] = None
     device: Optional[str] = None
+    is_first: Optional[bool] = None
 
 
 @router.post("", status_code=204)
@@ -24,6 +25,7 @@ def track_view(body: PageViewCreate, db: Session = Depends(get_db), user=Depends
         user_id=user.id,
         nav_ms=body.nav_ms if body.nav_ms and 50 <= body.nav_ms <= 60_000 else None,
         device=body.device if body.device in ("mobile", "desktop") else None,
+        is_first=body.is_first,
     ))
     db.commit()
 
@@ -47,19 +49,21 @@ def get_stats(db: Session = Depends(get_db)):
 
 
 @router.get("/perf")
-def get_perf(db: Session = Depends(get_db), current_user=Depends(get_current_user)):
+def get_perf(days: int = 30, db: Session = Depends(get_db), current_user=Depends(get_current_user)):
     if current_user.role not in ("manager", "developer"):
         raise HTTPException(status_code=403, detail="Admin access required")
+    if days not in (7, 30, 90):
+        raise HTTPException(status_code=422, detail="days must be 7, 30 or 90")
 
     now = datetime.now(timezone.utc)
-    since_30d = now - timedelta(days=30)
+    since     = now - timedelta(days=days)
     since_7d  = now - timedelta(days=7)
     since_14d = now - timedelta(days=14)
 
     def _round(v):
         return round(v) if v is not None else None
 
-    base_filter = (PageView.visited_at >= since_30d, PageView.nav_ms.isnot(None))
+    base_filter = (PageView.visited_at >= since, PageView.nav_ms.isnot(None))
     mobile_ms  = case((PageView.device == "mobile", PageView.nav_ms))
     desktop_ms = case((PageView.device == "desktop", PageView.nav_ms))
 
@@ -70,6 +74,8 @@ def get_perf(db: Session = Depends(get_db), current_user=Depends(get_current_use
             func.percentile_cont(0.75).within_group(PageView.nav_ms).label("p75_ms"),
             func.percentile_cont(0.95).within_group(PageView.nav_ms).label("p95_ms"),
             func.avg(case((PageView.nav_ms >= 1200, 1.0), else_=0.0)).label("slow_rate"),
+            func.avg(case((PageView.is_first == True, PageView.nav_ms))).label("first_avg_ms"),
+            func.avg(case((PageView.is_first == False, PageView.nav_ms))).label("inapp_avg_ms"),
             func.avg(mobile_ms).label("mobile_avg_ms"),
             func.avg(desktop_ms).label("desktop_avg_ms"),
             func.count(mobile_ms).label("mobile_count"),
@@ -79,6 +85,16 @@ def get_perf(db: Session = Depends(get_db), current_user=Depends(get_current_use
             )).label("lw_avg"),
         )
         .filter(*base_filter)
+        .one()
+    )
+
+    # usage counts everything in the window, including views with no nav timing
+    usage = (
+        db.query(
+            func.count(func.distinct(PageView.user_id)).label("active_users"),
+            func.count().label("total_views"),
+        )
+        .filter(PageView.visited_at >= since)
         .one()
     )
 
@@ -135,6 +151,10 @@ def get_perf(db: Session = Depends(get_db), current_user=Depends(get_current_use
             "p75_ms": _round(summary.p75_ms),
             "p95_ms": _round(summary.p95_ms),
             "slow_pct": round(summary.slow_rate * 100) if summary.slow_rate is not None else 0,
+            "first_avg_ms": _round(summary.first_avg_ms),
+            "inapp_avg_ms": _round(summary.inapp_avg_ms),
+            "active_users": usage.active_users,
+            "total_views": usage.total_views,
             "mobile_avg_ms": _round(summary.mobile_avg_ms),
             "desktop_avg_ms": _round(summary.desktop_avg_ms),
             "mobile_pct": round(summary.mobile_count / summary.total * 100) if summary.total else 0,
@@ -143,6 +163,7 @@ def get_perf(db: Session = Depends(get_db), current_user=Depends(get_current_use
             {"date": str(r.day), "count": r.count, "avg_ms": _round(r.avg_ms)}
             for r in daily_rows
         ],
+        "window_days": days,
         "pages": pages,
         "trend": {
             "this_week_avg": tw_avg,

@@ -456,7 +456,10 @@ async function router() {
         if (seq !== _navSeq) return;
         const nav_ms = Math.round(performance.now() - _t0);
         const device = window.innerWidth < 768 ? "mobile" : "desktop";
-        apiFetch("/page-views", { method: "POST", body: JSON.stringify({ page: hash, nav_ms, device }) }).catch(() => {});
+        // first navigation of this visit pays uncached fetches — track it apart
+        const is_first = !window._navTracked;
+        window._navTracked = true;
+        apiFetch("/page-views", { method: "POST", body: JSON.stringify({ page: hash, nav_ms, device, is_first }) }).catch(() => {});
     } catch (e) {
         if (seq !== _navSeq) return;
         container.innerHTML = `<div class="alert alert-danger">Failed to load page: ${e.message}</div>`;

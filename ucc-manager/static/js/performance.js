@@ -1,11 +1,26 @@
 import { apiFetch } from "/js/api.js";
 
+let _days = 30;
+
 export async function init() {
-    const data = await apiFetch("/page-views/perf");
-    renderSummary(data.summary);
+    document.querySelectorAll("#perf-window [data-days]").forEach(btn =>
+        btn.addEventListener("click", () => {
+            _days = parseInt(btn.dataset.days);
+            document.querySelectorAll("#perf-window [data-days]").forEach(b =>
+                b.classList.toggle("active", b === btn));
+            load();
+        }));
+    await load();
+}
+
+async function load() {
+    const data = await apiFetch(`/page-views/perf?days=${_days}`);
+    document.querySelectorAll(".perf-window-label").forEach(el =>
+        el.textContent = `(last ${data.window_days} days)`);
+    renderSummary(data.summary, data.window_days);
     renderDaily(data.daily || []);
     renderTrend(data.trend);
-    renderTable(data.pages, data.summary);
+    renderTable(data.pages, data.summary, data.window_days);
 }
 
 // ── colour helper ────────────────────────────────────────────────────────────
@@ -24,11 +39,14 @@ function _fmt(ms) {
 
 // ── summary cards ────────────────────────────────────────────────────────────
 
-function renderSummary(s) {
+function renderSummary(s, days) {
     const noData = !s.total_navigations;
     const cards = [
-        { icon: "bi-activity",       label: "Navigations (30d)",  value: s.total_navigations?.toLocaleString() ?? "—", cls: "text-primary" },
+        { icon: "bi-activity",       label: `Navigations (${days}d)`, value: s.total_navigations?.toLocaleString() ?? "—", cls: "text-primary" },
+        { icon: "bi-people",         label: "Active users",       value: s.active_users ? s.active_users.toLocaleString() : "—", cls: "text-primary" },
         { icon: "bi-stopwatch",      label: "Avg load time",      value: s.avg_ms ? `${s.avg_ms.toLocaleString()} ms` : "—", cls: _msClass(s.avg_ms) || "text-secondary" },
+        { icon: "bi-box-arrow-in-right", label: "First page (per visit)", value: s.first_avg_ms ? `${s.first_avg_ms.toLocaleString()} ms` : "—", cls: _msClass(s.first_avg_ms) || "text-secondary" },
+        { icon: "bi-arrow-left-right", label: "In-app navigation", value: s.inapp_avg_ms ? `${s.inapp_avg_ms.toLocaleString()} ms` : "—", cls: _msClass(s.inapp_avg_ms) || "text-secondary" },
         { icon: "bi-bar-chart-line", label: "P75 load time",      value: s.p75_ms ? `${s.p75_ms.toLocaleString()} ms` : "—", cls: _msClass(s.p75_ms) || "text-secondary" },
         { icon: "bi-bar-chart-line", label: "P95 load time",      value: s.p95_ms ? `${s.p95_ms.toLocaleString()} ms` : "—", cls: _msClass(s.p95_ms) || "text-secondary" },
         { icon: "bi-exclamation-circle", label: "Slow navs (≥1.2s)", value: noData ? "—" : `${s.slow_pct}%`, cls: s.slow_pct >= 20 ? "perf-ms-slow" : s.slow_pct >= 5 ? "perf-ms-ok" : "perf-ms-good" },
@@ -58,8 +76,9 @@ function renderSummary(s) {
 // ── daily trend bars ──────────────────────────────────────────────────────────
 
 function renderDaily(daily) {
-    if (daily.length < 2) return; // one day of data isn't a trend
-    document.getElementById("perf-daily-card").style.display = "";
+    const card = document.getElementById("perf-daily-card");
+    if (daily.length < 2) { card.style.display = "none"; return; } // one day isn't a trend
+    card.style.display = "";
     const max = Math.max(...daily.map(d => d.avg_ms ?? 0), 1);
     const barCls = (ms) => ms < 500 ? "bg-success" : ms < 1200 ? "bg-warning" : "bg-danger";
     const short = (iso) => new Date(iso + "T00:00:00").toLocaleDateString("en-GB", { day: "numeric", month: "short" });
@@ -79,8 +98,8 @@ function renderDaily(daily) {
 // ── week-over-week trend ──────────────────────────────────────────────────────
 
 function renderTrend(t) {
-    if (!t.this_week_avg && !t.last_week_avg) return;
     const card = document.getElementById("perf-trend-card");
+    if (!t.this_week_avg && !t.last_week_avg) { card.style.display = "none"; return; }
     card.style.display = "";
     let badge = "";
     if (t.improvement_pct !== null) {
@@ -108,7 +127,7 @@ function renderTrend(t) {
 
 // ── per-page table ────────────────────────────────────────────────────────────
 
-function renderTable(pages, summary) {
+function renderTable(pages, summary, days) {
     if (!pages.length) return;
     const maxMs = Math.max(...pages.map(p => p.p75_ms ?? 0), 1);
 
@@ -151,6 +170,6 @@ function renderTable(pages, summary) {
           Thresholds: <span class="perf-ms-good fw-semibold">good &lt; 500 ms</span> ·
           <span class="perf-ms-ok fw-semibold">ok &lt; 1200 ms</span> ·
           <span class="perf-ms-slow fw-semibold">slow ≥ 1200 ms</span>.
-          Data from the last 30 days (${summary.total_navigations.toLocaleString()} navigations recorded).
+          Data from the last ${days} days (${summary.total_navigations.toLocaleString()} navigations recorded).
         </div>`;
 }

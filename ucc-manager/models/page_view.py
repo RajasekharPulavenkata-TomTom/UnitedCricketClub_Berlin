@@ -1,5 +1,5 @@
 from datetime import datetime, timezone
-from sqlalchemy import Column, Integer, String, DateTime, ForeignKey
+from sqlalchemy import Column, Integer, String, Boolean, DateTime, ForeignKey
 from database import Base
 
 
@@ -16,3 +16,4 @@ class PageView(Base):
     visited_at = Column(DateTime, default=_now)
     nav_ms     = Column(Integer, nullable=True)   # full navigation time in ms (router start → init done)
     device     = Column(String(10), nullable=True) # "mobile" | "desktop"
+    is_first   = Column(Boolean, nullable=True)    # first SPA navigation of the visit; NULL = recorded before this existed

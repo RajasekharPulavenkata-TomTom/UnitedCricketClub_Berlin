@@ -113,11 +113,11 @@ class TestPollAggregates:
 
 class TestPageViewPerf:
     def test_summary_and_pages(self, client, auth):
-        for page, ms, device in [("home", 100, "mobile"), ("home", 200, "desktop"),
-                                 ("home", 300, "mobile"), ("polls", 400, "desktop"),
-                                 ("polls", 1500, "desktop")]:
+        for page, ms, device, first in [("home", 100, "mobile", True), ("home", 200, "desktop", False),
+                                        ("home", 300, "mobile", False), ("polls", 400, "desktop", False),
+                                        ("polls", 1500, "desktop", True)]:
             res = client.post("/api/page-views", headers=auth,
-                              json={"page": page, "nav_ms": ms, "device": device})
+                              json={"page": page, "nav_ms": ms, "device": device, "is_first": first})
             assert res.status_code == 204
         out = client.get("/api/page-views/perf", headers=auth).json()
         s = out["summary"]
@@ -128,6 +128,13 @@ class TestPageViewPerf:
         assert s["mobile_pct"] == 40
         assert s["p95_ms"] > s["p75_ms"]
         assert s["slow_pct"] == 20         # 1 of 5 navs ≥ 1200 ms
+        assert s["first_avg_ms"] == 800    # (100+1500)/2
+        assert s["inapp_avg_ms"] == 300    # (200+300+400)/3
+        assert s["active_users"] == 1      # all recorded by the admin fixture user
+        assert out["window_days"] == 30
+        # window param: accepted values work, others rejected
+        assert client.get("/api/page-views/perf?days=7", headers=auth).json()["window_days"] == 7
+        assert client.get("/api/page-views/perf?days=14", headers=auth).status_code == 422
         home = next(p for p in out["pages"] if p["page"] == "home")
         assert home["visits"] == 3
         assert home["avg_ms"] == 200

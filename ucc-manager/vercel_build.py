@@ -226,6 +226,9 @@ def _run_migrations():
         # repopulates it.
         if "quiz_questions" in existing_tables and "options" not in _cols.get("quiz_questions", set()):
             conn.execute(text("DROP TABLE quiz_questions"))
+        # receipts.location ("Ort") was added after the table first shipped
+        if "receipts" in existing_tables and "location" not in _cols.get("receipts", set()):
+            conn.execute(text("ALTER TABLE receipts ADD COLUMN location VARCHAR(100) NOT NULL DEFAULT 'Berlin'"))
         # Approvals queue: nearly all rows are 'approved', so a partial index on the
         # pending slice is far more selective than a full status index
         conn.execute(text("CREATE INDEX IF NOT EXISTS ix_transactions_pending ON transactions (created_at) WHERE status = 'pending'"))

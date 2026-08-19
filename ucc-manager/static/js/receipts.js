@@ -53,7 +53,8 @@ function renderQuittung(r) {
     document.getElementById("quittung-body").innerHTML = `
       <div class="d-flex justify-content-between align-items-start mb-3">
         <div>
-          <div class="fw-bold fs-5" style="color:#1a3a8b">United Cricket Club</div>
+          <!-- legal entity name (registered Verein), not the club brand -->
+          <div class="fw-bold fs-6" style="color:#1a3a8b">HELLERSDORFER ATHLETIK-CLUB BERLIN e.&nbsp;V.</div>
           <div class="q-label">Quittung / Receipt</div>
         </div>
         <div class="text-end">

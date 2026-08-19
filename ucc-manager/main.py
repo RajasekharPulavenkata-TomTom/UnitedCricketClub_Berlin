@@ -13,7 +13,7 @@ _STATIC_DIR = Path(__file__).resolve().parent / "static"
 # below finds no placeholder and is a no-op. Never make this the authoritative
 # source of the version — it is per-process, and clients would thrash caches.
 _BOOT_VERSION = f"ucc-{int(time.time())}"
-from routers import accounting, inventory, members, member_payments, events, audit, player_availability, tasks, reporting, auth, approvals, polls, pain_points, violations, field_formations, scoreboard, sponsors, external_tournament, internal_tournament, page_views, tournament_feedback, elections, feedback, meetings, quiz
+from routers import accounting, inventory, members, member_payments, events, audit, player_availability, tasks, reporting, auth, approvals, polls, pain_points, violations, field_formations, scoreboard, sponsors, external_tournament, internal_tournament, page_views, tournament_feedback, elections, feedback, meetings, quiz, receipts
 
 
 app = FastAPI(title="UCC Manager")
@@ -80,6 +80,7 @@ app.include_router(elections.router,          dependencies=_auth)
 app.include_router(feedback.router,           dependencies=_auth)
 app.include_router(meetings.router,           dependencies=_auth)
 app.include_router(quiz.router,               dependencies=_auth)
+app.include_router(receipts.router,           dependencies=_auth)
 
 
 @app.get("/health", include_in_schema=False)

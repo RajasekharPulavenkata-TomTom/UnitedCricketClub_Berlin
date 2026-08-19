@@ -1,0 +1,84 @@
+<h3 class="page-header"><i class="bi bi-cash-coin me-2"></i>Receipts <span class="text-muted fw-normal fs-6">(Quittung)</span></h3>
+
+<div class="row g-3">
+  <div class="col-12 col-lg-5">
+    <div class="card">
+      <div class="card-header bg-white fw-semibold"><i class="bi bi-pencil me-2"></i>New Receipt</div>
+      <div class="card-body">
+        <form id="receipt-form">
+          <div class="row g-2 mb-2">
+            <div class="col-6">
+              <label class="form-label fw-semibold small">Date</label>
+              <input name="date" type="date" class="form-control" required />
+            </div>
+            <div class="col-6">
+              <label class="form-label fw-semibold small">Amount (€)</label>
+              <input name="amount" type="number" step="0.01" min="0.01" class="form-control" required inputmode="decimal" />
+            </div>
+          </div>
+          <div class="mb-2">
+            <label class="form-label fw-semibold small">Match / Event <span class="text-muted fw-normal">(optional)</span></label>
+            <select name="event_id" class="form-select"><option value="">— None —</option></select>
+          </div>
+          <div class="mb-2">
+            <label class="form-label fw-semibold small">Received by (umpire)</label>
+            <input name="recipient_name" class="form-control" required minlength="2" placeholder="Full name" />
+          </div>
+          <div class="mb-3">
+            <label class="form-label fw-semibold small">Purpose / Zweck</label>
+            <input name="purpose" class="form-control" required value="Schiedsrichtergebühr / Umpire fee" />
+          </div>
+          <div class="mb-1 d-flex justify-content-between align-items-center">
+            <label class="form-label fw-semibold small mb-0">Signature <span class="text-muted fw-normal">(sign below)</span></label>
+            <button type="button" class="btn btn-outline-secondary btn-sm py-0" id="sig-clear">Clear</button>
+          </div>
+          <canvas id="sig-pad" class="sig-pad w-100 mb-1"></canvas>
+          <div class="text-muted mb-3" style="font-size:.75rem">Betrag dankend erhalten / Amount received with thanks</div>
+          <div id="receipt-error" class="alert alert-danger py-2 small d-none"></div>
+          <button type="submit" class="btn btn-success w-100"><i class="bi bi-check-lg me-1"></i>Save Receipt</button>
+        </form>
+      </div>
+    </div>
+  </div>
+
+  <div class="col-12 col-lg-7">
+    <!-- kept white in dark mode on purpose: it represents a printed paper document -->
+    <div id="quittung-view" class="card d-none mb-3">
+      <div class="card-body p-4" id="quittung-body"></div>
+    </div>
+    <div class="d-flex gap-2 mb-3 d-none no-print" id="quittung-actions">
+      <button class="btn btn-ucc-orange" id="btn-print"><i class="bi bi-printer me-1"></i>Print / Save PDF</button>
+    </div>
+
+    <div class="card">
+      <div class="card-header bg-white fw-semibold"><i class="bi bi-card-text me-2"></i>Past Receipts</div>
+      <div class="card-body p-0">
+        <div id="receipts-list" class="list-group list-group-flush">
+          <div class="text-center py-3"><div class="spinner-border spinner-border-sm"></div></div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<style>
+.sig-pad {
+  height: 140px;
+  border: 1px dashed #adb5bd;
+  border-radius: 8px;
+  background: #fff;      /* always white — it becomes the receipt's signature image */
+  touch-action: none;    /* finger drawing must not scroll the page */
+  cursor: crosshair;
+}
+#quittung-view {
+  background: #fff !important;  /* paper stays paper, even in dark theme */
+  color: #212529 !important;
+}
+#quittung-view .q-label { color: #6c757d; font-size: .78rem; }
+#quittung-view .q-sig img { max-height: 90px; }
+@media print {
+  body * { visibility: hidden; }
+  #quittung-view, #quittung-view * { visibility: visible; }
+  #quittung-view { position: absolute; left: 0; top: 0; width: 100%; box-shadow: none; border: none; }
+}
+</style>

@@ -393,6 +393,7 @@ const PAGES = {
     "internal-tournaments": { html: "/pages/internal-tournaments.html", js: "/js/internal-tournaments.js" },
     calendar:           { html: "/pages/calendar.html",            js: "/js/calendar.js"           },
     "management-charter": { html: "/pages/management-charter.html", js: "/js/management-charter.js", static: true },
+    receipts:           { html: "/pages/receipts.html",            js: "/js/receipts.js"           },
     rules:              { html: "/pages/rules.html",               js: "/js/rules.js"              },
     history:            { html: "/pages/history.html",             js: "/js/history.js"            },
     "cricket-rules":    { html: "/pages/cricket-rules.html",       js: "/js/cricket-rules.js",     static: true },

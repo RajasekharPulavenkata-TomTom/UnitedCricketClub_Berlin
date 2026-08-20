@@ -318,25 +318,10 @@ document.querySelectorAll(".ucc-theme-btn").forEach(b =>
     b.addEventListener("click", () => { window._setTheme(b.dataset.themeOpt); _syncThemeButtons(); }));
 _syncThemeButtons();
 
-// Bare URL → /#home so the address bar always names the page. replaceState
-// keeps the query string (e.g. ?reset=) and fires no hashchange — the router's
-// own empty-hash default renders home either way.
-if (!location.hash) {
-    history.replaceState(null, "", location.pathname + location.search + "#home");
-}
-
-// Arriving via an emailed reset link (/?reset=<token>) takes priority over
-// any stored session — show the set-new-password form immediately.
-const _resetToken = new URLSearchParams(location.search).get("reset");
-
-if (_resetToken) {
-    authModal.show();
-    window._authTab("reset");
-} else if (localStorage.getItem("ucc_token")) {
-    bootApp();
-} else {
-    authModal.show();
-}
+// NOTE: the session bootstrap (bootApp / authModal decision) lives at the very
+// bottom of this file — bootApp() calls router(), which reads the module-level
+// _SV and _navSeq declared below. Running it here would hit their temporal dead
+// zone and throw before the first page renders (endless spinner on load).
 
 // ── Pages ──────────────────────────────────────────────────────────────────────
 
@@ -466,3 +451,26 @@ async function router() {
     }
 }
 
+
+// ── Session bootstrap ────────────────────────────────────────────────────────
+// Must run AFTER router() and its module-level deps (_SV, _navSeq) are declared.
+
+// Bare URL → /#home so the address bar always names the page. replaceState
+// keeps the query string (e.g. ?reset=) and fires no hashchange — the router's
+// own empty-hash default renders home either way.
+if (!location.hash) {
+    history.replaceState(null, "", location.pathname + location.search + "#home");
+}
+
+// Arriving via an emailed reset link (/?reset=<token>) takes priority over
+// any stored session — show the set-new-password form immediately.
+const _resetToken = new URLSearchParams(location.search).get("reset");
+
+if (_resetToken) {
+    authModal.show();
+    window._authTab("reset");
+} else if (localStorage.getItem("ucc_token")) {
+    bootApp();
+} else {
+    authModal.show();
+}

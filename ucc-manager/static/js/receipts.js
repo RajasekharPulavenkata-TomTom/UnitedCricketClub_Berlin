@@ -1,4 +1,4 @@
-import { apiFetch, fmt, showToast, escHtml } from "/js/api.js";
+import { apiFetch, currentUser, fmt, showToast, escHtml } from "/js/api.js";
 
 // ── Signature pad (vanilla pointer events, DPR-aware) ─────────────────────────
 
@@ -175,7 +175,7 @@ export async function init() {
     initSigPad();
     document.getElementById("btn-print").addEventListener("click", () => window.print());
 
-    const me = await apiFetch("/auth/me").catch(() => null);
+    const me = currentUser();  // from localStorage — no round trip
     _isAdmin = me?.role === "manager" || me?.role === "developer";
 
     const form = document.getElementById("receipt-form");

@@ -1,4 +1,4 @@
-import { apiFetch, showToast, escHtml } from "/js/api.js";
+import { apiFetch, currentUser, showToast, escHtml } from "/js/api.js";
 
 let items = [];
 let isAdmin = false;
@@ -16,7 +16,7 @@ const RULE_META = {
 };
 
 export async function init() {
-    const me = await apiFetch("/auth/me").catch(() => null);
+    const me = currentUser();  // from localStorage — no round trip (boot keeps it fresh)
     isAdmin = me?.role === "manager" || me?.role === "developer";
     currentMemberId = me?.member_id ?? null;
 

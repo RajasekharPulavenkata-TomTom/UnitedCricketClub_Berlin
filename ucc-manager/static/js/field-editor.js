@@ -1,4 +1,4 @@
-import { apiFetch, showToast, escHtml } from "/js/api.js";
+import { apiFetch, currentUser, showToast, escHtml } from "/js/api.js";
 
 // ── State ─────────────────────────────────────────────────────────────────────
 let allMembers    = [];
@@ -43,7 +43,7 @@ export async function init() {
     // Show page content (hidden until loaded)
     document.getElementById("fe-print-area").style.display = "";
 
-    const me = await apiFetch("/auth/me").catch(() => null);
+    const me = currentUser();  // from localStorage — no round trip
     currentUserId = me?.id ?? null;
 
     setupSVGDrag();

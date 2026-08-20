@@ -16,6 +16,14 @@ function _cacheEvict(path) {
     }
 }
 
+// Current user from localStorage — populated at boot and kept fresh there via a
+// background /auth/me refresh. Pages that only need role/id/member_id should read
+// this instead of awaiting /auth/me (which is never cached — always a round trip).
+export function currentUser() {
+    try { return JSON.parse(localStorage.getItem("ucc_user") || "null"); }
+    catch { return null; }
+}
+
 export async function apiFetch(path, options = {}) {
     const method = (options.method || "GET").toUpperCase();
     const cacheKey = BASE + path;

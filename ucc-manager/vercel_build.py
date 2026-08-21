@@ -56,8 +56,11 @@ def _run_migrations():
                 conn.execute(text("ALTER TABLE users ADD COLUMN status TEXT NOT NULL DEFAULT 'active'"))
             if "member_id" not in cols:
                 conn.execute(text("ALTER TABLE users ADD COLUMN member_id INTEGER REFERENCES members(id) ON DELETE SET NULL"))
-            # Ensure bootstrap admin is never stuck in pending
-            conn.execute(text("UPDATE users SET status='active' WHERE username='ucc_manager' AND status != 'active'"))
+            # The old ucc_manager root account shipped a plaintext password in
+            # seed.py — keep it permanently disabled (not hard-deleted: it owns
+            # historical transactions via created_by_id, so a DELETE would fail
+            # the FK. Deactivation blocks login and preserves data lineage).
+            conn.execute(text("UPDATE users SET is_active=false WHERE username='ucc_manager'"))
             # Remove deprecated seeded accounts
             conn.execute(text("DELETE FROM users WHERE username IN ('ucc_accouting_manager','ucc_inventory_manager')"))
         if "tournaments" in existing_tables:

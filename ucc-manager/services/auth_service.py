@@ -7,8 +7,20 @@ from fastapi import HTTPException
 from sqlalchemy.orm import Session
 from models.auth import User
 
-SECRET_KEY = os.environ.get("UCC_SECRET_KEY", "ucc-dev-secret-change-in-production")
+_DEV_SECRET = "ucc-dev-secret-change-in-production"
+SECRET_KEY = os.environ.get("UCC_SECRET_KEY", _DEV_SECRET)
 ALGORITHM = "HS256"
+
+# Startup guard: a deployed environment must never sign JWTs with the public
+# dev-default key — anyone could then forge an admin token. Fail loudly at
+# import (boot/build) rather than run insecure. Local dev (VERCEL_ENV unset)
+# and previews keep the convenient default.
+if os.environ.get("VERCEL_ENV") == "production" and SECRET_KEY == _DEV_SECRET:
+    raise RuntimeError(
+        "UCC_SECRET_KEY is not set in production — refusing to start with the "
+        "insecure dev default (tokens would be forgeable). Set it in the Vercel "
+        "project environment variables."
+    )
 TOKEN_EXPIRE_MINUTES = int(os.environ.get("UCC_TOKEN_EXPIRE_MINUTES", "480"))
 
 

@@ -37,9 +37,11 @@ EXPENSE_CATEGORIES = [
     ("Miscellaneous", "Other club expenses"),
 ]
 
-DEFAULT_USERS = [
-    {"username": "ucc_manager", "full_name": "UCC Manager", "password": "ucc-root-2025", "role": "root"},
-]
+# No default users are seeded. The old hardcoded "ucc_manager / ucc-root-2025"
+# root account was a committed-plaintext-credential exposure (readable by anyone
+# with repo access) and has been removed from production. Create admins via the
+# User Management UI, or register + promote.
+DEFAULT_USERS = []
 
 db = SessionLocal()
 inserted_cats = 0
@@ -69,6 +71,3 @@ for u in DEFAULT_USERS:
 db.commit()
 db.close()
 print(f"Seeded {inserted_cats} categories and {inserted_users} users (skipped existing).")
-print("\nDefault credentials:")
-print("  ucc_manager / ucc-root-2025  (Root - full access)")
-print("\nChange password after first login!")

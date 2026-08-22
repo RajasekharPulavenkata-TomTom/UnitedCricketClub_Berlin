@@ -6,6 +6,6 @@ pydantic==2.9.2
 python-dotenv==1.0.1
 python-jose[cryptography]==3.3.0
 bcrypt==4.2.1
-python-multipart==0.0.9
+python-multipart==0.0.31
 httpx==0.28.1
 sendgrid==6.11.0

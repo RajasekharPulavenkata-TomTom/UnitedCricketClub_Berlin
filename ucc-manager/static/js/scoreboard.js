@@ -7,15 +7,67 @@ const _modal    = () => bootstrap.Modal.getOrCreateInstance(document.getElementB
 const _delModal = () => bootstrap.Modal.getOrCreateInstance(document.getElementById("sbDeleteModal"));
 
 export async function init() {
-    if (isAdmin()) document.getElementById("btn-sb-add").classList.remove("d-none");
+    if (isAdmin()) {
+        document.getElementById("btn-sb-add").classList.remove("d-none");
+        document.getElementById("btn-sb-import").classList.remove("d-none");
+    }
 
     _populateYears();
     await _load();
 
-    document.getElementById("sb-year").addEventListener("change", _load);
+    document.getElementById("sb-year").addEventListener("change", () => _load());
     document.getElementById("btn-sb-add").addEventListener("click", _openAdd);
     document.getElementById("btn-sb-save").addEventListener("click", _save);
     document.getElementById("btn-sb-delete-confirm").addEventListener("click", _deleteConfirm);
+    document.getElementById("btn-sb-import").addEventListener("click", _openImport);
+    document.getElementById("btn-sb-import-run").addEventListener("click", _runImport);
+}
+
+const _importModal = () => bootstrap.Modal.getOrCreateInstance(document.getElementById("sbImportModal"));
+
+function _openImport() {
+    document.getElementById("sb-import-file").value = "";
+    document.getElementById("sb-import-error").classList.add("d-none");
+    document.getElementById("sb-import-result").classList.add("d-none");
+    _importModal().show();
+}
+
+async function _runImport() {
+    const errEl = document.getElementById("sb-import-error");
+    const okEl  = document.getElementById("sb-import-result");
+    const btn   = document.getElementById("btn-sb-import-run");
+    errEl.classList.add("d-none");
+    okEl.classList.add("d-none");
+    const fileInput = document.getElementById("sb-import-file");
+    const file = fileInput.files[0];
+    if (!file) {
+        errEl.textContent = "Choose a CSV file first.";
+        errEl.classList.remove("d-none");
+        return;
+    }
+    const fd = new FormData();
+    fd.append("file", file);
+    fd.append("match_type", document.getElementById("sb-import-format").value);
+
+    btn.disabled = true;
+    try {
+        // Direct fetch (not apiFetch) so the browser sets the multipart boundary.
+        const res = await fetch("/api/scoreboard/import", {
+            method: "POST",
+            headers: { "Authorization": `Bearer ${localStorage.getItem("ucc_token")}` },
+            body: fd,
+        });
+        const data = await res.json().catch(() => ({}));
+        if (!res.ok) throw new Error(data.detail || `Import failed (${res.status})`);
+        okEl.innerHTML = `Imported <strong>${data.imported}</strong>, updated <strong>${data.updated}</strong> (of ${data.total} ACB 2nd XI matches found).`;
+        okEl.classList.remove("d-none");
+        await _load(true);   // refresh, bypassing the client GET cache
+    } catch (e) {
+        errEl.textContent = e.message;
+        errEl.classList.remove("d-none");
+    } finally {
+        btn.disabled = false;
+    }
 }
 
 function _populateYears() {
@@ -27,9 +79,12 @@ function _populateYears() {
     }
 }
 
-async function _load() {
+async function _load(fresh = false) {
     const year = document.getElementById("sb-year").value;
-    const qs   = year ? `?year=${year}` : "";
+    const params = new URLSearchParams();
+    if (year) params.set("year", year);
+    if (fresh) params.set("_", Date.now());  // unique key → bypass the 60s GET cache after an import
+    const qs = params.toString() ? `?${params}` : "";
     try {
         _results = await apiFetch(`/scoreboard${qs}`);
         _renderSections();

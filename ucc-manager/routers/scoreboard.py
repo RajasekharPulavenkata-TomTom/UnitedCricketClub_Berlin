@@ -1,7 +1,7 @@
 from typing import List, Optional
 from datetime import date
 import asyncio
-from fastapi import APIRouter, Depends, HTTPException, Query
+from fastapi import APIRouter, Depends, HTTPException, Query, UploadFile, File, Form
 from sqlalchemy.orm import Session
 from pydantic import BaseModel
 import httpx
@@ -9,6 +9,10 @@ from database import get_db
 from models.scoreboard import MatchResult
 from models.auth import User
 from dependencies.auth import get_current_user
+from services.results_import import parse_odcv_results
+
+OUR_TEAM = "ACB 2nd XI"
+VALID_MATCH_TYPES = {"8-Overs", "T10", "T20", "50-Overs"}
 
 router = APIRouter(prefix="/api/scoreboard", tags=["scoreboard"])
 
@@ -379,6 +383,45 @@ def create_result(
     db.commit()
     db.refresh(mr)
     return mr
+
+
+@router.post("/import")
+def import_results(
+    file: UploadFile = File(...),
+    match_type: str = Form(...),
+    db: Session = Depends(get_db),
+    current_user: User = Depends(get_current_user),
+):
+    """Import an ODCV CricClubs 'Match Results' CSV export. Keeps only ACB 2nd XI's
+    matches, tags them with the chosen format, and upserts by (date, opponent) so
+    re-uploading the same file updates rather than duplicates."""
+    if current_user.role not in ("manager", "developer"):
+        raise HTTPException(status_code=403, detail="Admin only")
+    if match_type not in VALID_MATCH_TYPES:
+        raise HTTPException(status_code=422, detail=f"match_type must be one of {sorted(VALID_MATCH_TYPES)}")
+
+    try:
+        text = file.file.read().decode("utf-8-sig")  # tolerate a BOM
+        rows = parse_odcv_results(text, OUR_TEAM, match_type)
+    except Exception as e:
+        raise HTTPException(status_code=400, detail=f"Could not parse CSV: {e}")
+
+    imported = updated = 0
+    for r in rows:
+        existing = (
+            db.query(MatchResult)
+            .filter(MatchResult.date == r["date"], MatchResult.opponent == r["opponent"])
+            .first()
+        )
+        if existing:
+            for k, v in r.items():
+                setattr(existing, k, v)
+            updated += 1
+        else:
+            db.add(MatchResult(**r))
+            imported += 1
+    db.commit()
+    return {"imported": imported, "updated": updated, "skipped": 0, "total": len(rows)}
 
 
 @router.put("/{id}", response_model=MatchResultOut)

@@ -20,6 +20,9 @@
     <h4 class="mb-0">📊 Team Results — ACB 2nd XI</h4>
     <div class="d-flex gap-2 flex-wrap align-items-center">
       <select id="sb-year" class="form-select form-select-sm" style="width:110px"></select>
+      <button id="btn-sb-import" class="btn btn-sm btn-outline-secondary d-none">
+        <i class="bi bi-upload me-1"></i>Import CSV
+      </button>
       <button id="btn-sb-add" class="btn btn-sm btn-success d-none">
         <i class="bi bi-plus-lg me-1"></i>Add Result
       </button>
@@ -142,6 +145,40 @@
       <div class="modal-footer">
         <button class="btn btn-secondary btn-sm" data-bs-dismiss="modal">Cancel</button>
         <button id="btn-sb-delete-confirm" class="btn btn-danger btn-sm">Delete</button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- Import CSV modal -->
+<div class="modal fade" id="sbImportModal" tabindex="-1">
+  <div class="modal-dialog modal-dialog-centered" style="max-width:460px">
+    <div class="modal-content">
+      <div class="modal-header">
+        <h5 class="modal-title"><i class="bi bi-upload me-2"></i>Import Results CSV</h5>
+        <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+      </div>
+      <div class="modal-body">
+        <p class="text-muted small">Upload an ODCV CricClubs "Match Results" export. Only <strong>ACB 2nd XI</strong>'s matches are imported; existing rows for the same date &amp; opponent are updated (no duplicates).</p>
+        <div class="mb-3">
+          <label class="form-label fw-semibold small">Format (applies to all rows in this file)</label>
+          <select id="sb-import-format" class="form-select form-select-sm">
+            <option value="T20" selected>T20</option>
+            <option value="50-Overs">50-Overs</option>
+            <option value="T10">T10</option>
+            <option value="8-Overs">8-Overs</option>
+          </select>
+        </div>
+        <div class="mb-3">
+          <label class="form-label fw-semibold small">CSV file</label>
+          <input id="sb-import-file" type="file" accept=".csv,text/csv" class="form-control form-control-sm" />
+        </div>
+        <div id="sb-import-error" class="alert alert-danger py-2 small d-none"></div>
+        <div id="sb-import-result" class="alert alert-success py-2 small d-none"></div>
+      </div>
+      <div class="modal-footer">
+        <button class="btn btn-secondary btn-sm" data-bs-dismiss="modal">Close</button>
+        <button id="btn-sb-import-run" class="btn btn-success btn-sm"><i class="bi bi-upload me-1"></i>Import</button>
       </div>
     </div>
   </div>

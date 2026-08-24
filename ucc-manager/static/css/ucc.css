@@ -542,6 +542,7 @@ html[data-bs-theme="dark"] .page-header {
   color: #8fb0ff;
   border-bottom-color: #2f4dad;
 }
+html[data-bs-theme="dark"] .sb-section-head { color: #8fb0ff; }
 html[data-bs-theme="dark"] .table-hover tbody tr:hover {
   background-color: rgba(120, 150, 255, .08);
 }

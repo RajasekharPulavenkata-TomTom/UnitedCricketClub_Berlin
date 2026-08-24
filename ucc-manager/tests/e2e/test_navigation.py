@@ -119,3 +119,15 @@ class TestOverlayCleanup:
             page.evaluate(f"location.hash = '{h}'")
         page.wait_for_selector(".spinner-border", state="hidden", timeout=10000)
         assert no_backdrop(page)
+
+
+class TestMatchResultsSections:
+    """Match Results is grouped into per-format sections (T20 / 50 Overs),
+    which are always shown even when there is no data."""
+
+    def test_format_section_headers_present(self, page):
+        nav_to(page, "#match-results")
+        page.wait_for_selector(".sb-section-head", timeout=10000)
+        heads = page.locator(".sb-section-head").all_inner_texts()
+        assert "T20" in heads, f"T20 section header missing (found: {heads})"
+        assert "50 Overs" in heads, f"50 Overs section header missing (found: {heads})"

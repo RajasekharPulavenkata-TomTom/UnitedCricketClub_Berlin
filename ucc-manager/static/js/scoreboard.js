@@ -88,31 +88,27 @@ function _renderSections() {
     const admin = isAdmin();
     const container = document.getElementById("sb-sections");
 
-    if (!_results.length) {
-        container.innerHTML = `<div class="text-center text-muted py-5">
-            <i class="bi bi-trophy" style="font-size:2.5rem;opacity:.25"></i>
-            <p class="mt-3 mb-0">No results yet.${admin ? " Click <strong>Add Result</strong> to get started." : ""}</p>
-        </div>`;
-        return;
-    }
-
     // Group by format bucket, preserving the API's date-desc order within each.
     const groups = {};
     for (const r of _results) (groups[_bucket(r.match_type)] ||= []).push(r);
 
-    // T20 and 50 Overs always shown (with empty states); Other only if present.
+    // T20 and 50 Overs are always shown (with empty states); Other only if present.
     const order = ["T20", "50 Overs"];
     if (groups["Other"]?.length) order.push("Other");
 
+    const yearFiltered = !!document.getElementById("sb-year").value;
     container.innerHTML = order.map(name => {
         const rows = groups[name] || [];
+        const empty = admin
+            ? `No ${name} results${yearFiltered ? " this year" : " yet"} — click <strong>Add Result</strong> to add one.`
+            : `No ${name} results${yearFiltered ? " this year" : " yet"}.`;
         const body = rows.length
             ? rows.map(r => _cardHtml(r, admin)).join("")
-            : `<div class="text-muted small fst-italic py-2">No ${name} results${document.getElementById("sb-year").value ? " this year" : ""}.</div>`;
+            : `<div class="text-muted small fst-italic py-2">${empty}</div>`;
         return `
           <div class="mb-4">
             <div class="d-flex align-items-center justify-content-between flex-wrap gap-2 mb-2 pb-1 border-bottom">
-              <span class="sb-section-head">${name}</span>
+              <h5 class="sb-section-head mb-0">${name}</h5>
               ${rows.length ? _miniStats(rows) : ""}
             </div>
             ${body}
@@ -124,12 +120,12 @@ function _cardHtml(r, admin) {
         const dateStr = new Date(r.date + "T00:00:00").toLocaleDateString("en-GB", { day: "numeric", month: "short", year: "numeric" });
         const scoreHtml = (r.our_score || r.opponent_score)
             ? `<div class="d-flex align-items-center gap-2 flex-wrap mt-1">
-                 <span class="score-block">${r.our_score || "—"}</span>
+                 <span class="score-block">${r.our_score ? _esc(r.our_score) : "—"}</span>
                  <span class="vs-separator">vs</span>
-                 <span class="score-block">${r.opponent_score || "—"}</span>
+                 <span class="score-block">${r.opponent_score ? _esc(r.opponent_score) : "—"}</span>
                </div>`
             : "";
-        const marginHtml = r.margin ? `<span class="text-muted small">by ${r.margin}</span>` : "";
+        const marginHtml = r.margin ? `<span class="text-muted small">by ${_esc(r.margin)}</span>` : "";
         const scorecard  = r.cricclubs_url
             ? `<a href="${r.cricclubs_url}" target="_blank" rel="noopener noreferrer" class="btn btn-sm btn-outline-secondary py-0 px-2" style="font-size:.72rem"><i class="bi bi-box-arrow-up-right me-1"></i>Scorecard</a>`
             : "";

@@ -32,24 +32,33 @@ async function _load() {
     const qs   = year ? `?year=${year}` : "";
     try {
         _results = await apiFetch(`/scoreboard${qs}`);
-        _renderStats();
-        _renderList();
+        _renderSections();
     } catch (e) {
-        document.getElementById("sb-list").innerHTML =
+        document.getElementById("sb-sections").innerHTML =
             `<div class="alert alert-danger">Failed to load results: ${e.message}</div>`;
     }
 }
 
-function _renderStats() {
-    const played = _results.length;
-    const won    = _results.filter(r => r.result === "won").length;
-    const lost   = _results.filter(r => r.result === "lost").length;
-    const winPct = played > 0 ? Math.round((won / played) * 100) : null;
+// Which format bucket a result belongs to. T20 and 50-Overs are the two named
+// sections; everything else (8-Overs, T10, blank) collects under "Other".
+function _bucket(matchType) {
+    const t = (matchType || "").toLowerCase();
+    if (t.includes("50")) return "50 Overs";
+    if (t.includes("t20") || t === "20-overs") return "T20";
+    return "Other";
+}
 
-    document.getElementById("sb-stat-played").textContent = played;
-    document.getElementById("sb-stat-won").textContent    = won;
-    document.getElementById("sb-stat-lost").textContent   = lost;
-    document.getElementById("sb-stat-winpct").textContent = winPct !== null ? `${winPct}%` : "—";
+function _miniStats(rows) {
+    const played = rows.length;
+    const won    = rows.filter(r => r.result === "won").length;
+    const lost   = rows.filter(r => r.result === "lost").length;
+    const winPct = played > 0 ? Math.round((won / played) * 100) : null;
+    return `<span class="sb-mini-stats">
+        Played <span class="sb-pill">${played}</span> ·
+        Won <span class="sb-pill text-success">${won}</span> ·
+        Lost <span class="sb-pill text-danger">${lost}</span> ·
+        Win <span class="sb-pill">${winPct !== null ? winPct + "%" : "—"}</span>
+      </span>`;
 }
 
 function _resultBadge(result) {
@@ -75,19 +84,43 @@ function _homeAwayBadge(ha) {
     return "";
 }
 
-function _renderList() {
+function _renderSections() {
     const admin = isAdmin();
-    const list  = document.getElementById("sb-list");
+    const container = document.getElementById("sb-sections");
 
     if (!_results.length) {
-        list.innerHTML = `<div class="text-center text-muted py-5">
+        container.innerHTML = `<div class="text-center text-muted py-5">
             <i class="bi bi-trophy" style="font-size:2.5rem;opacity:.25"></i>
             <p class="mt-3 mb-0">No results yet.${admin ? " Click <strong>Add Result</strong> to get started." : ""}</p>
         </div>`;
         return;
     }
 
-    list.innerHTML = _results.map(r => {
+    // Group by format bucket, preserving the API's date-desc order within each.
+    const groups = {};
+    for (const r of _results) (groups[_bucket(r.match_type)] ||= []).push(r);
+
+    // T20 and 50 Overs always shown (with empty states); Other only if present.
+    const order = ["T20", "50 Overs"];
+    if (groups["Other"]?.length) order.push("Other");
+
+    container.innerHTML = order.map(name => {
+        const rows = groups[name] || [];
+        const body = rows.length
+            ? rows.map(r => _cardHtml(r, admin)).join("")
+            : `<div class="text-muted small fst-italic py-2">No ${name} results${document.getElementById("sb-year").value ? " this year" : ""}.</div>`;
+        return `
+          <div class="mb-4">
+            <div class="d-flex align-items-center justify-content-between flex-wrap gap-2 mb-2 pb-1 border-bottom">
+              <span class="sb-section-head">${name}</span>
+              ${rows.length ? _miniStats(rows) : ""}
+            </div>
+            ${body}
+          </div>`;
+    }).join("");
+}
+
+function _cardHtml(r, admin) {
         const dateStr = new Date(r.date + "T00:00:00").toLocaleDateString("en-GB", { day: "numeric", month: "short", year: "numeric" });
         const scoreHtml = (r.our_score || r.opponent_score)
             ? `<div class="d-flex align-items-center gap-2 flex-wrap mt-1">
@@ -128,7 +161,6 @@ function _renderList() {
             </div>
           </div>
         </div>`;
-    }).join("");
 }
 
 // ── Admin actions ──────────────────────────────────────────────────────────────

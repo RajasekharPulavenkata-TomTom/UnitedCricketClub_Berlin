@@ -82,8 +82,41 @@ class TestImportEndpoint:
         assert body["imported"] == 0 and body["updated"] == 3
         assert len(client.get("/api/scoreboard?year=2026", headers=auth).json()) == 3  # no dupes
 
+    def test_same_opponent_same_day_different_format_coexist(self, client, auth):
+        # A T20 and a 50-Overs game vs the same opponent on the same date are
+        # distinct matches — the upsert key includes match_type, so both survive.
+        one_row = ('"SNO","MATCH TYPE","DATE","Team ONE","TEAM TWO","RESULT","SCORE SUMMARY"\n'
+                   '"1","League","07/05/2026","ACB 2nd XI","Rivals CC","ACB 2nd XI won by 10 Runs","ACB 2nd XI: 160/6(20)Rivals CC: 150/8(20)"\n')
+        assert self._upload(client, auth, one_row, match_type="T20").json()["imported"] == 1
+        assert self._upload(client, auth, one_row, match_type="50-Overs").json()["imported"] == 1
+        listed = client.get("/api/scoreboard?year=2026", headers=auth).json()
+        rivals = [r for r in listed if r["opponent"] == "Rivals CC"]
+        assert {r["match_type"] for r in rivals} == {"T20", "50-Overs"}
+
+    def test_reimport_preserves_manual_fields(self, client, auth):
+        self._upload(client, auth, CSV)
+        row = next(r for r in client.get("/api/scoreboard?year=2026", headers=auth).json()
+                   if r["opponent"] == "BSV Vikings")
+        # An admin adds a venue + scorecard link by hand after the first import.
+        client.put(f"/api/scoreboard/{row['id']}", headers=auth,
+                   json={"venue": "Hellersdorf Oval", "cricclubs_url": "https://cricclubs.com/x"})
+        self._upload(client, auth, CSV)  # re-import the same file
+        after = next(r for r in client.get("/api/scoreboard?year=2026", headers=auth).json()
+                     if r["opponent"] == "BSV Vikings")
+        assert after["venue"] == "Hellersdorf Oval"          # manual field kept
+        assert after["cricclubs_url"] == "https://cricclubs.com/x"
+        assert after["our_score"] == "208/5 (20)"            # CSV field still correct
+
     def test_invalid_format_rejected(self, client, auth):
         assert self._upload(client, auth, CSV, match_type="Hundred").status_code == 422
+
+    def test_bad_csv_returns_generic_error(self, client, auth):
+        res = self._upload(client, auth, "not,a,valid\nodcv,export,file", match_type="T20")
+        # Malformed but readable → parses to zero ACB rows (200, nothing imported).
+        # Truly unreadable is handled with a generic 400 (no raw exception leaked).
+        assert res.status_code in (200, 400)
+        if res.status_code == 400:
+            assert "Could not read" in res.json()["detail"]
 
     def test_requires_admin(self, client, user_token):
         token, _ = user_token

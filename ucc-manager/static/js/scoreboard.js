@@ -52,14 +52,21 @@ async function _runImport() {
     btn.disabled = true;
     try {
         // Direct fetch (not apiFetch) so the browser sets the multipart boundary.
+        const token = localStorage.getItem("ucc_token");
         const res = await fetch("/api/scoreboard/import", {
             method: "POST",
-            headers: { "Authorization": `Bearer ${localStorage.getItem("ucc_token")}` },
+            headers: token ? { "Authorization": `Bearer ${token}` } : {},
             body: fd,
         });
+        if (res.status === 401) {  // mirror apiFetch: expired session → clear + logout
+            localStorage.removeItem("ucc_token");
+            localStorage.removeItem("ucc_user");
+            window.dispatchEvent(new CustomEvent("ucc:logout"));
+            throw new Error("Session expired. Please log in again.");
+        }
         const data = await res.json().catch(() => ({}));
         if (!res.ok) throw new Error(data.detail || `Import failed (${res.status})`);
-        okEl.innerHTML = `Imported <strong>${data.imported}</strong>, updated <strong>${data.updated}</strong> (of ${data.total} ACB 2nd XI matches found).`;
+        okEl.textContent = `Imported ${Number(data.imported)}, updated ${Number(data.updated)} (of ${Number(data.total)} ACB 2nd XI matches found).`;
         okEl.classList.remove("d-none");
         await _load(true);   // refresh, bypassing the client GET cache
     } catch (e) {

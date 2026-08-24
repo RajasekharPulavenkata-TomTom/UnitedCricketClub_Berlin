@@ -404,18 +404,27 @@ def import_results(
         text = file.file.read().decode("utf-8-sig")  # tolerate a BOM
         rows = parse_odcv_results(text, OUR_TEAM, match_type)
     except Exception as e:
-        raise HTTPException(status_code=400, detail=f"Could not parse CSV: {e}")
+        print(f"[scoreboard.import] CSV parse failed: {e!r}")  # server-side detail only
+        raise HTTPException(status_code=400, detail="Could not read that CSV. Please upload an unmodified ODCV 'Match Results' export.")
+
+    # Fields the CSV is authoritative for. Manually-entered fields (venue,
+    # home_away, cricclubs_url, notes) are preserved on update, never nulled.
+    OWNED = ("our_score", "opponent_score", "result", "margin")
 
     imported = updated = 0
     for r in rows:
         existing = (
             db.query(MatchResult)
-            .filter(MatchResult.date == r["date"], MatchResult.opponent == r["opponent"])
+            .filter(
+                MatchResult.date == r["date"],
+                MatchResult.opponent == r["opponent"],
+                MatchResult.match_type == r["match_type"],   # same opponent/day, different format = different match
+            )
             .first()
         )
         if existing:
-            for k, v in r.items():
-                setattr(existing, k, v)
+            for k in OWNED:
+                setattr(existing, k, r[k])
             updated += 1
         else:
             db.add(MatchResult(**r))

@@ -12,7 +12,9 @@ from models.auth import User
 from schemas.member import MemberCreate, MemberUpdate, MemberOut
 from routers.audit import log
 from dependencies.auth import get_current_user, require_admin
-from services.spielerpass_import import parse_entries, match_entries, filename_to_name, match_name
+from services.spielerpass_import import parse_entries, match_entries, filename_to_name, match_name, build_lookup
+import re
+from urllib.parse import quote
 
 _MAX_PDF_BYTES = 5 * 1024 * 1024  # 5 MB per Spielerpass PDF
 
@@ -42,9 +44,14 @@ def list_members(
     if search:
         q = q.filter(Member.name.ilike(f"%{search}%"))
     members = q.order_by(Member.name).all()
-    # flag who has a Spielerpass PDF without loading any blob
-    with_pass = {mid for (mid,) in db.query(MemberDocument.member_id)
-                 .filter(MemberDocument.kind == "spielerpass").distinct()}
+    # flag who has a Spielerpass PDF without loading any blob, scoped to the
+    # members actually returned (so it doesn't scan the whole documents table)
+    member_ids = [m.id for m in members]
+    with_pass = set()
+    if member_ids:
+        with_pass = {mid for (mid,) in db.query(MemberDocument.member_id)
+                     .filter(MemberDocument.kind == "spielerpass",
+                             MemberDocument.member_id.in_(member_ids)).distinct()}
     for m in members:
         m.has_spielerpass = m.id in with_pass
     return members
@@ -80,32 +87,35 @@ async def upload_spielerpass(files: List[UploadFile] = File(...),
     filename (e.g. 'Chirag_Patel (1).pdf' -> 'Chirag Patel') and stored (one per
     member, replacing any prior). Unmatched filenames are reported, never guessed."""
     members = db.query(Member.id, Member.name, Member.jersey_name).all()
-    member_tuples = [(m.id, m.name, m.jersey_name) for m in members]
+    lookup = build_lookup([(m.id, m.name, m.jersey_name) for m in members])
 
     uploaded, unmatched, skipped = [], [], []
     for f in files:
-        content = await f.read()
+        fname = f.filename or "unnamed"
+        # read one byte past the limit so we can reject oversized files without
+        # pulling an arbitrarily large body fully into memory
+        content = await f.read(_MAX_PDF_BYTES + 1)
         if not content:
             continue
         if len(content) > _MAX_PDF_BYTES:
-            skipped.append(f"{f.filename} (too large)")
+            skipped.append(f"{fname} (too large)")
             continue
         if (f.content_type or "").lower() not in ("application/pdf", "application/octet-stream") \
-                and not f.filename.lower().endswith(".pdf"):
-            skipped.append(f"{f.filename} (not a PDF)")
+                and not fname.lower().endswith(".pdf"):
+            skipped.append(f"{fname} (not a PDF)")
             continue
-        hit = match_name(filename_to_name(f.filename), member_tuples)
+        hit = match_name(filename_to_name(fname), lookup)
         if not hit:
-            unmatched.append(f.filename)
+            unmatched.append(fname)
             continue
         member_id, member_name = hit
         doc = db.query(MemberDocument).filter(
             MemberDocument.member_id == member_id, MemberDocument.kind == "spielerpass").first()
         b64 = base64.b64encode(content).decode()
         if doc:
-            doc.filename, doc.content_type, doc.size, doc.data_b64 = f.filename, "application/pdf", len(content), b64
+            doc.filename, doc.content_type, doc.size, doc.data_b64 = fname, "application/pdf", len(content), b64
         else:
-            db.add(MemberDocument(member_id=member_id, kind="spielerpass", filename=f.filename,
+            db.add(MemberDocument(member_id=member_id, kind="spielerpass", filename=fname,
                                   content_type="application/pdf", size=len(content), data_b64=b64))
         log(db, "updated", "member", member_id, f"Spielerpass PDF uploaded for '{member_name}'", user=current_user)
         uploaded.append(member_name)
@@ -122,8 +132,13 @@ def get_spielerpass(id: int, download: bool = False, db: Session = Depends(get_d
     if not doc:
         raise HTTPException(status_code=404, detail="No Spielerpass on file for this member")
     disp = "attachment" if download else "inline"
+    raw = doc.filename or "spielerpass.pdf"
+    # ASCII fallback (strip quotes/newlines/control chars) + RFC 5987 filename*
+    # for the full name, so a crafted filename can't break or inject headers
+    ascii_name = re.sub(r'[^A-Za-z0-9._-]', "_", raw) or "spielerpass.pdf"
+    cd = f"{disp}; filename=\"{ascii_name}\"; filename*=UTF-8''{quote(raw)}"
     return Response(base64.b64decode(doc.data_b64), media_type=doc.content_type,
-                    headers={"Content-Disposition": f'{disp}; filename="{doc.filename}"'})
+                    headers={"Content-Disposition": cd})
 
 
 @router.delete("/members/{id}/spielerpass", status_code=204)

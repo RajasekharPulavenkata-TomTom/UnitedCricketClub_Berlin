@@ -66,11 +66,15 @@ async function runSpielerpassUpload() {
         }
         const data = await res.json().catch(() => ({}));
         if (!res.ok) throw new Error(data.detail || `Upload failed (${res.status})`);
-        const un = data.unmatched.length
-            ? `<div class="alert alert-warning py-2 small mb-0">Not matched (rename to the player's name &amp; retry): ${data.unmatched.map(escHtml).join(", ")}</div>` : "";
-        const sk = data.skipped.length
-            ? `<div class="alert alert-secondary py-2 small mb-0 mt-1">Skipped: ${data.skipped.map(escHtml).join(", ")}</div>` : "";
-        resEl.innerHTML = `<div class="alert alert-success py-2 small mb-2">Uploaded <strong>${data.uploaded.length}</strong> pass${data.uploaded.length === 1 ? "" : "es"}.</div>${un}${sk}`;
+        // tolerate a partial/changed body — never let a missing field mask the result
+        const uploaded = Array.isArray(data.uploaded) ? data.uploaded : [];
+        const unmatched = Array.isArray(data.unmatched) ? data.unmatched : [];
+        const skipped = Array.isArray(data.skipped) ? data.skipped : [];
+        const un = unmatched.length
+            ? `<div class="alert alert-warning py-2 small mb-0">Not matched (rename to the player's name &amp; retry): ${unmatched.map(escHtml).join(", ")}</div>` : "";
+        const sk = skipped.length
+            ? `<div class="alert alert-secondary py-2 small mb-0 mt-1">Skipped: ${skipped.map(escHtml).join(", ")}</div>` : "";
+        resEl.innerHTML = `<div class="alert alert-success py-2 small mb-2">Uploaded <strong>${uploaded.length}</strong> pass${uploaded.length === 1 ? "" : "es"}.</div>${un}${sk}`;
         resEl.classList.remove("d-none");
         await load();
     } catch (e) {
@@ -87,9 +91,26 @@ window._viewSpielerpass = async (id, download = false) => {
         const token = localStorage.getItem("ucc_token");
         const res = await fetch(`/api/members/${id}/spielerpass${download ? "?download=true" : ""}`,
             { headers: token ? { "Authorization": `Bearer ${token}` } : {} });
+        if (res.status === 401) {
+            localStorage.removeItem("ucc_token"); localStorage.removeItem("ucc_user");
+            window.dispatchEvent(new CustomEvent("ucc:logout"));
+            throw new Error("Session expired. Please log in again.");
+        }
         if (!res.ok) throw new Error("Could not load the Spielerpass");
         const url = URL.createObjectURL(await res.blob());
-        window.open(url, "_blank");
+        if (download) {
+            // blob URLs ignore Content-Disposition, so drive the download via an anchor
+            const cd = res.headers.get("Content-Disposition") || "";
+            const m = /filename\*?=(?:UTF-8''|")?([^";]+)/i.exec(cd);
+            const a = document.createElement("a");
+            a.href = url;
+            a.download = m ? decodeURIComponent(m[1].replace(/"$/, "")) : "spielerpass.pdf";
+            document.body.appendChild(a);
+            a.click();
+            a.remove();
+        } else {
+            window.open(url, "_blank");
+        }
         setTimeout(() => URL.revokeObjectURL(url), 60000);
     } catch (e) {
         showToast(e.message, "error");
@@ -183,7 +204,7 @@ function render() {
           <td>${m.ball_type ? `<span class="badge ${ballColors[m.ball_type] || "bg-secondary"}">${escHtml(m.ball_type)}</span>` : "—"}</td>
           <td class="text-nowrap">
             <code class="small">${escHtml(m.dcb_id || "—")}</code>
-            ${m.has_spielerpass ? `<a href="#" class="ms-1 small" title="View Spielerpass PDF" onclick="event.preventDefault();event.stopPropagation();window._viewSpielerpass(${m.id})"><i class="bi bi-file-earmark-pdf text-danger"></i></a>` : ""}
+            ${m.has_spielerpass ? `<a href="#" class="ms-1 small" title="View Spielerpass PDF" aria-label="View Spielerpass PDF for ${escHtml(m.name)}" onclick="event.preventDefault();event.stopPropagation();window._viewSpielerpass(${m.id})"><i class="bi bi-file-earmark-pdf text-danger" aria-hidden="true"></i></a>` : ""}
           </td>
           <td class="text-center" onclick="event.stopPropagation()">
             <input type="checkbox" ${m.cricheroes ? "checked" : ""} onchange="window._toggleField(${m.id}, 'cricheroes', this.checked)" />

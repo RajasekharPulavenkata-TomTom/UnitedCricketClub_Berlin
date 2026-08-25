@@ -40,14 +40,23 @@ def filename_to_name(filename: str) -> str:
     return re.sub(r"[_]+", " ", stem).strip()
 
 
-def match_name(name: str, members: list[tuple]):
-    """Return (member_id, member_name) for a single name, or None. members:
-    iterable of (id, name, jersey_name)."""
+def build_lookup(members: list[tuple]) -> dict[str, tuple]:
+    """Build a normalised name/jersey-name -> (id, name) index once, so callers
+    matching many inputs don't rebuild it per lookup. members: iterable of
+    (id, name, jersey_name)."""
     lookup: dict[str, tuple] = {}
     for mid, mname, jersey in members:
         for key in (_norm(mname), _norm(jersey)):
             if key:
                 lookup.setdefault(key, (mid, mname))
+    return lookup
+
+
+def match_name(name: str, members: list[tuple] | dict[str, tuple]):
+    """Return (member_id, member_name) for a single name, or None. `members` may
+    be the raw (id, name, jersey_name) tuples or a prebuilt lookup from
+    build_lookup() — pass the latter when matching many names in a loop."""
+    lookup = members if isinstance(members, dict) else build_lookup(members)
     return lookup.get(_norm(name))
 
 

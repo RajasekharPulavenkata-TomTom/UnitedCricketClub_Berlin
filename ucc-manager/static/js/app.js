@@ -244,26 +244,47 @@ function bootApp() {
 
     // Service Worker — cached assets on repeat visits, with automatic update on
     // deploy. sw.js skipWaiting()s and claims clients, so a new deploy fires
-    // controllerchange on open pages; we then reload once to pick up the new
-    // assets (this is what makes a fresh deploy show up without a manual hard
-    // refresh). Loop-safe: controllerchange only fires once per SW takeover, and
-    // the reloaded page's controller is already current so it won't fire again.
+    // controllerchange on open pages; we reload once to pick up the new assets
+    // (this is what makes a fresh deploy show up without a manual hard refresh).
     if ("serviceWorker" in navigator) {
-        // On the very first visit there's no controller yet; that initial
-        // controllerchange is the SW taking control, not an update — don't reload.
-        const hadController = !!navigator.serviceWorker.controller;
         navigator.serviceWorker.register("/sw.js").catch(() => {});
+
+        // The FIRST controllerchange on a brand-new visit (no controller yet) is
+        // the SW's initial takeover, not a deploy — skip that one, reload on every
+        // one after. A per-event flag (not a constant) so later deploys in the
+        // same long-open tab still reload.
+        let _swSkipNext = !navigator.serviceWorker.controller;
         let _swReloading = false;
-        navigator.serviceWorker.addEventListener("controllerchange", () => {
-            if (!hadController || _swReloading) return;
+        let _swUpdatePending = false;
+
+        // Don't clobber unsaved work: defer the reload while the user is actively
+        // interacting with a visible page (an open dialog, or a focused field).
+        const _busyOnScreen = () => {
+            if (document.visibilityState !== "visible") return false;
+            if (document.querySelector(".modal.show")) return true;
+            const el = document.activeElement;
+            return !!el && (el.tagName === "INPUT" || el.tagName === "TEXTAREA" || el.isContentEditable);
+        };
+        const _reloadForUpdate = () => {
+            if (_swReloading) return;
+            if (_busyOnScreen()) { _swUpdatePending = true; return; }
             _swReloading = true;
             window.location.reload();
+        };
+
+        navigator.serviceWorker.addEventListener("controllerchange", () => {
+            if (_swSkipNext) { _swSkipNext = false; return; }
+            _reloadForUpdate();
         });
-        // Long-open tabs: re-check for a new SW when the tab regains focus, so a
-        // deploy is picked up without needing a manual navigation.
+
+        // Apply a deferred update as soon as it's safe (dialog closed, tab hidden).
+        document.addEventListener("hidden.bs.modal", () => { if (_swUpdatePending) _reloadForUpdate(); });
         document.addEventListener("visibilitychange", () => {
             if (document.visibilityState === "visible") {
+                // Long-open tab regained focus — check for a new deploy.
                 navigator.serviceWorker.getRegistration().then(r => r && r.update()).catch(() => {});
+            } else if (_swUpdatePending) {
+                _reloadForUpdate();  // tab hidden — safe to apply the pending update
             }
         });
     }

@@ -242,32 +242,31 @@ function bootApp() {
         a.addEventListener("mouseleave", () => clearTimeout(hoverTimer));
     });
 
-    // Service Worker — cached assets on repeat visits; banner when a new version deploys
+    // Service Worker — cached assets on repeat visits, with automatic update on
+    // deploy. sw.js skipWaiting()s and claims clients, so a new deploy fires
+    // controllerchange on open pages; we then reload once to pick up the new
+    // assets (this is what makes a fresh deploy show up without a manual hard
+    // refresh). Loop-safe: controllerchange only fires once per SW takeover, and
+    // the reloaded page's controller is already current so it won't fire again.
     if ("serviceWorker" in navigator) {
-        // Capture before registering: if there's already a controller this is a returning
-        // visit; a subsequent controllerchange means an actual update landed.
-        // On first-ever visit (no controller yet) we skip the banner.
+        // On the very first visit there's no controller yet; that initial
+        // controllerchange is the SW taking control, not an update — don't reload.
         const hadController = !!navigator.serviceWorker.controller;
         navigator.serviceWorker.register("/sw.js").catch(() => {});
         let _swReloading = false;
         navigator.serviceWorker.addEventListener("controllerchange", () => {
             if (!hadController || _swReloading) return;
             _swReloading = true;
-            _showUpdateBanner();
+            window.location.reload();
+        });
+        // Long-open tabs: re-check for a new SW when the tab regains focus, so a
+        // deploy is picked up without needing a manual navigation.
+        document.addEventListener("visibilitychange", () => {
+            if (document.visibilityState === "visible") {
+                navigator.serviceWorker.getRegistration().then(r => r && r.update()).catch(() => {});
+            }
         });
     }
-}
-
-function _showUpdateBanner() {
-    const el = document.createElement("div");
-    el.id = "ucc-update-banner";
-    el.innerHTML =
-        `<i class="bi bi-arrow-clockwise me-1"></i>` +
-        `<span>New version available.</span>` +
-        `<button class="btn btn-sm btn-light ms-3 fw-semibold" onclick="location.reload()">Refresh</button>` +
-        `<button class="btn-close btn-close-white ms-2" aria-label="Dismiss"></button>`;
-    el.querySelector(".btn-close").addEventListener("click", () => el.remove());
-    document.body.appendChild(el);
 }
 
 async function _loadSponsorsFooter() {

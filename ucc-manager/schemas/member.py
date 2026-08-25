@@ -54,5 +54,6 @@ class MemberOut(MemberBase):
     id: int
     is_active: bool
     created_at: Optional[datetime] = None
+    has_spielerpass: bool = False   # whether a Spielerpass PDF is on file (set by the list endpoint)
 
     model_config = {"from_attributes": True}

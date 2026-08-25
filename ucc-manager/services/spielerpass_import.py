@@ -33,6 +33,24 @@ def _norm(s: str | None) -> str:
     return re.sub(r"\s+", " ", (s or "").strip().lower())
 
 
+def filename_to_name(filename: str) -> str:
+    """'Manoj Varma_Sri Vatchavai (1).pdf' -> 'Manoj Varma Sri Vatchavai'."""
+    stem = re.sub(r"\.[A-Za-z0-9]+$", "", filename)      # drop extension
+    stem = re.sub(r"\s*\(\d+\)\s*$", "", stem)           # drop trailing " (1)"
+    return re.sub(r"[_]+", " ", stem).strip()
+
+
+def match_name(name: str, members: list[tuple]):
+    """Return (member_id, member_name) for a single name, or None. members:
+    iterable of (id, name, jersey_name)."""
+    lookup: dict[str, tuple] = {}
+    for mid, mname, jersey in members:
+        for key in (_norm(mname), _norm(jersey)):
+            if key:
+                lookup.setdefault(key, (mid, mname))
+    return lookup.get(_norm(name))
+
+
 def match_entries(entries: list[dict], members: list[tuple]) -> tuple[list[dict], list[dict]]:
     """members: iterable of (id, name, jersey_name). Returns (matched, unmatched).
     matched items carry member_id + member_name; unmatched carry the input name."""

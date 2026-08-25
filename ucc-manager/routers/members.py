@@ -1,5 +1,6 @@
 from typing import List, Optional
 from fastapi import APIRouter, Depends, HTTPException
+from pydantic import BaseModel
 from sqlalchemy import func
 from sqlalchemy.orm import Session
 from database import get_db
@@ -8,8 +9,13 @@ from models.auth import User
 from schemas.member import MemberCreate, MemberUpdate, MemberOut
 from routers.audit import log
 from dependencies.auth import get_current_user, require_admin
+from services.spielerpass_import import parse_entries, match_entries
 
 router = APIRouter(prefix="/api", tags=["members"])
+
+
+class SpielerpassImport(BaseModel):
+    text: str
 
 
 @router.get("/members/summary")
@@ -53,6 +59,33 @@ def create_member(data: MemberCreate, db: Session = Depends(get_db), current_use
     db.commit()
     db.refresh(member)
     return member
+
+
+@router.post("/members/import-spielerpass")
+def import_spielerpass(data: SpielerpassImport, db: Session = Depends(get_db),
+                       current_user: User = Depends(require_admin)):
+    """Bulk-set the DCB Spielerpass number (stored in the DCB ID field) from a
+    pasted 'Name = DCB…' list. Matches by name/jersey-name; unmatched names are
+    reported, never guessed. Idempotent."""
+    entries = parse_entries(data.text)
+    members = db.query(Member.id, Member.name, Member.jersey_name).all()
+    matched, unmatched = match_entries(entries, [(m.id, m.name, m.jersey_name) for m in members])
+
+    updated = 0
+    for hit in matched:
+        member = db.query(Member).filter(Member.id == hit["member_id"]).first()
+        if member and member.dcb_id != hit["number"]:
+            member.dcb_id = hit["number"]
+            log(db, "updated", "member", member.id,
+                f"DCB Spielerpass no. set for '{member.name}'", user=current_user)
+        updated += 1
+    db.commit()
+    return {
+        "parsed": len(entries),
+        "updated": updated,
+        "unmatched": [u["name"] for u in unmatched],
+        "matched": [{"name": m["member_name"], "number": m["number"]} for m in matched],
+    }
 
 
 @router.put("/members/{id}", response_model=MemberOut)

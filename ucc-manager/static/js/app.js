@@ -242,32 +242,52 @@ function bootApp() {
         a.addEventListener("mouseleave", () => clearTimeout(hoverTimer));
     });
 
-    // Service Worker — cached assets on repeat visits; banner when a new version deploys
+    // Service Worker — cached assets on repeat visits, with automatic update on
+    // deploy. sw.js skipWaiting()s and claims clients, so a new deploy fires
+    // controllerchange on open pages; we reload once to pick up the new assets
+    // (this is what makes a fresh deploy show up without a manual hard refresh).
     if ("serviceWorker" in navigator) {
-        // Capture before registering: if there's already a controller this is a returning
-        // visit; a subsequent controllerchange means an actual update landed.
-        // On first-ever visit (no controller yet) we skip the banner.
-        const hadController = !!navigator.serviceWorker.controller;
         navigator.serviceWorker.register("/sw.js").catch(() => {});
+
+        // The FIRST controllerchange on a brand-new visit (no controller yet) is
+        // the SW's initial takeover, not a deploy — skip that one, reload on every
+        // one after. A per-event flag (not a constant) so later deploys in the
+        // same long-open tab still reload.
+        let _swSkipNext = !navigator.serviceWorker.controller;
         let _swReloading = false;
-        navigator.serviceWorker.addEventListener("controllerchange", () => {
-            if (!hadController || _swReloading) return;
+        let _swUpdatePending = false;
+
+        // Don't clobber unsaved work: defer the reload while the user is actively
+        // interacting with a visible page (an open dialog, or a focused field).
+        const _busyOnScreen = () => {
+            if (document.visibilityState !== "visible") return false;
+            if (document.querySelector(".modal.show")) return true;
+            const el = document.activeElement;
+            return !!el && (el.tagName === "INPUT" || el.tagName === "TEXTAREA" || el.isContentEditable);
+        };
+        const _reloadForUpdate = () => {
+            if (_swReloading) return;
+            if (_busyOnScreen()) { _swUpdatePending = true; return; }
             _swReloading = true;
-            _showUpdateBanner();
+            window.location.reload();
+        };
+
+        navigator.serviceWorker.addEventListener("controllerchange", () => {
+            if (_swSkipNext) { _swSkipNext = false; return; }
+            _reloadForUpdate();
+        });
+
+        // Apply a deferred update as soon as it's safe (dialog closed, tab hidden).
+        document.addEventListener("hidden.bs.modal", () => { if (_swUpdatePending) _reloadForUpdate(); });
+        document.addEventListener("visibilitychange", () => {
+            if (document.visibilityState === "visible") {
+                // Long-open tab regained focus — check for a new deploy.
+                navigator.serviceWorker.getRegistration().then(r => r && r.update()).catch(() => {});
+            } else if (_swUpdatePending) {
+                _reloadForUpdate();  // tab hidden — safe to apply the pending update
+            }
         });
     }
-}
-
-function _showUpdateBanner() {
-    const el = document.createElement("div");
-    el.id = "ucc-update-banner";
-    el.innerHTML =
-        `<i class="bi bi-arrow-clockwise me-1"></i>` +
-        `<span>New version available.</span>` +
-        `<button class="btn btn-sm btn-light ms-3 fw-semibold" onclick="location.reload()">Refresh</button>` +
-        `<button class="btn-close btn-close-white ms-2" aria-label="Dismiss"></button>`;
-    el.querySelector(".btn-close").addEventListener("click", () => el.remove());
-    document.body.appendChild(el);
 }
 
 async function _loadSponsorsFooter() {

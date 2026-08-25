@@ -14,7 +14,49 @@ export async function init() {
     document.getElementById("filter-active").addEventListener("change", render);
     document.getElementById("filter-ball-type").addEventListener("change", render);
 
+    if (isAdmin()) {
+        document.getElementById("btn-import-spielerpass").classList.remove("d-none");
+        document.getElementById("btn-import-spielerpass").addEventListener("click", () => {
+            document.getElementById("sp-import-error").classList.add("d-none");
+            document.getElementById("sp-import-result").classList.add("d-none");
+            bootstrap.Modal.getOrCreateInstance(document.getElementById("spielerpassModal")).show();
+        });
+        document.getElementById("btn-sp-import-run").addEventListener("click", runSpielerpassImport);
+    }
+
     await load();
+}
+
+async function runSpielerpassImport() {
+    const errEl = document.getElementById("sp-import-error");
+    const resEl = document.getElementById("sp-import-result");
+    const btn = document.getElementById("btn-sp-import-run");
+    errEl.classList.add("d-none");
+    resEl.classList.add("d-none");
+    const text = document.getElementById("sp-import-text").value.trim();
+    if (!text) {
+        errEl.textContent = "Paste the Name = DCB… list first.";
+        errEl.classList.remove("d-none");
+        return;
+    }
+    btn.disabled = true;
+    try {
+        const r = await apiFetch("/members/import-spielerpass", {
+            method: "POST", body: JSON.stringify({ text }),
+        });
+        const unmatched = r.unmatched.length
+            ? `<div class="alert alert-warning py-2 small mb-0">Not matched (fix manually): ${r.unmatched.map(escHtml).join(", ")}</div>`
+            : "";
+        resEl.innerHTML =
+            `<div class="alert alert-success py-2 small mb-2">Updated <strong>${Number(r.updated)}</strong> of ${Number(r.parsed)} entries.</div>${unmatched}`;
+        resEl.classList.remove("d-none");
+        await load();  // apiFetch evicts the /members cache on the POST, so this is fresh
+    } catch (e) {
+        errEl.textContent = e.message;
+        errEl.classList.remove("d-none");
+    } finally {
+        btn.disabled = false;
+    }
 }
 
 async function load() {

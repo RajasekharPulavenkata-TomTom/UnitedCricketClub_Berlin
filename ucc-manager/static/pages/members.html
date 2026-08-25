@@ -20,7 +20,10 @@
           <label class="form-check-label" for="filter-active">Active only</label>
         </div>
       </div>
-      <div class="col-auto ms-auto">
+      <div class="col-auto ms-auto d-flex gap-2">
+        <button class="btn btn-outline-secondary btn-sm d-none" id="btn-import-spielerpass">
+          <i class="bi bi-card-text me-1"></i>Import Spielerpass
+        </button>
         <button class="btn btn-success btn-sm" id="btn-add-member">
           <i class="bi bi-plus-lg me-1"></i>Add Member
         </button>
@@ -53,6 +56,29 @@
           <tr><td colspan="12" class="text-center py-4 text-muted">Loading…</td></tr>
         </tbody>
       </table>
+    </div>
+  </div>
+</div>
+
+<!-- Import Spielerpass Modal -->
+<div class="modal fade" id="spielerpassModal" tabindex="-1">
+  <div class="modal-dialog modal-lg modal-dialog-centered">
+    <div class="modal-content">
+      <div class="modal-header">
+        <h5 class="modal-title"><i class="bi bi-card-text me-2"></i>Import Spielerpass Numbers</h5>
+        <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+      </div>
+      <div class="modal-body">
+        <p class="text-muted small mb-2">Paste one player per line as <code>Name = DCB…number</code> (any separator works). The number is saved to each player's <strong>DCB ID</strong>. Players are matched by name; anything that doesn't match is listed so you can fix it manually. Existing values are updated.</p>
+        <textarea id="sp-import-text" class="form-control font-monospace" rows="10"
+                  placeholder="Chirag Patel = DCB0M55166&#10;Vinal Kamble = DCB0M41414&#10;…"></textarea>
+        <div id="sp-import-error" class="alert alert-danger py-2 small d-none mt-2"></div>
+        <div id="sp-import-result" class="mt-2 d-none"></div>
+      </div>
+      <div class="modal-footer">
+        <button class="btn btn-secondary btn-sm" data-bs-dismiss="modal">Close</button>
+        <button id="btn-sp-import-run" class="btn btn-success btn-sm"><i class="bi bi-card-text me-1"></i>Import</button>
+      </div>
     </div>
   </div>
 </div>

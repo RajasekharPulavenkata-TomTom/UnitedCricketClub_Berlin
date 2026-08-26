@@ -22,10 +22,106 @@ export async function init() {
             bootstrap.Modal.getOrCreateInstance(document.getElementById("spielerpassModal")).show();
         });
         document.getElementById("btn-sp-import-run").addEventListener("click", runSpielerpassImport);
+
+        document.getElementById("btn-upload-spielerpass").classList.remove("d-none");
+        document.getElementById("btn-upload-spielerpass").addEventListener("click", () => {
+            document.getElementById("sp-upload-files").value = "";
+            document.getElementById("sp-upload-error").classList.add("d-none");
+            document.getElementById("sp-upload-result").classList.add("d-none");
+            bootstrap.Modal.getOrCreateInstance(document.getElementById("spielerpassUploadModal")).show();
+        });
+        document.getElementById("btn-sp-upload-run").addEventListener("click", runSpielerpassUpload);
     }
 
     await load();
 }
+
+async function runSpielerpassUpload() {
+    const errEl = document.getElementById("sp-upload-error");
+    const resEl = document.getElementById("sp-upload-result");
+    const btn = document.getElementById("btn-sp-upload-run");
+    errEl.classList.add("d-none");
+    resEl.classList.add("d-none");
+    const files = document.getElementById("sp-upload-files").files;
+    if (!files.length) {
+        errEl.textContent = "Choose one or more PDF files first.";
+        errEl.classList.remove("d-none");
+        return;
+    }
+    const fd = new FormData();
+    for (const f of files) fd.append("files", f);
+    btn.disabled = true;
+    try {
+        // Direct fetch (not apiFetch) so the browser sets the multipart boundary.
+        const token = localStorage.getItem("ucc_token");
+        const res = await fetch("/api/members/spielerpass/upload", {
+            method: "POST",
+            headers: token ? { "Authorization": `Bearer ${token}` } : {},
+            body: fd,
+        });
+        if (res.status === 401) {
+            localStorage.removeItem("ucc_token"); localStorage.removeItem("ucc_user");
+            window.dispatchEvent(new CustomEvent("ucc:logout"));
+            throw new Error("Session expired. Please log in again.");
+        }
+        const data = await res.json().catch(() => ({}));
+        if (!res.ok) throw new Error(data.detail || `Upload failed (${res.status})`);
+        // tolerate a partial/changed body — never let a missing field mask the result
+        const uploaded = Array.isArray(data.uploaded) ? data.uploaded : [];
+        const unmatched = Array.isArray(data.unmatched) ? data.unmatched : [];
+        const skipped = Array.isArray(data.skipped) ? data.skipped : [];
+        const un = unmatched.length
+            ? `<div class="alert alert-warning py-2 small mb-0">Not matched (rename to the player's name &amp; retry): ${unmatched.map(escHtml).join(", ")}</div>` : "";
+        const sk = skipped.length
+            ? `<div class="alert alert-secondary py-2 small mb-0 mt-1">Skipped: ${skipped.map(escHtml).join(", ")}</div>` : "";
+        resEl.innerHTML = `<div class="alert alert-success py-2 small mb-2">Uploaded <strong>${uploaded.length}</strong> pass${uploaded.length === 1 ? "" : "es"}.</div>${un}${sk}`;
+        resEl.classList.remove("d-none");
+        await load();
+    } catch (e) {
+        errEl.textContent = e.message;
+        errEl.classList.remove("d-none");
+    } finally {
+        btn.disabled = false;
+    }
+}
+
+// PDFs need the auth header, so fetch as a blob and open it rather than a plain link.
+window._viewSpielerpass = async (id, download = false) => {
+    // Open the tab synchronously (still inside the click gesture) — a window.open
+    // after the awaits below would be treated as a pop-up and blocked.
+    const win = download ? null : window.open("", "_blank");
+    try {
+        const token = localStorage.getItem("ucc_token");
+        const res = await fetch(`/api/members/${id}/spielerpass${download ? "?download=true" : ""}`,
+            { headers: token ? { "Authorization": `Bearer ${token}` } : {} });
+        if (res.status === 401) {
+            localStorage.removeItem("ucc_token"); localStorage.removeItem("ucc_user");
+            window.dispatchEvent(new CustomEvent("ucc:logout"));
+            throw new Error("Session expired. Please log in again.");
+        }
+        if (!res.ok) throw new Error("Could not load the Spielerpass");
+        const url = URL.createObjectURL(await res.blob());
+        if (download) {
+            // blob URLs ignore Content-Disposition, so drive the download via an anchor
+            const cd = res.headers.get("Content-Disposition") || "";
+            const m = /filename\*?=(?:UTF-8''|")?([^";]+)/i.exec(cd);
+            const a = document.createElement("a");
+            a.href = url;
+            a.download = m ? decodeURIComponent(m[1].replace(/"$/, "")) : "spielerpass.pdf";
+            document.body.appendChild(a);
+            a.click();
+            a.remove();
+        } else if (win) {
+            win.location = url;
+        } else {
+            window.open(url, "_blank");
+        }
+        setTimeout(() => URL.revokeObjectURL(url), 60000);
+    } catch (e) {
+        if (win) win.close();
+        showToast(e.message, "error");
+    }
+};
 
 async function runSpielerpassImport() {
     const errEl = document.getElementById("sp-import-error");
@@ -112,7 +208,10 @@ function render() {
           </td>
           <td>${m.role ? `<span class="badge ${roleColors[m.role] || "bg-secondary"}">${escHtml(m.role)}</span>` : "—"}</td>
           <td>${m.ball_type ? `<span class="badge ${ballColors[m.ball_type] || "bg-secondary"}">${escHtml(m.ball_type)}</span>` : "—"}</td>
-          <td><code class="small">${escHtml(m.dcb_id || "—")}</code></td>
+          <td class="text-nowrap">
+            <code class="small">${escHtml(m.dcb_id || "—")}</code>
+            ${m.has_spielerpass ? `<a href="#" class="ms-1 small" title="View Spielerpass PDF" aria-label="View Spielerpass PDF for ${escHtml(m.name)}" onclick="event.preventDefault();event.stopPropagation();window._viewSpielerpass(${m.id})"><i class="bi bi-file-earmark-pdf text-danger" aria-hidden="true"></i></a>` : ""}
+          </td>
           <td class="text-center" onclick="event.stopPropagation()">
             <input type="checkbox" ${m.cricheroes ? "checked" : ""} onchange="window._toggleField(${m.id}, 'cricheroes', this.checked)" />
           </td>

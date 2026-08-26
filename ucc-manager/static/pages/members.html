@@ -20,9 +20,12 @@
           <label class="form-check-label" for="filter-active">Active only</label>
         </div>
       </div>
-      <div class="col-auto ms-auto d-flex gap-2">
+      <div class="col-auto ms-auto d-flex gap-2 flex-wrap">
+        <button class="btn btn-outline-secondary btn-sm d-none" id="btn-upload-spielerpass">
+          <i class="bi bi-file-earmark-pdf me-1"></i>Upload Spielerpass PDFs
+        </button>
         <button class="btn btn-outline-secondary btn-sm d-none" id="btn-import-spielerpass">
-          <i class="bi bi-card-text me-1"></i>Import Spielerpass
+          <i class="bi bi-card-text me-1"></i>Import DCB IDs
         </button>
         <button class="btn btn-success btn-sm" id="btn-add-member">
           <i class="bi bi-plus-lg me-1"></i>Add Member
@@ -60,7 +63,29 @@
   </div>
 </div>
 
-<!-- Import Spielerpass Modal -->
+<!-- Upload Spielerpass PDFs Modal -->
+<div class="modal fade" id="spielerpassUploadModal" tabindex="-1">
+  <div class="modal-dialog modal-lg modal-dialog-centered">
+    <div class="modal-content">
+      <div class="modal-header">
+        <h5 class="modal-title"><i class="bi bi-file-earmark-pdf me-2"></i>Upload Spielerpass PDFs</h5>
+        <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+      </div>
+      <div class="modal-body">
+        <p class="text-muted small mb-2">Select one or more Spielerpass PDFs. Each file is matched to a player by its filename (e.g. <code>Chirag_Patel.pdf</code> → Chirag Patel). Files that don't match a player are listed so you can rename &amp; retry. Re-uploading replaces the existing pass.</p>
+        <input id="sp-upload-files" type="file" accept="application/pdf,.pdf" multiple class="form-control" />
+        <div id="sp-upload-error" class="alert alert-danger py-2 small d-none mt-2"></div>
+        <div id="sp-upload-result" class="mt-2 d-none"></div>
+      </div>
+      <div class="modal-footer">
+        <button class="btn btn-secondary btn-sm" data-bs-dismiss="modal">Close</button>
+        <button id="btn-sp-upload-run" class="btn btn-success btn-sm"><i class="bi bi-file-earmark-pdf me-1"></i>Upload</button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- Import DCB IDs Modal -->
 <div class="modal fade" id="spielerpassModal" tabindex="-1">
   <div class="modal-dialog modal-lg modal-dialog-centered">
     <div class="modal-content">

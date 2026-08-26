@@ -36,6 +36,22 @@ export async function init() {
     await load();
 }
 
+// Vercel rejects request bodies over ~4.5 MB with a 413 before they reach the
+// app, so a bulk selection must be sent as several requests, each under budget.
+const _UPLOAD_BATCH_BUDGET = 3.5 * 1024 * 1024;
+
+function batchBySize(files, budget) {
+    const batches = [], tooLarge = [];
+    let cur = [], curSize = 0;
+    for (const f of files) {
+        if (f.size > budget) { tooLarge.push(`${f.name} (too large)`); continue; }
+        if (curSize + f.size > budget) { batches.push(cur); cur = []; curSize = 0; }
+        cur.push(f); curSize += f.size;
+    }
+    if (cur.length) batches.push(cur);
+    return { batches, tooLarge };
+}
+
 async function runSpielerpassUpload() {
     const errEl = document.getElementById("sp-upload-error");
     const resEl = document.getElementById("sp-upload-result");
@@ -48,28 +64,34 @@ async function runSpielerpassUpload() {
         errEl.classList.remove("d-none");
         return;
     }
-    const fd = new FormData();
-    for (const f of files) fd.append("files", f);
+    const { batches, tooLarge } = batchBySize([...files], _UPLOAD_BATCH_BUDGET);
+    const uploaded = [], unmatched = [], skipped = [...tooLarge];
+    const btnHtml = btn.innerHTML;
     btn.disabled = true;
     try {
-        // Direct fetch (not apiFetch) so the browser sets the multipart boundary.
         const token = localStorage.getItem("ucc_token");
-        const res = await fetch("/api/members/spielerpass/upload", {
-            method: "POST",
-            headers: token ? { "Authorization": `Bearer ${token}` } : {},
-            body: fd,
-        });
-        if (res.status === 401) {
-            localStorage.removeItem("ucc_token"); localStorage.removeItem("ucc_user");
-            window.dispatchEvent(new CustomEvent("ucc:logout"));
-            throw new Error("Session expired. Please log in again.");
+        for (let i = 0; i < batches.length; i++) {
+            if (batches.length > 1) btn.textContent = `Uploading ${i + 1}/${batches.length}…`;
+            const fd = new FormData();
+            for (const f of batches[i]) fd.append("files", f);
+            // Direct fetch (not apiFetch) so the browser sets the multipart boundary.
+            const res = await fetch("/api/members/spielerpass/upload", {
+                method: "POST",
+                headers: token ? { "Authorization": `Bearer ${token}` } : {},
+                body: fd,
+            });
+            if (res.status === 401) {
+                localStorage.removeItem("ucc_token"); localStorage.removeItem("ucc_user");
+                window.dispatchEvent(new CustomEvent("ucc:logout"));
+                throw new Error("Session expired. Please log in again.");
+            }
+            const data = await res.json().catch(() => ({}));
+            if (!res.ok) throw new Error(data.detail || `Upload failed (${res.status})`);
+            // tolerate a partial/changed body — never let a missing field mask the result
+            if (Array.isArray(data.uploaded)) uploaded.push(...data.uploaded);
+            if (Array.isArray(data.unmatched)) unmatched.push(...data.unmatched);
+            if (Array.isArray(data.skipped)) skipped.push(...data.skipped);
         }
-        const data = await res.json().catch(() => ({}));
-        if (!res.ok) throw new Error(data.detail || `Upload failed (${res.status})`);
-        // tolerate a partial/changed body — never let a missing field mask the result
-        const uploaded = Array.isArray(data.uploaded) ? data.uploaded : [];
-        const unmatched = Array.isArray(data.unmatched) ? data.unmatched : [];
-        const skipped = Array.isArray(data.skipped) ? data.skipped : [];
         const un = unmatched.length
             ? `<div class="alert alert-warning py-2 small mb-0">Not matched (rename to the player's name &amp; retry): ${unmatched.map(escHtml).join(", ")}</div>` : "";
         const sk = skipped.length
@@ -78,10 +100,14 @@ async function runSpielerpassUpload() {
         resEl.classList.remove("d-none");
         await load();
     } catch (e) {
-        errEl.textContent = e.message;
+        errEl.textContent = uploaded.length
+            ? `${e.message} — ${uploaded.length} pass${uploaded.length === 1 ? "" : "es"} uploaded before the error.`
+            : e.message;
         errEl.classList.remove("d-none");
+        if (uploaded.length) await load();
     } finally {
         btn.disabled = false;
+        btn.innerHTML = btnHtml;
     }
 }
 

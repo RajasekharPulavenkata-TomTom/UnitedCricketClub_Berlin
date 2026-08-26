@@ -55,6 +55,27 @@ class TestUpload:
         assert body["uploaded"] == []
         assert body["skipped"] == ["Chirag_Patel.txt (not a PDF)"]
 
+    def test_large_pdf_round_trips_byte_identical(self, client, auth, make_member):
+        # a realistically sized (~600 KB) payload survives the base64 store/serve
+        # path byte-identical — not just the tiny synthetic fixture above
+        m = make_member("Chirag Patel")
+        big = b"%PDF-1.4\n" + bytes(range(256)) * 2400  # ~600 KB, all byte values
+        res = client.post("/api/members/spielerpass/upload", headers=auth,
+                          files=_files(("Chirag_Patel.pdf", big)))
+        assert res.json()["uploaded"] == ["Chirag Patel"]
+        served = client.get(f"/api/members/{m.id}/spielerpass", headers=auth)
+        assert served.status_code == 200
+        assert served.content == big
+
+    def test_oversized_pdf_skipped(self, client, auth, make_member):
+        make_member("Chirag Patel")
+        too_big = b"%PDF-1.4\n" + b"\x00" * (5 * 1024 * 1024)  # just over the 5 MB cap
+        res = client.post("/api/members/spielerpass/upload", headers=auth,
+                          files=_files(("Chirag_Patel.pdf", too_big)))
+        body = res.json()
+        assert body["uploaded"] == []
+        assert body["skipped"] == ["Chirag_Patel.pdf (too large)"]
+
     def test_requires_admin(self, client, user_token, make_member):
         make_member("Chirag Patel")
         token, _ = user_token

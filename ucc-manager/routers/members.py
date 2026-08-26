@@ -136,7 +136,7 @@ def get_spielerpass(id: int, download: bool = False, db: Session = Depends(get_d
     # ASCII fallback (strip quotes/newlines/control chars) + RFC 5987 filename*
     # for the full name, so a crafted filename can't break or inject headers
     ascii_name = re.sub(r'[^A-Za-z0-9._-]', "_", raw) or "spielerpass.pdf"
-    cd = f"{disp}; filename=\"{ascii_name}\"; filename*=UTF-8''{quote(raw)}"
+    cd = f"{disp}; filename=\"{ascii_name}\"; filename*=UTF-8''{quote(raw, safe='')}"
     return Response(base64.b64decode(doc.data_b64), media_type=doc.content_type,
                     headers={"Content-Disposition": cd})
 

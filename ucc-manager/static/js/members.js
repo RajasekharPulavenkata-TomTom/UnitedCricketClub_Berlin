@@ -87,6 +87,9 @@ async function runSpielerpassUpload() {
 
 // PDFs need the auth header, so fetch as a blob and open it rather than a plain link.
 window._viewSpielerpass = async (id, download = false) => {
+    // Open the tab synchronously (still inside the click gesture) — a window.open
+    // after the awaits below would be treated as a pop-up and blocked.
+    const win = download ? null : window.open("", "_blank");
     try {
         const token = localStorage.getItem("ucc_token");
         const res = await fetch(`/api/members/${id}/spielerpass${download ? "?download=true" : ""}`,
@@ -108,11 +111,14 @@ window._viewSpielerpass = async (id, download = false) => {
             document.body.appendChild(a);
             a.click();
             a.remove();
+        } else if (win) {
+            win.location = url;
         } else {
             window.open(url, "_blank");
         }
         setTimeout(() => URL.revokeObjectURL(url), 60000);
     } catch (e) {
+        if (win) win.close();
         showToast(e.message, "error");
     }
 };

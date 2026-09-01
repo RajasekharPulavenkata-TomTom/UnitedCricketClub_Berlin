@@ -87,7 +87,7 @@ def create_event(data: EventCreate, db: Session = Depends(get_db), current_user:
 
 
 @router.put("/events/{id}", response_model=EventOut)
-def update_event(id: int, data: EventUpdate, db: Session = Depends(get_db), current_user: User = Depends(get_current_user)):
+def update_event(id: int, data: EventUpdate, db: Session = Depends(get_db), current_user: User = Depends(require_admin)):
     event = db.query(Event).options(joinedload(Event.availability)).filter(Event.id == id).first()
     if not event:
         raise HTTPException(status_code=404, detail="Event not found")
@@ -100,7 +100,7 @@ def update_event(id: int, data: EventUpdate, db: Session = Depends(get_db), curr
 
 
 @router.delete("/events/{id}", status_code=204)
-def delete_event(id: int, db: Session = Depends(get_db), current_user: User = Depends(get_current_user)):
+def delete_event(id: int, db: Session = Depends(get_db), current_user: User = Depends(require_admin)):
     event = db.query(Event).filter(Event.id == id).first()
     if not event:
         raise HTTPException(status_code=404, detail="Event not found")

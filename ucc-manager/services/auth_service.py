@@ -1,8 +1,9 @@
 import hashlib
 import os
 import bcrypt
+import jwt
 from datetime import datetime, timedelta, timezone
-from jose import JWTError, jwt
+from jwt import InvalidTokenError as JWTError
 from fastapi import HTTPException
 from sqlalchemy.orm import Session
 from models.auth import User
@@ -13,13 +14,17 @@ ALGORITHM = "HS256"
 
 # Startup guard: a deployed environment must never sign JWTs with the public
 # dev-default key — anyone could then forge an admin token. Fail loudly at
-# import (boot/build) rather than run insecure. Local dev (VERCEL_ENV unset)
-# and previews keep the convenient default.
-if os.environ.get("VERCEL_ENV") == "production" and SECRET_KEY == _DEV_SECRET:
+# import (boot/build) rather than run insecure. This fires on ANY Vercel
+# environment (production AND preview), not just production: preview
+# deployments share the same Neon database as production (see vercel_build.py),
+# so a forgeable token minted against a preview grants access to production
+# data. Only local dev (VERCEL_ENV unset) keeps the convenient default.
+if os.environ.get("VERCEL_ENV") and SECRET_KEY == _DEV_SECRET:
     raise RuntimeError(
-        "UCC_SECRET_KEY is not set in production — refusing to start with the "
-        "insecure dev default (tokens would be forgeable). Set it in the Vercel "
-        "project environment variables."
+        "UCC_SECRET_KEY is not set — refusing to start a deployed environment "
+        "with the insecure dev default (tokens would be forgeable, and previews "
+        "share the production database). Set it in the Vercel project "
+        "environment variables."
     )
 TOKEN_EXPIRE_MINUTES = int(os.environ.get("UCC_TOKEN_EXPIRE_MINUTES", "480"))
 

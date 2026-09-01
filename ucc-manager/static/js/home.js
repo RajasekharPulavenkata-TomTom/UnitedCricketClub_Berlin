@@ -1,4 +1,4 @@
-import { apiFetch, fmt } from "/js/api.js";
+import { apiFetch, fmt, escHtml } from "/js/api.js";
 import { fetchWeatherRange, wmoInfo, swingInfo } from "/js/weather.js?v=5";
 
 // One ranged open-meteo call covers every date this page can show (weather is
@@ -484,13 +484,13 @@ function renderTasks(tasks) {
             return `
             <li class="list-group-item px-3 py-2" style="background:${bg}">
               <div class="d-flex justify-content-between align-items-start">
-                <div class="small fw-semibold text-truncate me-2" style="max-width:140px">${t.title}</div>
+                <div class="small fw-semibold text-truncate me-2" style="max-width:140px">${escHtml(t.title)}</div>
                 <span class="badge ${t.status === "in_progress" ? "bg-primary" : "bg-warning text-dark"} text-nowrap">
                   ${statusLabel[t.status]}
                 </span>
               </div>
               <div class="text-muted" style="font-size:.75rem">
-                ${t.assigned_to ? t.assigned_to.name : "Unassigned"}
+                ${t.assigned_to ? escHtml(t.assigned_to.name) : "Unassigned"}
                 ${t.due_date ? ` · <span class="${overdue ? "text-danger fw-semibold" : ""}">${fmt.date(t.due_date)}</span>` : ""}
               </div>
             </li>`;
@@ -516,7 +516,7 @@ function renderFinance(data) {
         ${txList.map((t) => `
           <li class="list-group-item d-flex justify-content-between align-items-start px-3 py-2">
             <div>
-              <div class="small fw-semibold">${t.description || "—"}</div>
+              <div class="small fw-semibold">${escHtml(t.description || "—")}</div>
               <div class="text-muted" style="font-size:.75rem">${fmt.date(t.date)}</div>
             </div>
             <span class="fw-semibold ${t.type === "income" ? "text-success" : "text-danger"}">

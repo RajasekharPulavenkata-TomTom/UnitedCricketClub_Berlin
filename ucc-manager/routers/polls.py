@@ -4,6 +4,7 @@ from datetime import datetime, timezone
 from fastapi import APIRouter, Depends, HTTPException
 from pydantic import BaseModel
 from sqlalchemy import func
+from sqlalchemy.exc import IntegrityError
 from sqlalchemy.orm import Session, selectinload
 from database import get_db
 from models.poll import Poll, PollOption, PollVote, PollAnonymousVoter
@@ -252,7 +253,14 @@ def cast_vote(poll_id: int, data: VoteCast, db: Session = Depends(get_db), curre
         for oid in option_ids:
             db.add(PollVote(poll_id=poll_id, option_id=oid, user_id=current_user.id))
 
-    db.commit()
+    # A concurrent double-submit can pass the check above and only collide at
+    # commit (the anonymous-voter table is uniquely constrained); surface the
+    # same "already voted" 400 instead of a 500.
+    try:
+        db.commit()
+    except IntegrityError:
+        db.rollback()
+        raise HTTPException(status_code=400, detail="You have already voted in this poll")
     poll = _load_poll(db, poll_id)
     return _poll_out_single(db, poll, current_user)
 

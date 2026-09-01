@@ -11,7 +11,7 @@ from schemas.accounting import (
 from services import accounting_service
 from routers.audit import log
 from models.auth import User
-from dependencies.auth import get_current_user
+from dependencies.auth import require_admin
 
 router = APIRouter(prefix="/api", tags=["accounting"])
 
@@ -27,7 +27,7 @@ def list_categories(type: Optional[str] = None, db: Session = Depends(get_db)):
 
 
 @router.post("/categories", response_model=CategoryOut, status_code=201)
-def create_category(data: CategoryCreate, db: Session = Depends(get_db)):
+def create_category(data: CategoryCreate, db: Session = Depends(get_db), current_user: User = Depends(require_admin)):
     if db.query(Category).filter(Category.name == data.name).first():
         raise HTTPException(status_code=409, detail="Category name already exists")
     cat = Category(**data.model_dump())
@@ -38,7 +38,7 @@ def create_category(data: CategoryCreate, db: Session = Depends(get_db)):
 
 
 @router.put("/categories/{id}", response_model=CategoryOut)
-def update_category(id: int, data: CategoryUpdate, db: Session = Depends(get_db)):
+def update_category(id: int, data: CategoryUpdate, db: Session = Depends(get_db), current_user: User = Depends(require_admin)):
     cat = db.query(Category).filter(Category.id == id).first()
     if not cat:
         raise HTTPException(status_code=404, detail="Category not found")
@@ -50,7 +50,7 @@ def update_category(id: int, data: CategoryUpdate, db: Session = Depends(get_db)
 
 
 @router.delete("/categories/{id}", status_code=204)
-def delete_category(id: int, db: Session = Depends(get_db)):
+def delete_category(id: int, db: Session = Depends(get_db), current_user: User = Depends(require_admin)):
     cat = db.query(Category).filter(Category.id == id).first()
     if not cat:
         raise HTTPException(status_code=404, detail="Category not found")
@@ -88,7 +88,7 @@ def list_transactions(
 
 
 @router.post("/transactions", response_model=TransactionOut, status_code=201)
-def create_transaction(data: TransactionCreate, db: Session = Depends(get_db), current_user: User = Depends(get_current_user)):
+def create_transaction(data: TransactionCreate, db: Session = Depends(get_db), current_user: User = Depends(require_admin)):
     if data.category_id:
         cat = db.query(Category).filter(Category.id == data.category_id).first()
         if not cat:
@@ -113,7 +113,7 @@ def get_transaction(id: int, db: Session = Depends(get_db)):
 
 
 @router.put("/transactions/{id}", response_model=TransactionOut)
-def update_transaction(id: int, data: TransactionUpdate, db: Session = Depends(get_db), current_user: User = Depends(get_current_user)):
+def update_transaction(id: int, data: TransactionUpdate, db: Session = Depends(get_db), current_user: User = Depends(require_admin)):
     tx = db.query(Transaction).filter(Transaction.id == id).first()
     if not tx:
         raise HTTPException(status_code=404, detail="Transaction not found")
@@ -126,7 +126,7 @@ def update_transaction(id: int, data: TransactionUpdate, db: Session = Depends(g
 
 
 @router.delete("/transactions/{id}", status_code=204)
-def delete_transaction(id: int, db: Session = Depends(get_db), current_user: User = Depends(get_current_user)):
+def delete_transaction(id: int, db: Session = Depends(get_db), current_user: User = Depends(require_admin)):
     tx = db.query(Transaction).filter(Transaction.id == id).first()
     if not tx:
         raise HTTPException(status_code=404, detail="Transaction not found")

@@ -130,8 +130,9 @@ def remove_team(id: int, tid: int, db: Session = Depends(get_db), user: User = D
 
 
 @router.patch("/{id}/teams/{tid}/captain", response_model=IntTournamentOut)
-def set_team_captain(id: int, tid: int, body: TeamCaptainSet, db: Session = Depends(get_db)):
+def set_team_captain(id: int, tid: int, body: TeamCaptainSet, db: Session = Depends(get_db), user: User = Depends(get_current_user)):
     t = _get_or_404(db, id)
+    _require_captain_or_admin(user, t.captain_id)
     team = next((team for team in t.teams if team.id == tid), None)
     if not team:
         raise HTTPException(status_code=404, detail="Team not found")

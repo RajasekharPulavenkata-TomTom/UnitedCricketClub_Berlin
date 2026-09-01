@@ -34,9 +34,7 @@ def _receipt_no(r: Receipt) -> str:
     return f"UCC-{r.date.year}-{r.id:03d}"
 
 
-def _out(r: Receipt, db: Session, with_signature: bool) -> dict:
-    paid_by = db.query(User).filter(User.id == r.paid_by_id).first() if r.paid_by_id else None
-    event = db.query(Event).filter(Event.id == r.event_id).first() if r.event_id else None
+def _format(r: Receipt, paid_by: User | None, event: Event | None, with_signature: bool) -> dict:
     out = {
         "id":             r.id,
         "receipt_no":     _receipt_no(r),
@@ -53,6 +51,12 @@ def _out(r: Receipt, db: Session, with_signature: bool) -> dict:
     if with_signature:
         out["signature"] = r.signature
     return out
+
+
+def _out(r: Receipt, db: Session, with_signature: bool) -> dict:
+    paid_by = db.query(User).filter(User.id == r.paid_by_id).first() if r.paid_by_id else None
+    event = db.query(Event).filter(Event.id == r.event_id).first() if r.event_id else None
+    return _format(r, paid_by, event, with_signature)
 
 
 @router.post("", status_code=201)
@@ -83,7 +87,12 @@ def create_receipt(
 def list_receipts(db: Session = Depends(get_db)):
     # signatures excluded: they are ~10-20 KB each and only the detail view needs them
     rows = db.query(Receipt).order_by(Receipt.date.desc(), Receipt.id.desc()).limit(200).all()
-    return [_out(r, db, with_signature=False) for r in rows]
+    # Batch-load the referenced users/events once instead of two queries per row.
+    user_ids = {r.paid_by_id for r in rows if r.paid_by_id}
+    event_ids = {r.event_id for r in rows if r.event_id}
+    users = {u.id: u for u in db.query(User).filter(User.id.in_(user_ids))} if user_ids else {}
+    events = {e.id: e for e in db.query(Event).filter(Event.id.in_(event_ids))} if event_ids else {}
+    return [_format(r, users.get(r.paid_by_id), events.get(r.event_id), False) for r in rows]
 
 
 @router.get("/{id}")

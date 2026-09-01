@@ -21,8 +21,14 @@ app.add_middleware(GZipMiddleware, minimum_size=500)
 
 # API responses that are identical for every user and change rarely — safe to
 # cache on Vercel's CDN. Only list endpoints whose payload contains no
-# user-specific or sensitive data (public match scores, sponsor logos).
-_CDN_CACHEABLE_API = ("/api/scoreboard/cricclubs", "/api/sponsors")
+# user-specific or sensitive data (public match scores).
+#
+# NOTE: /api/sponsors is deliberately NOT here. Its payload varies by role
+# (admins see inactive sponsors too) and it is auth-gated, but on a CDN cache
+# HIT the function — and therefore its auth dependency — never runs, so a
+# cached admin response would be served to unauthenticated callers. Never add
+# an endpoint whose response depends on the caller to this list.
+_CDN_CACHEABLE_API = ("/api/scoreboard/cricclubs",)
 
 
 @app.middleware("http")

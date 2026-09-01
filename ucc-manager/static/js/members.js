@@ -8,7 +8,13 @@ let allMembers = [];
 export async function init() {
     modal = new bootstrap.Modal(document.getElementById("memberModal"));
 
-    document.getElementById("btn-add-member").addEventListener("click", () => openModal());
+    // Member create/edit is admin-only server-side; don't show players an
+    // "Add Member" button that would only 403.
+    if (isAdmin()) {
+        document.getElementById("btn-add-member").addEventListener("click", () => openModal());
+    } else {
+        document.getElementById("btn-add-member").classList.add("d-none");
+    }
     document.getElementById("member-form").addEventListener("submit", onSubmit);
     document.getElementById("filter-search").addEventListener("input", render);
     document.getElementById("filter-active").addEventListener("change", render);
@@ -239,22 +245,24 @@ function render() {
             ${m.has_spielerpass ? `<a href="#" class="ms-1 small" title="View Spielerpass PDF" aria-label="View Spielerpass PDF for ${escHtml(m.name)}" onclick="event.preventDefault();event.stopPropagation();window._viewSpielerpass(${m.id})"><i class="bi bi-file-earmark-pdf text-danger" aria-hidden="true"></i></a>` : ""}
           </td>
           <td class="text-center" onclick="event.stopPropagation()">
-            <input type="checkbox" ${m.cricheroes ? "checked" : ""} onchange="window._toggleField(${m.id}, 'cricheroes', this.checked)" />
+            <input type="checkbox" ${m.cricheroes ? "checked" : ""} ${isAdmin() ? "" : "disabled"} onchange="window._toggleField(${m.id}, 'cricheroes', this.checked)" />
           </td>
           <td class="text-center" onclick="event.stopPropagation()">
-            <input type="checkbox" ${m.cricclubs ? "checked" : ""} onchange="window._toggleField(${m.id}, 'cricclubs', this.checked)" />
+            <input type="checkbox" ${m.cricclubs ? "checked" : ""} ${isAdmin() ? "" : "disabled"} onchange="window._toggleField(${m.id}, 'cricclubs', this.checked)" />
           </td>
           <td>${m.is_active
             ? `<span class="badge bg-success">Active</span>`
             : `<span class="badge bg-secondary">Inactive</span>`}</td>
           <td class="no-print">
+            ${isAdmin() ? `
             <button class="btn btn-sm btn-outline-secondary me-1" onclick="window._editMember(${m.id})">
               <i class="bi bi-pencil"></i>
             </button>
             <button class="btn btn-sm btn-outline-${m.is_active ? "danger" : "success"} me-1" onclick="window._toggleMember(${m.id}, ${m.is_active})" title="${m.is_active ? "Deactivate" : "Activate"}">
               <i class="bi bi-person-${m.is_active ? "dash" : "check"}"></i>
             </button>
-            ${isAdmin() ? `<button class="btn btn-sm btn-outline-danger" onclick="window._deleteMember(${m.id}, '${escHtml(m.name)}')" title="Permanently delete player"><i class="bi bi-trash"></i></button>` : ""}
+            <button class="btn btn-sm btn-outline-danger" onclick="window._deleteMember(${m.id}, '${escHtml(m.name)}')" title="Permanently delete player"><i class="bi bi-trash"></i></button>
+            ` : `<span class="text-muted small">—</span>`}
           </td>
         </tr>`).join("");
 }

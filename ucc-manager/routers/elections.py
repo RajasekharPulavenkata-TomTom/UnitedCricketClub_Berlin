@@ -4,6 +4,7 @@ from datetime import datetime, timezone
 from fastapi import APIRouter, Depends, HTTPException
 from pydantic import BaseModel
 from sqlalchemy import func
+from sqlalchemy.exc import IntegrityError
 from sqlalchemy.orm import Session, selectinload
 from database import get_db
 from models.election import Election, ElectionCandidate, ElectionVote, ElectionVoter, ElectionNomination
@@ -151,7 +152,15 @@ def _maybe_open_voting(db: Session, election: Election) -> Election | None:
     for nom in election.nominations:
         db.add(ElectionCandidate(election_id=election.id, member_id=nom.member_id))
     election.status = "voting"
-    db.commit()
+    # This runs from GET handlers, so two concurrent reads can both try to open
+    # voting. ElectionCandidate is uniquely constrained per (election, member),
+    # so the loser collides here: swallow it, and return the election the winner
+    # already opened — without re-sending the "voting is open" email to everyone.
+    try:
+        db.commit()
+    except IntegrityError:
+        db.rollback()
+        return _load(db, election.id)
     loaded = _load(db, election.id)
     candidate_names = [c.member.name for c in loaded.candidates if c.member]
     _notify_voting(election.title, candidate_names, election.seats, _member_emails(db))
@@ -402,7 +411,14 @@ def cast_vote(
     # Votes table: WHICH candidates got votes (no voter link — preserves anonymity)
     for cid in candidate_ids:
         db.add(ElectionVote(election_id=election_id, candidate_id=cid))
-    db.commit()
+    # A concurrent double-submit can pass the check above and only collide at
+    # commit (ElectionVoter is uniquely constrained); surface the same
+    # "already voted" 400 instead of a 500.
+    try:
+        db.commit()
+    except IntegrityError:
+        db.rollback()
+        raise HTTPException(status_code=400, detail="You have already voted in this election")
     return _out_single(db, _load(db, election_id), current_user)
 
 

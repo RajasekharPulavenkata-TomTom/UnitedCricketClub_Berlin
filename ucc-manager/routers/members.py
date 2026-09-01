@@ -90,6 +90,12 @@ async def upload_spielerpass(files: List[UploadFile] = File(...),
     lookup = build_lookup([(m.id, m.name, m.jersey_name) for m in members])
 
     uploaded, unmatched, skipped = [], [], []
+    # Cache the doc row per member for THIS batch. Two files can normalize to the
+    # same member (e.g. 'Chirag_Patel.pdf' and 'Chirag_Patel (1).pdf'); with
+    # autoflush disabled a re-query wouldn't see the row added earlier in the loop,
+    # so without this we'd add a second (member_id, kind) row and blow the unique
+    # constraint on commit — rolling back the entire batch.
+    batch_docs: dict[int, MemberDocument] = {}
     for f in files:
         fname = f.filename or "unnamed"
         # read one byte past the limit so we can reject oversized files without
@@ -109,14 +115,18 @@ async def upload_spielerpass(files: List[UploadFile] = File(...),
             unmatched.append(fname)
             continue
         member_id, member_name = hit
-        doc = db.query(MemberDocument).filter(
-            MemberDocument.member_id == member_id, MemberDocument.kind == "spielerpass").first()
+        doc = batch_docs.get(member_id)
+        if doc is None:
+            doc = db.query(MemberDocument).filter(
+                MemberDocument.member_id == member_id, MemberDocument.kind == "spielerpass").first()
         b64 = base64.b64encode(content).decode()
         if doc:
             doc.filename, doc.content_type, doc.size, doc.data_b64 = fname, "application/pdf", len(content), b64
         else:
-            db.add(MemberDocument(member_id=member_id, kind="spielerpass", filename=fname,
-                                  content_type="application/pdf", size=len(content), data_b64=b64))
+            doc = MemberDocument(member_id=member_id, kind="spielerpass", filename=fname,
+                                 content_type="application/pdf", size=len(content), data_b64=b64)
+            db.add(doc)
+        batch_docs[member_id] = doc
         log(db, "updated", "member", member_id, f"Spielerpass PDF uploaded for '{member_name}'", user=current_user)
         uploaded.append(member_name)
     db.commit()
@@ -161,6 +171,8 @@ def import_spielerpass(data: SpielerpassImport, db: Session = Depends(get_db),
     members = db.query(Member.id, Member.name, Member.jersey_name).all()
     matched, unmatched = match_entries(entries, [(m.id, m.name, m.jersey_name) for m in members])
 
+    # "updated" counts every matched entry (the endpoint's idempotent contract,
+    # asserted by tests), not only rows whose value actually changed.
     updated = 0
     for hit in matched:
         member = db.query(Member).filter(Member.id == hit["member_id"]).first()
@@ -179,7 +191,7 @@ def import_spielerpass(data: SpielerpassImport, db: Session = Depends(get_db),
 
 
 @router.put("/members/{id}", response_model=MemberOut)
-def update_member(id: int, data: MemberUpdate, db: Session = Depends(get_db), current_user: User = Depends(get_current_user)):
+def update_member(id: int, data: MemberUpdate, db: Session = Depends(get_db), current_user: User = Depends(require_admin)):
     member = db.query(Member).filter(Member.id == id).first()
     if not member:
         raise HTTPException(status_code=404, detail="Member not found")
@@ -205,7 +217,7 @@ def update_member(id: int, data: MemberUpdate, db: Session = Depends(get_db), cu
 
 
 @router.delete("/members/{id}", status_code=204)
-def deactivate_member(id: int, db: Session = Depends(get_db), current_user: User = Depends(get_current_user)):
+def deactivate_member(id: int, db: Session = Depends(get_db), current_user: User = Depends(require_admin)):
     member = db.query(Member).filter(Member.id == id).first()
     if not member:
         raise HTTPException(status_code=404, detail="Member not found")

@@ -48,7 +48,7 @@ def register(data: RegisterRequest, db: Session = Depends(get_db)):
     if db.query(User).filter(User.username == data.username).first():
         raise HTTPException(status_code=409, detail="Username already taken")
     user = User(
-        username=data.username.strip(),
+        username=data.username,
         full_name=data.full_name,
         hashed_password=hash_password(data.password),
         role="player",

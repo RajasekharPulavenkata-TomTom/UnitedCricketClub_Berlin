@@ -1,4 +1,4 @@
-import { apiFetch, showToast, fmt } from "/js/api.js";
+import { apiFetch, showToast, fmt, escHtml } from "/js/api.js";
 
 let modal;
 let playerFbModal;
@@ -529,7 +529,7 @@ function _renderFeedbackHTML(t, tType, captainFb, playerFb, canEditReviews) {
 
     const commentsList = captainFb.comments.length
         ? `<ul class="list-unstyled mt-2 mb-0">
-               ${captainFb.comments.map(c => `<li class="text-muted small mb-1"><i class="bi bi-chat-left-quote me-1"></i>${c}</li>`).join("")}
+               ${captainFb.comments.map(c => `<li class="text-muted small mb-1"><i class="bi bi-chat-left-quote me-1"></i>${escHtml(c)}</li>`).join("")}
            </ul>`
         : "";
 
@@ -540,7 +540,7 @@ function _renderFeedbackHTML(t, tType, captainFb, playerFb, canEditReviews) {
                <div class="small fw-semibold mb-1">${captainFb.my_rating ? "Your rating (click to update):" : "Leave your rating:"}</div>
                ${_stars(captainFb.my_rating, true, "captain-")}
                <textarea class="form-control form-control-sm mt-2" id="captain-fb-comment" rows="2"
-                   placeholder="Optional comment…" maxlength="500">${captainFb.my_comment ?? ""}</textarea>
+                   placeholder="Optional comment…" maxlength="500">${escHtml(captainFb.my_comment ?? "")}</textarea>
                ${submitBtn}
                ${captainFb.my_rating ? `<div class="text-muted small mt-1">Your current rating: ${_stars(captainFb.my_rating)}</div>` : ""}
            </div>`
@@ -562,12 +562,13 @@ function _renderFeedbackHTML(t, tType, captainFb, playerFb, canEditReviews) {
     const rows = playerFb.length
         ? playerFb.map(p => `
             <tr>
-                <td class="fw-semibold">${p.member_name}</td>
+                <td class="fw-semibold">${escHtml(p.member_name)}</td>
                 <td>${_stars(p.rating)}</td>
-                <td class="text-muted small">${p.comment ?? "—"}</td>
+                <td class="text-muted small">${escHtml(p.comment ?? "—")}</td>
                 ${canEditReviews ? `<td class="text-end">
-                    <button class="btn btn-sm btn-outline-secondary"
-                        onclick="window._openPlayerFbModal(${p.member_id}, '${p.member_name.replace(/'/g, "\\'")}', ${p.rating ?? "null"}, \`${(p.comment ?? "").replace(/`/g, "\\`")}\`)">
+                    <button class="btn btn-sm btn-outline-secondary" data-edit-player-fb
+                        data-member-id="${p.member_id}" data-member-name="${escHtml(p.member_name)}"
+                        data-rating="${p.rating ?? ""}" data-comment="${escHtml(p.comment ?? "")}">
                         <i class="bi bi-pencil"></i>
                     </button>
                 </td>` : ""}
@@ -591,6 +592,17 @@ function _renderFeedbackHTML(t, tType, captainFb, playerFb, canEditReviews) {
 }
 
 function _bindFeedbackEvents(t, tType, el) {
+    // Edit-review buttons: values are carried on data-* attributes (not an
+    // inline onclick) so member names / comments can't break out of the markup.
+    el.querySelectorAll("[data-edit-player-fb]").forEach(btn => {
+        btn.addEventListener("click", () => {
+            const d = btn.dataset;
+            window._openPlayerFbModal(
+                Number(d.memberId), d.memberName,
+                d.rating === "" ? null : Number(d.rating), d.comment);
+        });
+    });
+
     // Star picker interaction for captain feedback form
     const picker = el.querySelector("#captain-star-picker");
     if (picker) {

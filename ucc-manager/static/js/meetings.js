@@ -1,4 +1,4 @@
-import { apiFetch, fmt } from "/js/api.js";
+import { apiFetch, fmt, escHtml } from "/js/api.js";
 
 function getRole() {
     try { return JSON.parse(atob(localStorage.getItem("ucc_token").split(".")[1])).role; }
@@ -177,10 +177,10 @@ function renderAgendaItem(item, meeting, onAction) {
     headerRow.className = "d-flex align-items-start justify-content-between gap-2 flex-wrap";
     headerRow.innerHTML = `
       <div class="flex-grow-1">
-        <div class="fw-semibold">${item.title}</div>
-        ${item.description ? `<div class="text-muted small mt-1">${item.description}</div>` : ""}
+        <div class="fw-semibold">${escHtml(item.title)}</div>
+        ${item.description ? `<div class="text-muted small mt-1">${escHtml(item.description)}</div>` : ""}
         <div class="text-muted mt-1" style="font-size:.75rem">
-          Raised by <strong>${item.raised_by}</strong>
+          Raised by <strong>${escHtml(item.raised_by)}</strong>
         </div>
       </div>
       <div class="d-flex align-items-center gap-2 flex-shrink-0 flex-wrap">
@@ -203,8 +203,8 @@ function renderAgendaItem(item, meeting, onAction) {
             const contentDiv = headerRow.querySelector(".flex-grow-1");
             const original = contentDiv.innerHTML;
             contentDiv.innerHTML = `
-              <input class="form-control form-control-sm mb-1" id="edit-title-${item.id}" value="${item.title.replace(/"/g, '&quot;')}" />
-              <textarea class="form-control form-control-sm mb-1" id="edit-desc-${item.id}" rows="2" placeholder="Details (optional)">${item.description || ""}</textarea>
+              <input class="form-control form-control-sm mb-1" id="edit-title-${item.id}" value="${escHtml(item.title)}" />
+              <textarea class="form-control form-control-sm mb-1" id="edit-desc-${item.id}" rows="2" placeholder="Details (optional)">${escHtml(item.description || "")}</textarea>
               <div class="d-flex gap-1">
                 <button class="btn btn-sm btn-primary" id="edit-save-${item.id}"><i class="bi bi-floppy me-1"></i>Save</button>
                 <button class="btn btn-sm btn-secondary" id="edit-cancel-${item.id}">Cancel</button>
@@ -311,7 +311,7 @@ function renderAgendaItem(item, meeting, onAction) {
     if (item.decision && (!admin || !inProgress)) {
         const dec = document.createElement("div");
         dec.className = "mt-2 pt-2 border-top small";
-        dec.innerHTML = `<i class="bi bi-check2-circle me-1 text-success"></i><strong>Decision:</strong> ${item.decision}`;
+        dec.innerHTML = `<i class="bi bi-check2-circle me-1 text-success"></i><strong>Decision:</strong> ${escHtml(item.decision)}`;
         card.appendChild(dec);
     }
 
@@ -343,13 +343,13 @@ function renderMinutesItem(item, meetingId, onRefresh) {
           <div class="d-flex align-items-start justify-content-between gap-2 mb-1">
             <div class="d-flex align-items-start gap-2 flex-grow-1">
               <span class="badge rounded-pill px-2 ${STATUS_BADGE[item.status]}">${STATUS_LABEL[item.status]}</span>
-              <span class="fw-semibold small">${item.title}</span>
+              <span class="fw-semibold small">${escHtml(item.title)}</span>
             </div>
             ${admin ? `<button class="btn btn-outline-secondary btn-sm py-0 px-1 flex-shrink-0" style="font-size:.75rem" title="Edit"><i class="bi bi-pencil"></i></button>` : ""}
           </div>
-          ${item.description ? `<div class="text-muted small">${item.description}</div>` : ""}
+          ${item.description ? `<div class="text-muted small">${escHtml(item.description)}</div>` : ""}
           ${item.decision
-              ? `<div class="small mt-1"><i class="bi bi-check2-circle text-success me-1"></i><strong>Decision:</strong> ${item.decision}</div>`
+              ? `<div class="small mt-1"><i class="bi bi-check2-circle text-success me-1"></i><strong>Decision:</strong> ${escHtml(item.decision)}</div>`
               : `<div class="small text-muted mt-1">No decision recorded.</div>`}`;
 
         if (admin) {
@@ -366,9 +366,9 @@ function renderMinutesItem(item, meetingId, onRefresh) {
               ).join("")}
             </select>
           </div>
-          <input class="form-control form-control-sm mb-1" id="hi-title" value="${item.title.replace(/"/g, '&quot;')}" placeholder="Title" />
-          <textarea class="form-control form-control-sm mb-1" id="hi-desc" rows="2" placeholder="Details (optional)">${item.description || ""}</textarea>
-          <textarea class="form-control form-control-sm mb-2" id="hi-decision" rows="2" placeholder="Decision or action agreed…">${item.decision || ""}</textarea>
+          <input class="form-control form-control-sm mb-1" id="hi-title" value="${escHtml(item.title)}" placeholder="Title" />
+          <textarea class="form-control form-control-sm mb-1" id="hi-desc" rows="2" placeholder="Details (optional)">${escHtml(item.description || "")}</textarea>
+          <textarea class="form-control form-control-sm mb-2" id="hi-decision" rows="2" placeholder="Decision or action agreed…">${escHtml(item.decision || "")}</textarea>
           <div class="d-flex gap-1">
             <button class="btn btn-sm btn-primary" id="hi-save"><i class="bi bi-floppy me-1"></i>Save</button>
             <button class="btn btn-sm btn-secondary" id="hi-cancel">Cancel</button>

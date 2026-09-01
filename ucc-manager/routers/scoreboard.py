@@ -308,9 +308,16 @@ async def cricclubs_scorecard(match_id: int):
             })
         return rows
 
-    # Determine which team is ACB 2nd XI
-    t1id = int(data.get("teamOneId") or data.get("team1Id") or 0)
-    t2id = int(data.get("teamTwoId") or data.get("team2Id") or 0)
+    # Determine which team is ACB 2nd XI. Guard the int() like every other
+    # numeric field pulled from the third-party CricClubs payload — a non-numeric
+    # id should degrade gracefully, not 500.
+    def _as_int(v):
+        try:
+            return int(v)
+        except (TypeError, ValueError):
+            return 0
+    t1id = _as_int(data.get("teamOneId") or data.get("team1Id") or 0)
+    t2id = _as_int(data.get("teamTwoId") or data.get("team2Id") or 0)
     we_t1 = t1id == _ACB_TEAM_ID
 
     our_batting   = _batting(data.get("players1") if we_t1 else data.get("players2"))
@@ -412,23 +419,33 @@ def import_results(
     OWNED = ("our_score", "opponent_score", "result", "margin")
 
     imported = updated = 0
+    # Cache the row per (date, opponent, match_type) for THIS import. Without it,
+    # two CSV lines with the same key would each miss the not-yet-flushed insert
+    # (autoflush is off) and create duplicate MatchResult rows — there is no DB
+    # unique constraint to catch it.
+    batch: dict[tuple, MatchResult] = {}
     for r in rows:
-        existing = (
-            db.query(MatchResult)
-            .filter(
-                MatchResult.date == r["date"],
-                MatchResult.opponent == r["opponent"],
-                MatchResult.match_type == r["match_type"],   # same opponent/day, different format = different match
+        key = (r["date"], r["opponent"], r["match_type"])   # same opponent/day, different format = different match
+        existing = batch.get(key)
+        if existing is None:
+            existing = (
+                db.query(MatchResult)
+                .filter(
+                    MatchResult.date == r["date"],
+                    MatchResult.opponent == r["opponent"],
+                    MatchResult.match_type == r["match_type"],
+                )
+                .first()
             )
-            .first()
-        )
         if existing:
             for k in OWNED:
                 setattr(existing, k, r[k])
             updated += 1
         else:
-            db.add(MatchResult(**r))
+            existing = MatchResult(**r)
+            db.add(existing)
             imported += 1
+        batch[key] = existing
     db.commit()
     return {"imported": imported, "updated": updated, "skipped": 0, "total": len(rows)}
 
